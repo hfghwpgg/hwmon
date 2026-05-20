@@ -5,11 +5,11 @@ Tool for monitoring temperature, voltages and more in real time.
 
 ## Prerequisites
 - Linux (tested on Arch Linux)
-- g++ or clang++ (tested with version 16.1.0)
+- g++ or clang++ (tested with g++ version 16.1.0)
 - CMake (tested with version 4.3.2)
 - Make (tested with version 4.4.1)
 
-## Compilation (for server)
+## Compilation steps (for server)
 0. clone the repository
 ```bash
 git clone https://github.com/hfghwpgg/hwmon.git
