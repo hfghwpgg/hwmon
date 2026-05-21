@@ -16,7 +16,7 @@ Runner::Runner() {
 };
 
 Runner::~Runner() {
-    std::cout << "program finished" << std::endl;
+    std::cout << "runner stopped" << std::endl;
 }
 
 void Runner::Setup() {

@@ -2,3 +2,4 @@
 build
 commit.txt
 *.bak
+.cache

@@ -12,7 +12,7 @@ int main()
 {
     std::cout << "hello world:" << std::endl;
     // test();
-    auto d = std::make_unique<Device>("/sys/class/hwmon/hwmon0");
+    auto d = std::make_unique<Device>("/sys/class/hwmon/hwmon3");
 
 
     
