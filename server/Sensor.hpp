@@ -1,25 +1,28 @@
 #pragma once
+#include <fstream>
 #include <string>
-#include <limits>
-#include "Sensor_types.hpp"
+#include <filesystem>
+#include "SensorTypes.hpp"
+#include "SensorReading.hpp"
 
 class Sensor
 {
 public:
     Sensor(
+        std::filesystem::path path,
         std::string name,
-        std::string nice_name,
-        Type type,
-        float value,
-        float min_value,
-        float max_value);
-    void updateValue(float value);
-
-private:
+        SensorTypes type
+    );
+    ~Sensor();
+    void updateValue();
+    SensorReading getReadings();
+    
+    private:
+    std::ifstream file;
     const std::string name;
-    const std::string nice_name;
-    const Type type;
-    float value;
-    const float min_value;
-    const float max_value;
+    const SensorTypes type;
+    SensorReading readings;
+    
+    int readFile();
 };
+

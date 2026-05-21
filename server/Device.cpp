@@ -1,7 +1,7 @@
-#include "Device.hpp"
 #include <filesystem>
 #include <iostream>
 #include <map>
+#include "Device.hpp"
 
 namespace fs = std::filesystem;
 using std::string;

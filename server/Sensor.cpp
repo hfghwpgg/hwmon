@@ -1,21 +1,60 @@
+#include <cmath>
+#include <fstream>
+#include <iterator>
+#include <limits>
+#include <iostream>
+#include <ostream>
+#include <string>
 #include "Sensor.hpp"
+#include "SensorReading.hpp"
+#include "SensorTypes.hpp"
 
-Sensor::Sensor(
-    std::string name,
-    std::string nice_name,
-    Type type,
-    float value,
-    float min_value,
-    float max_value) : name(name),
-                       nice_name(nice_name),
-                       type(type),
-                       value(value),
-                       min_value(std::numeric_limits<float>::quiet_NaN()),
-                       max_value(std::numeric_limits<float>::quiet_NaN())
-{
+Sensor::Sensor
+    (
+        std::filesystem::path path,
+        std::string name,
+        SensorTypes type
+    ) : file(path),
+        name(name),
+        type(type),
+        readings{0, 
+            NAN, 
+            NAN, 
+            0, 
+            0}
+        {
+            std::cout << "sensor init: " << path << std::endl;
+            if (!file.is_open()) {
+                std::cout << "unable to open file: " << path << std::endl;
+                throw;
+            }
+        }
+
+Sensor::~Sensor() {
+    file.close();
+    std::cout << "sensor destroyed" << std::endl;
 }
 
-void Sensor::updateValue(float value)
-{
-    this->value = value;
+int Sensor::readFile() {
+    file.seekg(0);
+    std::string str;
+    std::getline(file, str);
+    return std::stoi(str);
+}
+void Sensor::updateValue() {
+    float value = readFile();
+    this->readings.value = value;
+    this->readings.sum += value;
+    this->readings.times++;
+
+    if (this->readings.min_value > value || std::isnan(this->readings.min_value)) {
+        this->readings.min_value = value;
+    }
+    if (this->readings.max_value < value || std::isnan(this->readings.max_value)) {
+        this->readings.max_value = value;
+    }
+}
+
+SensorReading Sensor::getReadings() {
+    return this->readings;
 }
