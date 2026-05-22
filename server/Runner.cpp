@@ -1,8 +1,5 @@
-#include <csignal>
 #include <filesystem>
-#include <memory>
 #include <chrono>
-#include <stdexcept>
 #include <thread>
 #include <iostream>
 #include "Runner.hpp"
@@ -12,7 +9,7 @@ namespace fs = std::filesystem;
 
 Runner::Runner() {
     Setup();
-    //Run();
+    Run();
 };
 
 Runner::~Runner() {
@@ -22,13 +19,16 @@ Runner::~Runner() {
 void Runner::Setup() {
     const fs::path Path = "/sys/class/hwmon";
     for (auto &entry : fs::directory_iterator(Path)) {
-        this->Devices.push_back(std::make_unique<Device>(entry.path()));
+        // auto d = new Device(entry.path(), entry.path().stem());
+        this->Devices.emplace_back(entry.path(), entry.path().filename());
     }
 };
 
 void Runner::Run() {
-    throw std::logic_error("unimplemented");
-    // for (auto &dev : Devices) {
-
-    // }
+    while(1) {
+        for (auto &d : Devices) {
+            d.Display();
+        }
+        std::this_thread::sleep_for(std::chrono::seconds{1});
+    }
 }

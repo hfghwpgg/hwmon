@@ -5,13 +5,13 @@
 
 // Edit this list to control which hwmon file suffixes are collected
 // (e.g. temp1_input -> "input", fan2_label -> "label").
-inline constexpr std::array<std::string_view, 3> kSensorAttributeWhitelist = {
+static inline constexpr std::array<std::string_view, 3> kSensorAttributeWhitelist = {
     "input",
     "label",
     "average",
 };
 
-inline bool IsWhitelistedSensorAttribute(std::string_view attribute)
+inline bool isWhitelistedSensorAttribute(std::string_view attribute)
 {
     for (const auto allowed : kSensorAttributeWhitelist)
     {

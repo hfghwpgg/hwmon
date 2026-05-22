@@ -1,48 +1,41 @@
 #include <cmath>
-#include <fstream>
-#include <iterator>
-#include <limits>
 #include <iostream>
 #include <ostream>
 #include <string>
+#include <format>
 #include "Sensor.hpp"
 #include "SensorReading.hpp"
 #include "SensorTypes.hpp"
 
-Sensor::Sensor
-    (
-        std::filesystem::path path,
-        std::string name,
-        SensorTypes type
-    ) : file(path),
+
+Sensor::Sensor(fs::path path,string name, SensorType type) :
+        file(path),
         name(name),
         type(type),
-        readings{0, 
-            NAN, 
-            NAN, 
-            0, 
-            0}
+        readings{0, NAN, NAN, 0, 0}
         {
             std::cout << "sensor init: " << path << std::endl;
             if (!file.is_open()) {
                 std::cout << "unable to open file: " << path << std::endl;
                 throw;
-            }
+            };
         }
 
 Sensor::~Sensor() {
     file.close();
-    std::cout << "sensor destroyed" << std::endl;
+    std::cout << "sensor destroyed: "<< this->name << std::endl;
 }
 
-int Sensor::readFile() {
+float Sensor::readAndPrepareValue() {
     file.seekg(0);
     std::string str;
     std::getline(file, str);
+    
     return std::stoi(str);
 }
 void Sensor::updateValue() {
-    float value = readFile();
+    float value = readAndPrepareValue();
+    if (std::isnan(value)) return;
     this->readings.value = value;
     this->readings.sum += value;
     this->readings.times++;

@@ -1,6 +1,6 @@
 #pragma once
 struct SensorReading {
-    float value;
+    int value;
     float min_value;
     float max_value;
     double sum;

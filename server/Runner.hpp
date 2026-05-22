@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <memory>
 #include "Device.hpp"
 
 using std::vector;
@@ -12,5 +11,5 @@ public:
     void Setup();
     void Run();
 private:
-    vector<std::unique_ptr<Device>> Devices;
+    vector<Device> Devices;
 };
