@@ -31,7 +31,7 @@ float Sensor::readAndPrepareValue() {
   string str;
   std::getline(file, str);
 
-  return roundFloat(std::stof(str) / type, 2);
+  return std::stof(str) / getDivider(type);
 }
 
 void Sensor::updateValue() {

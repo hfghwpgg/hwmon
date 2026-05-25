@@ -16,6 +16,10 @@ int main() {
   // d->Display();
   // std::this_thread::sleep_for(std::chrono::seconds{1});
   // d->Display();
+  // std::this_thread::sleep_for(std::chrono::seconds{1});
+  // d->Display();
+  // std::this_thread::sleep_for(std::chrono::seconds{1});
+  // d->Display();
   // delete d;
 
 
@@ -33,6 +37,7 @@ int main() {
   // }
 
   auto runner = std::make_unique<Runner>();
+  runner->Run();
 
 
   return 0;

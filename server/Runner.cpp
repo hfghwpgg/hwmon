@@ -9,7 +9,6 @@ namespace fs = std::filesystem;
 
 Runner::Runner() {
   Setup();
-  Run();
 };
 
 Runner::~Runner() {

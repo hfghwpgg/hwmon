@@ -27,6 +27,10 @@ float EnergySensor::readAndPrepareValue() {
   }
   auto time = std::chrono::steady_clock::now();
   auto deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(time - lastTime).count();
+  // deliberately used microseconds, cuz interface is in micro joules
+  auto ret = (reading - lastReading) / deltaTime;
 
-  return roundFloat((reading - lastReading) / deltaTime, 2);
+  lastReading = reading;
+  lastTime = time;
+  return ret;
 }
