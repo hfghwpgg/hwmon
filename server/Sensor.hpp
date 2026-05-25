@@ -1,40 +1,35 @@
 #pragma once
-#include <fstream>
-#include <filesystem>
-#include "SensorTypes.hpp"
 #include "SensorReading.hpp"
+#include "SensorTypes.hpp"
+#include <filesystem>
+#include <fstream>
 
-namespace fs = std::filesystem; 
-using std::string;
+namespace fs = std::filesystem;
 using std::ifstream;
+using std::string;
 
 class Sensor {
 public:
-    Sensor(
-        fs::path path,
-        string name,
-        SensorType type
-    );
-    
-    //allow moving
-    Sensor(Sensor&&) noexcept = default;
-    Sensor& operator=(Sensor&&) noexcept = default;
+  Sensor(fs::path path, string name, SensorType type);
 
-    //block copying
-    Sensor(const Sensor&) = delete;
-    Sensor& operator=(const Sensor&) = delete;
+  // allow moving
+  Sensor(Sensor &&) noexcept = default;
+  Sensor &operator=(Sensor &&) noexcept = default;
 
-    ~Sensor();
-    void updateValue();
-    SensorReading getReadings();
-    
-    
+  // block copying
+  Sensor(const Sensor &) = delete;
+  Sensor &operator=(const Sensor &) = delete;
+
+  ~Sensor();
+  void updateValue();
+  SensorReading getReadings();
+
+
 protected:
-    ifstream file;
-    string name;
-    const SensorType type;
-    SensorReading readings;
-    
-    float readAndPrepareValue();
-};
+  virtual float readAndPrepareValue();
 
+  ifstream file;
+  string name;
+  const SensorType type;
+  SensorReading readings;
+};

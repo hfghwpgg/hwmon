@@ -1,17 +1,16 @@
 #pragma once
-#include <chrono>
 #include "Sensor.hpp"
 #include "SensorTypes.hpp"
+#include <chrono>
 
 class EnergySensor : public Sensor {
 public:
-    EnergySensor(
-        fs::path path,
-        string name,
-        SensorType type
-    );
-    float readAndPrepareValue();
+  EnergySensor(fs::path path, string name, SensorType type);
+
 private:
-    long double lastReading;
-    std::chrono::steady_clock::time_point lastTime;
+  float readAndPrepareValue() override;
+
+private:
+  long double lastReading;
+  std::chrono::steady_clock::time_point lastTime;
 };

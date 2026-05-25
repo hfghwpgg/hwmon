@@ -11,12 +11,10 @@ static inline constexpr std::array<std::string_view, 3> kSensorAttributeWhitelis
     "average",
 };
 
-inline bool isWhitelistedSensorAttribute(std::string_view attribute)
-{
-    for (const auto allowed : kSensorAttributeWhitelist)
-    {
-        if (attribute == allowed)
-            return true;
-    }
-    return false;
+inline bool isWhitelistedSensorAttribute(std::string_view attribute) {
+  for (const auto allowed : kSensorAttributeWhitelist) {
+    if (attribute == allowed)
+      return true;
+  }
+  return false;
 }
