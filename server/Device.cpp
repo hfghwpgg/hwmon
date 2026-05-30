@@ -15,6 +15,11 @@
 #include <unordered_map>
 #include <vector>
 
+using std::format;
+using std::string;
+using std::unordered_map;
+using std::vector;
+
 Device::Device(fs::path path, string name) :
     path(path),
     name(name),
@@ -71,7 +76,7 @@ void Device::Initialize() {
 }
 
 void Device::createSensors(unordered_map<string, vector<string>> available_sensors) {
-  for (auto [sensorBase, extensions] : available_sensors) {
+  for (const auto &[sensorBase, extensions] : available_sensors) {
     if (!isInVector<string>(extensions, "input") && !isInVector<string>(extensions, "average")) {
       continue;
     }

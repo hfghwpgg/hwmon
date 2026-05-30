@@ -5,31 +5,33 @@
 #include <fstream>
 
 namespace fs = std::filesystem;
-using std::ifstream;
-using std::string;
+
 
 class Sensor {
 public:
-  Sensor(fs::path path, string name, SensorType type);
+  Sensor(fs::path path, std::string name, SensorType type);
 
   // allow moving
   Sensor(Sensor &&) noexcept = default;
-  Sensor &operator=(Sensor &&) noexcept = default;
 
   // block copying
+  Sensor &operator=(Sensor &&) noexcept = delete;
   Sensor(const Sensor &) = delete;
   Sensor &operator=(const Sensor &) = delete;
 
-  ~Sensor();
+  virtual ~Sensor();
+
+
   void updateValue();
   SensorReading getReadings();
 
 
 protected:
-  virtual float readAndPrepareValue();
+  virtual float PrepareValue();
+  std::string ReadRawSensorString();
 
-  ifstream file;
-  string name;
+  std::ifstream file;
+  std::string name;
   const SensorType type;
   SensorReading readings;
 };

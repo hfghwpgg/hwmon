@@ -7,21 +7,17 @@
 #include <vector>
 
 namespace fs = std::filesystem;
-using std::format;
-using std::string;
-using std::unordered_map;
-using std::vector;
 
 class Device {
 public:
-  Device(fs::path path, string name);
+  Device(fs::path path, std::string name);
   Device(Device &&) noexcept = default;
   Device &operator=(Device &&) noexcept = default;
   Device(const Device &) noexcept = default;
 
   ~Device();
-  SensorType DeduceSensorType(string parsedPart1);
-  void createSensors(unordered_map<string, vector<string>> available_sensors);
+  SensorType DeduceSensorType(std::string parsedPart1);
+  void createSensors(std::unordered_map<std::string, std::vector<std::string>> available_sensors);
   void Initialize();
   void Read();
 
@@ -30,6 +26,6 @@ public:
 
 private:
   fs::path path;
-  string name;
-  vector<std::unique_ptr<Sensor>> Sensors;
+  std::string name;
+  std::vector<std::unique_ptr<Sensor>> Sensors;
 };

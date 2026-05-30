@@ -1,13 +1,14 @@
 #include "Sensor.hpp"
 #include "SensorReading.hpp"
 #include "SensorTypes.hpp"
-#include "roundFloat.hpp"
 #include <cmath>
 #include <format>
 #include <iostream>
 #include <ostream>
+#include <stdexcept>
 #include <string>
 
+using std::string;
 
 Sensor::Sensor(fs::path path, string name, SensorType type) :
     file(path),
@@ -16,8 +17,7 @@ Sensor::Sensor(fs::path path, string name, SensorType type) :
     readings{0, NAN, NAN, 0, 0} {
   std::cout << "sensor init: " << path << std::endl;
   if (!file.is_open()) {
-    std::cout << "unable to open file: " << path << std::endl;
-    throw;
+    throw std::runtime_error(std::format("unable to open file {}", path.string()));
   };
 }
 
@@ -26,16 +26,22 @@ Sensor::~Sensor() {
   std::cout << "sensor destroyed: " << this->name << std::endl;
 }
 
-float Sensor::readAndPrepareValue() {
+
+string Sensor::ReadRawSensorString() {
+  file.clear();
   file.seekg(0);
   string str;
   std::getline(file, str);
+  return str;
+}
 
+float Sensor::PrepareValue() {
+  string str = ReadRawSensorString();
   return std::stof(str) / getDivider(type);
 }
 
 void Sensor::updateValue() {
-  float value = readAndPrepareValue();
+  float value = PrepareValue();
   if (std::isnan(value))
     return;
   this->readings.value = value;

@@ -1,9 +1,10 @@
 #include "EnergySensor.hpp"
 #include "SensorTypes.hpp"
-#include "roundFloat.hpp"
 #include <chrono>
 #include <cmath>
 #include <iostream>
+
+using std::string;
 
 EnergySensor::EnergySensor(fs::path path, string name, SensorType type) :
     Sensor(path, name, type) {
@@ -12,13 +13,8 @@ EnergySensor::EnergySensor(fs::path path, string name, SensorType type) :
   std::cout << "this is an energy sensor" << std::endl;
 }
 
-float EnergySensor::readAndPrepareValue() {
-  std::cout << "IM UISED" << std::endl;
-
-  file.seekg(0);
-  string str;
-  getline(file, str);
-
+float EnergySensor::PrepareValue() {
+  string str = ReadRawSensorString();
   long double reading = stold(str);
 
   if (std::isnan(lastReading)) {

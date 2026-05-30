@@ -5,10 +5,10 @@
 
 class EnergySensor : public Sensor {
 public:
-  EnergySensor(fs::path path, string name, SensorType type);
+  EnergySensor(fs::path path, std::string name, SensorType type);
 
 private:
-  float readAndPrepareValue() override;
+  float PrepareValue() override;
 
 private:
   long double lastReading;

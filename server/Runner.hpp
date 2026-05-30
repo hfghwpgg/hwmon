@@ -1,16 +1,17 @@
 #pragma once
 #include "Device.hpp"
+#include <atomic>
 #include <vector>
-
-using std::vector;
 
 class Runner {
 public:
   Runner();
   ~Runner();
-  void Setup();
   void Run();
+  static void Stop(int sig);
 
 private:
-  vector<Device> Devices;
+  static std::atomic<bool> running;
+  std::vector<Device> Devices;
+  void Setup();
 };
