@@ -11,7 +11,37 @@ Tool for monitoring temperature, voltages and more in real time.
 - CMake (tested with version 4.3.2)
 - Make (tested with version 4.4.1)
 
-## Compilation steps (for server)
+## Server compilation
+
+### Compilation
+
+Recommended way of compiling server is using provided `build_server.sh` shell script
+
+1. clone the repository
+
+```bash
+git clone https://github.com/hfghwpgg/hwmon.git
+```
+
+2. navigate to the project directory
+
+```bash
+cd hwmon
+```
+
+3. run provided shell script to compile the project
+
+```bash
+./build_server.sh
+```
+
+4. the compiled binary will be located in the `build` directory
+
+```bash
+./server/build/Hwmon
+```
+
+### Manual compilation steps
 
 1. clone the repository
 
@@ -46,10 +76,15 @@ make
 6. the compiled binary will be located in the `build` directory
 
 ```bash
-./hwmon
+./Hwmon
 ```
 
 TODO:
 
 - finish server
+  - better error handling
+  - better device name deducing
+  - serializing data to JSON
+  - add UDS output
+
 - make client
