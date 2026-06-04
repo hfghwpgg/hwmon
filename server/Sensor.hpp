@@ -3,6 +3,7 @@
 #include "SensorTypes.hpp"
 #include <filesystem>
 #include <fstream>
+#include <nlohmann/json_fwd.hpp>
 
 namespace fs = std::filesystem;
 
@@ -24,14 +25,16 @@ public:
 
   void updateValue();
   SensorReading getReadings();
+  nlohmann::json Serialize();
 
 
 protected:
-  virtual float PrepareValue();
-  std::string ReadRawSensorString();
+  virtual float prepareValue();
+  std::string readRawSensorString();
 
   std::ifstream file;
   std::string name;
   const SensorType type;
+  const int divider;
   SensorReading readings;
 };

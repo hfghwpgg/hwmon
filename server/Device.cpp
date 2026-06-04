@@ -8,7 +8,9 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 #include <ostream>
+#include <print>
 #include <set>
 #include <string>
 #include <string_view>
@@ -45,7 +47,7 @@ SensorType Device::DeduceSensorType(string parsedPart1) {
   if (it != SensorConfigMap.end()) {
     return it->second;
   }
-  std::cout << format("unable to find type {} for sensor {}", parsedPart1, this->name);
+  std::print("unable to find type {} for sensor {}\n", parsedPart1, this->name);
   return SensorType::UNKNOWN;
 }
 
@@ -72,11 +74,11 @@ void Device::Initialize() {
       }
     }
   }
-  createSensors(available_sensors);
+  CreateSensors(available_sensors);
 }
 
-void Device::createSensors(unordered_map<string, vector<string>> available_sensors) {
-  for (const auto &[sensorBase, extensions] : available_sensors) {
+void Device::CreateSensors(unordered_map<string, vector<string>> availableSensors) {
+  for (const auto &[sensorBase, extensions] : availableSensors) {
     if (!isInVector<string>(extensions, "input") && !isInVector<string>(extensions, "average")) {
       continue;
     }
@@ -103,34 +105,31 @@ void Device::createSensors(unordered_map<string, vector<string>> available_senso
   }
 }
 
-// void Device::Read() {
-//     for (auto a : available_sensors) {
-//         std::cout << a.first << std::endl;
-//         for (string v : a.second)
-//         {
-//             std::cout << v << ',';
-//         }
-//         std::cout << std::endl;
-//     }
-// }
-
 void Device::Read() {
-  for (auto &a : Sensors) {
-    a->updateValue();
-    a->getReadings();
+  for (auto &sensor : Sensors) {
+    sensor->updateValue();
   }
 }
+
+nlohmann::json Device::Serialize() {
+  nlohmann::json j;
+  j["name"] = this->name;
+  for (auto &sensor : Sensors) {
+    j["sensors"] += sensor->Serialize();
+  }
+  return j;
+}
+
 
 // TEMPORARY, TO BE REMOVED
-#include <format>
-void Device::Display() {
-  for (auto &a : Sensors) {
-    a->updateValue();
-    auto read = a->getReadings();
-    if (std::isnan(read.value))
-      return;
+// void Device::Display() {
+//   for (auto &a : Sensors) {
+//     a->updateValue();
+//     auto read = a->getReadings();
+//     if (std::isnan(read.value))
+//       return;
 
-    std::cout << std::format(" val: {}\n min: {}\n max: {}\n avg: {}\n", read.value, read.min_value,
-                             read.max_value, read.sum / read.times);
-  }
-}
+//     std::print(" val: {}\n min: {}\n max: {}\n avg: {}\n", read.value, read.min_value,
+//                read.max_value, read.sum / read.times);
+//   }
+// }

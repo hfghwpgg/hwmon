@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <format>
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -17,9 +18,9 @@ public:
 
   ~Device();
   SensorType DeduceSensorType(std::string parsedPart1);
-  void createSensors(std::unordered_map<std::string, std::vector<std::string>> available_sensors);
-  void Initialize();
+  void CreateSensors(std::unordered_map<std::string, std::vector<std::string>> availableSensors);
   void Read();
+  nlohmann::json Serialize();
 
   // TEMPORARY, TO BE REMOVED
   void Display();
@@ -28,4 +29,6 @@ private:
   fs::path path;
   std::string name;
   std::vector<std::unique_ptr<Sensor>> Sensors;
+
+  void Initialize();
 };

@@ -5,13 +5,14 @@
 
 class Runner {
 public:
-  Runner();
+  Runner(unsigned int intervalMs);
   ~Runner();
   void Run();
-  static void Stop(int sig);
+  static void Interrupt(int sig);
 
 private:
   static std::atomic<bool> running;
-  std::vector<Device> Devices;
+  std::vector<Device> devices;
+  unsigned int intervalMs;
   void Setup();
 };

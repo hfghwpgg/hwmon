@@ -8,7 +8,7 @@ public:
   EnergySensor(fs::path path, std::string name, SensorType type);
 
 private:
-  float PrepareValue() override;
+  float prepareValue() override;
 
 private:
   long double lastReading;

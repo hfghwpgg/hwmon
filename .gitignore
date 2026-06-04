@@ -5,3 +5,4 @@ commit.txt
 *.bak
 .cache
 TODO
+log.txt
