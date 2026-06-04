@@ -8,7 +8,7 @@ struct SensorReading {
   double sum;
   unsigned int times;
 
-  nlohmann::json serialize() {
+  nlohmann::json Serialize() {
     nlohmann::json j;
     j["value"] = this->value;
     j["min_value"] = this->min_value;

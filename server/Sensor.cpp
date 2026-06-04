@@ -7,18 +7,19 @@
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 #include <ostream>
+#include <print>
 #include <stdexcept>
 #include <string>
 
 using std::string;
 
-Sensor::Sensor(fs::path path, string name, SensorType type) :
+Sensor::Sensor(fs::path path, string name1, SensorType type) :
     file(path),
-    name(name),
+    name(name1),
     type(type),
-    divider(getDivider(type)),
+    divider(GetDivider(type)),
     readings{0, NAN, NAN, 0, 0} {
-  std::cout << "sensor init: " << path << std::endl;
+  std::print("sensor init: {}\nits name: {}\n\n", path, name1);
   if (!file.is_open()) {
     throw std::runtime_error(std::format("unable to open file {}", path.string()));
   };
@@ -30,7 +31,7 @@ Sensor::~Sensor() {
 }
 
 
-string Sensor::readRawSensorString() {
+string Sensor::ReadRawSensorString() {
   file.clear();
   file.seekg(0);
   string str;
@@ -38,13 +39,13 @@ string Sensor::readRawSensorString() {
   return str;
 }
 
-float Sensor::prepareValue() {
-  string str = readRawSensorString();
+float Sensor::PrepareValue() {
+  string str = ReadRawSensorString();
   return std::stof(str) / divider;
 }
 
-void Sensor::updateValue() {
-  float value = prepareValue();
+void Sensor::UpdateValue() {
+  float value = PrepareValue();
   if (std::isnan(value))
     return;
   this->readings.value = value;
@@ -59,7 +60,7 @@ void Sensor::updateValue() {
   }
 }
 
-SensorReading Sensor::getReadings() {
+SensorReading Sensor::GetReadings() {
   return this->readings;
 }
 
@@ -67,6 +68,6 @@ nlohmann::json Sensor::Serialize() {
   nlohmann::json j;
   j["name"] = this->name;
   j["type"] = this->type;
-  j["readings"] = this->readings.serialize();
+  j["readings"] = this->readings.Serialize();
   return j;
 }

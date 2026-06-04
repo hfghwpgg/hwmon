@@ -13,7 +13,7 @@ enum class SensorType {
   UNKNOWN,
 };
 
-constexpr float getDivider(SensorType type) {
+constexpr float GetDivider(SensorType type) {
   switch (type) {
   case SensorType::TEMPERATURE:
     return 1000.0f;

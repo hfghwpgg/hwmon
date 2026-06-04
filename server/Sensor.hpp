@@ -23,14 +23,14 @@ public:
   virtual ~Sensor();
 
 
-  void updateValue();
-  SensorReading getReadings();
+  void UpdateValue();
+  SensorReading GetReadings();
   nlohmann::json Serialize();
 
 
 protected:
-  virtual float prepareValue();
-  std::string readRawSensorString();
+  virtual float PrepareValue();
+  std::string ReadRawSensorString();
 
   std::ifstream file;
   std::string name;

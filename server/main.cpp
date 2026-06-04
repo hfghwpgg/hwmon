@@ -32,6 +32,8 @@ int main() {
   // }
   //
 
+  // Device d{"/sys/class/hwmon/hwmon4", "testname"};
+  // d.Read();
 
   std::print("program finished\n");
   return 0;

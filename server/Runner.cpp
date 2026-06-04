@@ -5,9 +5,11 @@
 #include <csignal>
 #include <filesystem>
 #include <iostream>
+#include <nlohmann/json_fwd.hpp>
 #include <print>
 #include <ratio>
 #include <thread>
+#include <vector>
 
 namespace fs = std::filesystem;
 using std::atomic;
@@ -37,15 +39,17 @@ void Runner::Run() {
   signal(SIGINT, Interrupt);
   signal(SIGTERM, Interrupt);
   while (running.load(std::memory_order_relaxed)) {
+    std::vector<nlohmann::json> serializedDevices;
+    serializedDevices.reserve(10);
     for (auto &device : devices) {
       // doing device.Read() and then serializing
       // iterates through all sensors twice, but in the
       // future i plan on NOT serializing data if its
       // not needed (no client is connected to read data)
       device.Read();
-      auto myjson = device.Serialize();
-      std::cout << myjson.dump() << '\n';
+      serializedDevices.push_back(device.Serialize());
     }
+    std::cout << serializedDevices << '\n';
     std::this_thread::sleep_for(std::chrono::milliseconds{intervalMs});
   }
 }

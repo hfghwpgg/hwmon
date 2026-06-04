@@ -13,8 +13,8 @@ EnergySensor::EnergySensor(fs::path path, string name, SensorType type) :
   std::cout << "this is an energy sensor" << std::endl;
 }
 
-float EnergySensor::prepareValue() {
-  string str = readRawSensorString();
+float EnergySensor::PrepareValue() {
+  string str = ReadRawSensorString();
   long double reading = stold(str);
 
   if (std::isnan(lastReading)) {

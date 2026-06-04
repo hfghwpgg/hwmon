@@ -6,6 +6,7 @@
 #include "vectorFind.hpp"
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <nlohmann/json_fwd.hpp>
@@ -63,7 +64,7 @@ void Device::Initialize() {
         string part1 = filename.substr(0, underscorePos);
         string part2 = filename.substr(underscorePos + 1);
 
-        if (!isWhitelistedSensorAttribute(part2))
+        if (!IsWhitelistedSensorAttribute(part2))
           continue;
 
         if (available_sensors.count(part1)) {
@@ -79,7 +80,7 @@ void Device::Initialize() {
 
 void Device::CreateSensors(unordered_map<string, vector<string>> availableSensors) {
   for (const auto &[sensorBase, extensions] : availableSensors) {
-    if (!isInVector<string>(extensions, "input") && !isInVector<string>(extensions, "average")) {
+    if (!IsInVector<string>(extensions, "input") && !IsInVector<string>(extensions, "average")) {
       continue;
     }
 
@@ -87,13 +88,18 @@ void Device::CreateSensors(unordered_map<string, vector<string>> availableSensor
     string valueSrc;
     SensorType type = DeduceSensorType(sensorBase);
 
-    if (isInVector(extensions, std::string("input"))) {
+    if (IsInVector(extensions, std::string("input"))) {
       valueSrc = path / (sensorBase + "_input");
-    } else if (isInVector<string>(extensions, "average")) {
+    } else if (IsInVector<string>(extensions, "average")) {
       valueSrc = path / (sensorBase + "_average");
     }
-    if (isInVector<string>(extensions, "label")) {
-      label = path / (sensorBase + "_label");
+    if (IsInVector<string>(extensions, "label")) {
+      string temp = path / (sensorBase + "_label");
+      std::ifstream f{temp};
+      f.clear();
+      f.seekg(0);
+      std::getline(f, label);
+      f.close();
     }
 
 
@@ -107,7 +113,7 @@ void Device::CreateSensors(unordered_map<string, vector<string>> availableSensor
 
 void Device::Read() {
   for (auto &sensor : Sensors) {
-    sensor->updateValue();
+    sensor->UpdateValue();
   }
 }
 
