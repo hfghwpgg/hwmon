@@ -14,12 +14,11 @@ find_package(Threads REQUIRED)
 # add_executable(Hwmon ${SRCS})
 
 add_executable(Hwmon
-    "Device.cpp"
     "Sensor.cpp"
     "EnergySensor.cpp"
     "Device.cpp"
-    "Runner.cpp"
     "UDSServer.cpp"
+    "Runner.cpp"
     "main.cpp"
     )
 

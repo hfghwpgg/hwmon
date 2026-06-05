@@ -4,7 +4,10 @@
 #include <filesystem>
 #include <memory>
 #include <nlohmann/json_fwd.hpp>
+#include <string>
+#include <unordered_map>
 #include <vector>
+
 
 namespace fs = std::filesystem;
 
@@ -13,7 +16,8 @@ public:
   Device(fs::path path, std::string name);
   Device(Device &&) noexcept = default;
   Device &operator=(Device &&) noexcept = default;
-  Device(const Device &) noexcept = default;
+
+  Device(const Device &) noexcept = delete;
 
   ~Device();
   void Read();

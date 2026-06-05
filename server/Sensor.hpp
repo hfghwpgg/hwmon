@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json_fwd.hpp>
+#include <string>
 
 class Sensor {
 public:
