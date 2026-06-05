@@ -5,7 +5,7 @@
 
 class EnergySensor : public Sensor {
 public:
-  EnergySensor(fs::path path, std::string name, SensorType type);
+  EnergySensor(std::filesystem::path path, std::string name, SensorType type);
 
 private:
   float PrepareValue() override;

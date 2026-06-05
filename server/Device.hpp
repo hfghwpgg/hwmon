@@ -2,7 +2,6 @@
 #include "Sensor.hpp"
 #include "SensorTypes.hpp"
 #include <filesystem>
-#include <format>
 #include <memory>
 #include <nlohmann/json_fwd.hpp>
 #include <vector>

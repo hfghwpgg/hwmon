@@ -1,39 +1,41 @@
-#include "Device.hpp"
-#include "EnergySensor.hpp"
 #include "Runner.hpp"
-#include "Sensor.hpp"
-#include "SensorTypes.hpp"
-#include <chrono>
-#include <iostream>
-#include <memory>
-#include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
+#include "SharedState.hpp"
+#include "UDSServer.hpp"
+#include <atomic>
+#include <csignal>
 #include <print>
+#include <string>
 #include <thread>
 
+namespace {
+std::atomic<bool> *gRunning = nullptr;
+
+void HandleSignal(int sig) {
+  (void)sig;
+  if (gRunning != nullptr) {
+    gRunning->store(false, std::memory_order_relaxed);
+  }
+}
+} // namespace
+
 int main() {
-  static int interval = 1000;
-  auto runner = std::make_unique<Runner>(interval);
-  runner->Run();
+  const std::string path = "/tmp/hwmon.sock";
+  constexpr unsigned int initialIntervalMs = 1000;
+  constexpr int backlog = 10;
 
-  // Sensor test{"/sys/class/hwmon/hwmon6/temp1_input", "testname", SensorType::TEMPERATURE};
-  // EnergySensor test2{"/sys/class/hwmon/hwmon7/energy7_input", "testname2", SensorType::ENERGY};
+  SharedState state{initialIntervalMs};
 
+  gRunning = &state.running;
+  std::signal(SIGINT, HandleSignal);
+  std::signal(SIGTERM, HandleSignal);
 
-  // Sensor *d[] = {&test, &test2};
-  // for (auto &sen : d) {
-  //   sen->updateValue();
-  //   std::this_thread::sleep_for(std::chrono::seconds{1});
-  //   sen->updateValue();
-  //   const auto s = sen->serialize();
-  //   std::string ss = s.dump();
+  Runner runner{state};
+  UDSServer server{path, backlog, state};
 
-  //   std::cout << ss << '\n';
-  // }
-  //
+  std::jthread runnerThread{[&runner] { runner.Run(); }};
 
-  // Device d{"/sys/class/hwmon/hwmon4", "testname"};
-  // d.Read();
+  // Blocks on the accept loop until the shutdown flag is set.
+  server.Run();
 
   std::print("program finished\n");
   return 0;

@@ -41,7 +41,7 @@ cd hwmon
 ./server/build/Hwmon
 ```
 
-### Manual compilation steps
+### Manual compilation
 
 1. clone the repository
 
@@ -81,10 +81,8 @@ make
 
 TODO:
 
-- finish server
+- server
   - better error handling
   - better device name deducing
-  - serializing data to JSON
-  - add UDS output
 
 - make client

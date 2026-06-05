@@ -3,8 +3,6 @@
 #include "Sensor.hpp"
 #include "SensorTypes.hpp"
 #include "SensorWhitelist.hpp"
-#include "vectorFind.hpp"
-#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -12,13 +10,11 @@
 #include <nlohmann/json_fwd.hpp>
 #include <ostream>
 #include <print>
-#include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 
-using std::format;
 using std::string;
 using std::unordered_map;
 using std::vector;
@@ -80,7 +76,20 @@ void Device::Initialize() {
 
 void Device::CreateSensors(unordered_map<string, vector<string>> availableSensors) {
   for (const auto &[sensorBase, extensions] : availableSensors) {
-    if (!IsInVector<string>(extensions, "input") && !IsInVector<string>(extensions, "average")) {
+    bool hasInput = false;
+    bool hasAverage = false;
+    bool hasLabel = false;
+    for (const auto &ext : extensions) {
+      if (ext == "input")
+        hasInput = true;
+      if (ext == "average")
+        hasAverage = true;
+      if (ext == "label")
+        hasLabel = true;
+    }
+    // if no reading available, continue
+    if (hasInput == false && hasAverage == false) {
+      std::println("sensor {} exposes no known readin interface", sensorBase);
       continue;
     }
 
@@ -88,12 +97,12 @@ void Device::CreateSensors(unordered_map<string, vector<string>> availableSensor
     string valueSrc;
     SensorType type = DeduceSensorType(sensorBase);
 
-    if (IsInVector(extensions, std::string("input"))) {
+    if (hasInput) {
       valueSrc = path / (sensorBase + "_input");
-    } else if (IsInVector<string>(extensions, "average")) {
+    } else if (hasAverage) {
       valueSrc = path / (sensorBase + "_average");
     }
-    if (IsInVector<string>(extensions, "label")) {
+    if (hasLabel) {
       string temp = path / (sensorBase + "_label");
       std::ifstream f{temp};
       f.clear();

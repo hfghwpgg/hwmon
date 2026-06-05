@@ -1,18 +1,16 @@
 #pragma once
 #include "Device.hpp"
-#include <atomic>
+#include "SharedState.hpp"
 #include <vector>
 
 class Runner {
 public:
-  Runner(unsigned int intervalMs);
+  explicit Runner(SharedState &state);
   ~Runner();
   void Run();
-  static void Interrupt(int sig);
 
 private:
-  static std::atomic<bool> running;
+  SharedState &state;
   std::vector<Device> devices;
-  unsigned int intervalMs;
   void Setup();
 };

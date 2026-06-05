@@ -5,12 +5,9 @@
 #include <fstream>
 #include <nlohmann/json_fwd.hpp>
 
-namespace fs = std::filesystem;
-
-
 class Sensor {
 public:
-  Sensor(fs::path path, std::string name, SensorType type);
+  Sensor(std::filesystem::path path, std::string name, SensorType type);
 
   // allow moving
   Sensor(Sensor &&) noexcept = default;
