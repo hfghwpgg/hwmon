@@ -7,14 +7,14 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <nlohmann/json_fwd.hpp>
-#include <ostream>
+#include <nlohmann/json.hpp>
 #include <print>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 
+using std::println;
 using std::string;
 using std::unordered_map;
 using std::vector;
@@ -28,7 +28,7 @@ Device::Device(fs::path path, string name) :
 }
 
 Device::~Device() {
-  std::cout << "Device destroyed" << std::endl;
+  println("Device destroyed: {}", this->name);
 }
 
 SensorType Device::DeduceSensorType(string parsedPart1) {
@@ -44,7 +44,7 @@ SensorType Device::DeduceSensorType(string parsedPart1) {
   if (it != SensorConfigMap.end()) {
     return it->second;
   }
-  std::print("unable to find type {} for sensor {}\n", parsedPart1, this->name);
+  println("unable to find type {} for sensor {}", parsedPart1, this->name);
   return SensorType::UNKNOWN;
 }
 
@@ -89,7 +89,7 @@ void Device::CreateSensors(unordered_map<string, vector<string>> availableSensor
     }
     // if no reading available, continue
     if (hasInput == false && hasAverage == false) {
-      std::println("sensor {} exposes no known readin interface", sensorBase);
+      println("sensor {} exposes no known reading interface", sensorBase);
       continue;
     }
 
@@ -134,17 +134,3 @@ nlohmann::json Device::Serialize() {
   }
   return j;
 }
-
-
-// TEMPORARY, TO BE REMOVED
-// void Device::Display() {
-//   for (auto &a : Sensors) {
-//     a->updateValue();
-//     auto read = a->getReadings();
-//     if (std::isnan(read.value))
-//       return;
-
-//     std::print(" val: {}\n min: {}\n max: {}\n avg: {}\n", read.value, read.min_value,
-//                read.max_value, read.sum / read.times);
-//   }
-// }

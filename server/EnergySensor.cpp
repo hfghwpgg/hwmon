@@ -2,18 +2,15 @@
 #include "SensorTypes.hpp"
 #include <chrono>
 #include <cmath>
-#include <print>
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;
-using std::println;
 using std::string;
 
 EnergySensor::EnergySensor(fs::path path, string name, SensorType type) :
     Sensor(path, name, type) {
   lastReading = NAN;
-  lastTime = std::chrono::steady_clock::now();
-  println("this is an energy sensor");
+  lastTime = chrono::steady_clock::now();
 }
 
 float EnergySensor::PrepareValue() {

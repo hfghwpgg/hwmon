@@ -37,6 +37,6 @@ int main() {
   // Blocks on the accept loop until the shutdown flag is set.
   server.Run();
 
-  std::print("program finished\n");
+  std::println("program finished");
   return 0;
 }

@@ -5,12 +5,12 @@
 #include <format>
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
 #include <print>
 #include <stdexcept>
 #include <string>
 
 namespace fs = std::filesystem;
+using std::println;
 using std::string;
 
 Sensor::Sensor(fs::path path, string name1, SensorType type) :
@@ -19,7 +19,7 @@ Sensor::Sensor(fs::path path, string name1, SensorType type) :
     type(type),
     divider(GetDivider(type)),
     readings{0, NAN, NAN, 0, 0} {
-  std::println("sensor init: {}\nits name: {}\n", path, name1);
+  println("sensor init: {}\nits name: {}\n", path, name1);
   if (!file.is_open()) {
     throw std::runtime_error(std::format("unable to open file {}\n", path.string()));
   };
@@ -27,7 +27,7 @@ Sensor::Sensor(fs::path path, string name1, SensorType type) :
 
 Sensor::~Sensor() {
   file.close();
-  std::println("sensor destroyed: {}", this->name);
+  println("sensor destroyed: {}", this->name);
 }
 
 

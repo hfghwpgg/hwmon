@@ -8,6 +8,8 @@ Tool for monitoring temperature, voltages and more in real time.
 
 - Linux (tested on Arch Linux)
 - g++ or clang++ (tested with g++ version 16.1.0)
+  - C++20 Threads library
+  - nlohmann/json library
 - CMake (tested with version 4.3.2)
 - Make (tested with version 4.4.1)
 
