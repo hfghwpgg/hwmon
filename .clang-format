@@ -1,0 +1,14 @@
+BasedOnStyle: LLVM
+
+BreakBeforeBraces: Attach
+
+PackConstructorInitializers: Never
+BreakConstructorInitializers: AfterColon
+
+MaxEmptyLinesToKeep: 2
+
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: Empty
+
+ColumnLimit: 100
+BinPackParameters: true

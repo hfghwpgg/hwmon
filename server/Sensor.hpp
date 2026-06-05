@@ -1,25 +1,37 @@
 #pragma once
-#include <string>
-#include <limits>
-#include "Sensor_types.hpp"
+#include "SensorReading.hpp"
+#include "SensorTypes.hpp"
+#include <filesystem>
+#include <fstream>
+#include <nlohmann/json_fwd.hpp>
 
-class Sensor
-{
+class Sensor {
 public:
-    Sensor(
-        std::string name,
-        std::string nice_name,
-        Type type,
-        float value,
-        float min_value,
-        float max_value);
-    void updateValue(float value);
+  Sensor(std::filesystem::path path, std::string name, SensorType type);
 
-private:
-    const std::string name;
-    const std::string nice_name;
-    const Type type;
-    float value;
-    const float min_value;
-    const float max_value;
+  // allow moving
+  Sensor(Sensor &&) noexcept = default;
+
+  // block copying
+  Sensor &operator=(Sensor &&) noexcept = delete;
+  Sensor(const Sensor &) = delete;
+  Sensor &operator=(const Sensor &) = delete;
+
+  virtual ~Sensor();
+
+
+  void UpdateValue();
+  SensorReading GetReadings();
+  nlohmann::json Serialize();
+
+
+protected:
+  virtual float PrepareValue();
+  std::string ReadRawSensorString();
+
+  std::ifstream file;
+  std::string name;
+  const SensorType type;
+  const int divider;
+  SensorReading readings;
 };

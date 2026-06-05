@@ -1,4 +1,10 @@
 .vscode
+.cursor
+.zed
+.cache
+*.bak
 build
 commit.txt
-*.bak
+TODO
+log.txt
+output.json
