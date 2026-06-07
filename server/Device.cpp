@@ -1,7 +1,7 @@
 #include "Device.hpp"
 #include "EnergySensor.hpp"
 #include "Sensor.hpp"
-#include "SensorTypes.hpp"
+#include "SensorType.hpp"
 #include "SensorWhitelist.hpp"
 #include <filesystem>
 #include <fstream>
@@ -19,17 +19,20 @@ using std::string;
 using std::unordered_map;
 using std::vector;
 
-Device::Device(fs::path path, string name) :
+Device::Device(fs::path path, string name, DeviceType type) :
     path(path),
     name(name),
+    type(type),
     Sensors() {
   Sensors.reserve(10);
   Initialize();
 }
 
+#ifdef DEBUG
 Device::~Device() {
   println("Device destroyed: {}", this->name);
 }
+#endif
 
 SensorType Device::DeduceSensorType(string parsedPart1) {
   auto lastNonDigit = parsedPart1.find_last_not_of("0123456789");
@@ -129,6 +132,7 @@ void Device::Read() {
 nlohmann::json Device::Serialize() {
   nlohmann::json j;
   j["name"] = this->name;
+  j["type"] = this->type;
   for (auto &sensor : Sensors) {
     j["sensors"] += sensor->Serialize();
   }

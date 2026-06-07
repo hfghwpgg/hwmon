@@ -1,6 +1,6 @@
 #include "Sensor.hpp"
 #include "SensorReading.hpp"
-#include "SensorTypes.hpp"
+#include "SensorType.hpp"
 #include <cmath>
 #include <format>
 #include <iostream>
@@ -19,15 +19,20 @@ Sensor::Sensor(fs::path path, string name1, SensorType type) :
     type(type),
     divider(GetDivider(type)),
     readings{0, NAN, NAN, 0, 0} {
+#ifdef DEBUG
   println("sensor init: {}\nits name: {}\n", path, name1);
+#endif
   if (!file.is_open()) {
     throw std::runtime_error(std::format("unable to open file {}\n", path.string()));
   };
 }
 
+
 Sensor::~Sensor() {
   file.close();
+#ifdef DEBUG
   println("sensor destroyed: {}", this->name);
+#endif
 }
 
 

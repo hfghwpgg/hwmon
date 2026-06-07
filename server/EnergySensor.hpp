@@ -1,6 +1,6 @@
 #pragma once
 #include "Sensor.hpp"
-#include "SensorTypes.hpp"
+#include "SensorType.hpp"
 #include <chrono>
 
 class EnergySensor : public Sensor {

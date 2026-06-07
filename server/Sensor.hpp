@@ -1,6 +1,6 @@
 #pragma once
 #include "SensorReading.hpp"
-#include "SensorTypes.hpp"
+#include "SensorType.hpp"
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json_fwd.hpp>
@@ -10,14 +10,15 @@ class Sensor {
 public:
   Sensor(std::filesystem::path path, std::string name, SensorType type);
 
-  // allow moving
-  Sensor(Sensor &&) noexcept = default;
+  // #ifdef DEBUG
+  //   // allow moving
+  //   Sensor(Sensor &&) noexcept = default;
 
-  // block copying
-  Sensor &operator=(Sensor &&) noexcept = delete;
-  Sensor(const Sensor &) = delete;
-  Sensor &operator=(const Sensor &) = delete;
-
+  //   // block copying
+  //   Sensor &operator=(Sensor &&) noexcept = delete;
+  //   Sensor(const Sensor &) = delete;
+  //   Sensor &operator=(const Sensor &) = delete;
+  // #endif
   virtual ~Sensor();
 
 

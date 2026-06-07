@@ -32,6 +32,7 @@ target_compile_options(Hwmon PRIVATE
   -Wno-unknown-warning-option -Wall -Wextra -Wpedantic
     $<$<CONFIG:Debug>:
         -O0
+        -DDEBUG
         -g
     >
     $<$<CONFIG:Release>:

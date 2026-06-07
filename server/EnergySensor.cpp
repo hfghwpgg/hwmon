@@ -1,5 +1,5 @@
 #include "EnergySensor.hpp"
-#include "SensorTypes.hpp"
+#include "SensorType.hpp"
 #include <chrono>
 #include <cmath>
 

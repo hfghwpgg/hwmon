@@ -1,6 +1,7 @@
 #pragma once
+#include "DeviceType.hpp"
 #include "Sensor.hpp"
-#include "SensorTypes.hpp"
+#include "SensorType.hpp"
 #include <filesystem>
 #include <memory>
 #include <nlohmann/json_fwd.hpp>
@@ -13,13 +14,17 @@ namespace fs = std::filesystem;
 
 class Device {
 public:
-  Device(fs::path path, std::string name);
+  Device(fs::path path, std::string name, DeviceType type);
+
+#ifdef DEBUG
   Device(Device &&) noexcept = default;
   Device &operator=(Device &&) noexcept = default;
 
   Device(const Device &) noexcept = delete;
 
   ~Device();
+#endif
+
   void Read();
   nlohmann::json Serialize();
 
@@ -29,6 +34,7 @@ public:
 private:
   fs::path path;
   std::string name;
+  DeviceType type;
   std::vector<std::unique_ptr<Sensor>> Sensors;
 
   SensorType DeduceSensorType(std::string parsedPart1);

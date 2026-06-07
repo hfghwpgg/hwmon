@@ -27,7 +27,8 @@ Runner::~Runner() {
 void Runner::Setup() {
   const fs::path Path = "/sys/class/hwmon";
   for (auto &entry : fs::directory_iterator(Path)) {
-    this->devices.emplace_back(entry.path(), entry.path().filename());
+    // placeholder
+    this->devices.emplace_back(entry.path(), entry.path().filename(), DeviceType::UNKNOWN);
   }
 };
 
