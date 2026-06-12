@@ -1,12 +1,15 @@
-#include "Logger.hpp"
+#include <spdlog/spdlog.h>
+#include <spdlog/common.h>
+#include <spdlog/spdlog-inl.h>
+#include <atomic>
+#include <csignal>
+#include <string>
+#include <thread>
+#include <memory>
+
 #include "Runner.hpp"
 #include "SharedState.hpp"
 #include "UDSServer.hpp"
-#include <atomic>
-#include <csignal>
-#include <fmt/format.h>
-#include <string>
-#include <thread>
 
 namespace {
 std::atomic<bool> *gRunning = nullptr;
@@ -20,6 +23,9 @@ void HandleSignal(int sig) {
 } // namespace
 
 int main() {
+#ifdef DEBUG
+  spdlog::set_level(spdlog::level::debug);
+#endif
   const std::string path = "/tmp/hwmon.sock";
   constexpr unsigned int initialIntervalMs = 1000;
   constexpr int backlog = 10;
@@ -37,7 +43,6 @@ int main() {
 
   // Blocks on the accept loop until the shutdown flag is set.
   server.Run();
-
-  Logger::logInfo("program ended gracefully");
+  spdlog::info("program ended gracefully");
   return 0;
 }

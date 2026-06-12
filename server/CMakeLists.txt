@@ -12,8 +12,9 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
 
-find_program(IWYU_PATH include-what-you-use)
+#find_program(IWYU_PATH include-what-you-use)
 
 # if(IWYU_PATH)
 #     set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE ${IWYU_PATH})
@@ -23,7 +24,6 @@ find_program(IWYU_PATH include-what-you-use)
 # add_executable(Hwmon ${SRCS})
 
 add_executable(Hwmon
-    "Logger.cpp"
     "SensorReading.cpp"
     "Sensor.cpp"
     "EnergySensor.cpp"
@@ -37,8 +37,7 @@ target_link_libraries(Hwmon
   PRIVATE
     Threads::Threads
     nlohmann_json::nlohmann_json
-    fmt::fmt
-    stdc++exp
+    spdlog::spdlog_header_only
 )
 
 target_compile_options(Hwmon PRIVATE

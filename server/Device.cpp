@@ -3,6 +3,8 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <stddef.h>
+#include <spdlog/spdlog.h>
+#include <fmt/base.h>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -13,7 +15,6 @@
 #include <utility>
 
 #include "EnergySensor.hpp"
-#include "Logger.hpp"
 #include "Sensor.hpp"
 #include "SensorType.hpp"
 #include "SensorWhitelist.hpp"
@@ -35,7 +36,7 @@ Device::Device(fs::path path, string name, DeviceType type) :
 
 #ifdef DEBUG
 Device::~Device() {
-  Logger::debugInfo("Device destroyed: {}", this->name);
+  spdlog::debug("Device destroyed: {}", this->name);
 }
 #endif
 
@@ -52,7 +53,7 @@ SensorType Device::DeduceSensorType(string parsedPart1) {
   if (it != SensorConfigMap.end()) {
     return it->second;
   }
-  Logger::LogError("unable to find type {} for sensor {}", parsedPart1, this->name);
+  spdlog::warn("unable to find type {} for sensor {}", parsedPart1, this->name);
   return SensorType::UNKNOWN;
 }
 
@@ -97,7 +98,7 @@ void Device::CreateSensors(unordered_map<string, vector<string>> availableSensor
     }
     // if no reading available, continue
     if (hasInput == false && hasAverage == false) {
-      Logger::logWarning("sensor {} exposes no known reading interface", sensorBase);
+      spdlog::warn("sensor {} exposes no known reading interface", sensorBase);
       continue;
     }
 

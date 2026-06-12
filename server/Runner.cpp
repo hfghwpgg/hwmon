@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
-#include <fmt/format.h>
+#include <spdlog/spdlog.h>
 #include <atomic>
 #include <chrono>
 #include <filesystem>
@@ -15,7 +15,6 @@
 #include "Device.hpp"
 #include "DeviceType.hpp"
 #include "SharedState.hpp"
-#include "Logger.hpp"
 
 namespace fs = std::filesystem;
 using nlohmann::json;
@@ -27,7 +26,7 @@ Runner::Runner(SharedState &state) :
 };
 #ifdef DEBUG
 Runner::~Runner() {
-  Logger::debugInfo("runner destroyed");
+  spdlog::debug("runner destroyed");
 }
 #endif
 
