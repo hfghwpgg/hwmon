@@ -1,20 +1,22 @@
 #include "Device.hpp"
 #include "EnergySensor.hpp"
+#include "Logger.hpp"
 #include "Sensor.hpp"
 #include "SensorType.hpp"
 #include "SensorWhitelist.hpp"
 #include <filesystem>
+#include <fmt/format.h>
 #include <fstream>
-#include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <print>
+#include <stddef.h>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 
-using std::println;
+enum class DeviceType;
+
 using std::string;
 using std::unordered_map;
 using std::vector;
@@ -30,7 +32,7 @@ Device::Device(fs::path path, string name, DeviceType type) :
 
 #ifdef DEBUG
 Device::~Device() {
-  println("Device destroyed: {}", this->name);
+  Logger::debugInfo("Device destroyed: {}", this->name);
 }
 #endif
 
@@ -47,7 +49,7 @@ SensorType Device::DeduceSensorType(string parsedPart1) {
   if (it != SensorConfigMap.end()) {
     return it->second;
   }
-  println("unable to find type {} for sensor {}", parsedPart1, this->name);
+  Logger::LogError("unable to find type {} for sensor {}", parsedPart1, this->name);
   return SensorType::UNKNOWN;
 }
 
@@ -92,7 +94,7 @@ void Device::CreateSensors(unordered_map<string, vector<string>> availableSensor
     }
     // if no reading available, continue
     if (hasInput == false && hasAverage == false) {
-      println("sensor {} exposes no known reading interface", sensorBase);
+      Logger::logWarning("sensor {} exposes no known reading interface", sensorBase);
       continue;
     }
 

@@ -1,28 +1,32 @@
 #include "Runner.hpp"
 #include "Device.hpp"
+#include "DeviceType.hpp"
+#include "Logger.hpp"
+#include "SharedState.hpp"
+#include <atomic>
 #include <chrono>
 #include <filesystem>
+#include <fmt/format.h>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
-#include <print>
 #include <string>
 #include <thread>
 #include <vector>
 
 namespace fs = std::filesystem;
 using nlohmann::json;
-using std::println;
 
 Runner::Runner(SharedState &state) :
     state(state) {
   devices.reserve(10);
   Setup();
 };
-
+#ifdef DEBUG
 Runner::~Runner() {
-  println("runner stopped");
+  Logger::debugInfo("runner destroyed");
 }
+#endif
 
 void Runner::Setup() {
   const fs::path Path = "/sys/class/hwmon";

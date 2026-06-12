@@ -3,6 +3,8 @@
 #include "SharedState.hpp"
 #include <vector>
 
+struct SharedState;
+
 class Runner {
 public:
   explicit Runner(SharedState &state);

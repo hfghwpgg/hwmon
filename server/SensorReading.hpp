@@ -1,5 +1,7 @@
 #pragma once
 #include <nlohmann/json_fwd.hpp>
+#include <stddef.h>
+
 struct SensorReading {
   float value;
   float min_value;

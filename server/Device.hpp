@@ -9,6 +9,9 @@
 #include <unordered_map>
 #include <vector>
 
+class Sensor;
+enum class DeviceType;
+
 
 namespace fs = std::filesystem;
 

@@ -2,6 +2,10 @@
 #include "Sensor.hpp"
 #include "SensorType.hpp"
 #include <chrono>
+#include <filesystem>
+#include <string>
+
+enum class SensorType;
 
 class EnergySensor : public Sensor {
 public:

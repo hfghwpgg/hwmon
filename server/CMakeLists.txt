@@ -11,11 +11,19 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Threads REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(fmt REQUIRED)
+
+find_program(IWYU_PATH include-what-you-use)
+
+# if(IWYU_PATH)
+#     set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE ${IWYU_PATH})
+# endif()
 
 # file(GLOB SRCS CONFIGURE_DEPENDS "*.cpp")
 # add_executable(Hwmon ${SRCS})
 
 add_executable(Hwmon
+    "Logger.cpp"
     "SensorReading.cpp"
     "Sensor.cpp"
     "EnergySensor.cpp"
@@ -25,8 +33,13 @@ add_executable(Hwmon
     "main.cpp"
     )
 
-target_link_libraries(Hwmon PRIVATE Threads::Threads)
-target_link_libraries(Hwmon PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(Hwmon
+  PRIVATE
+    Threads::Threads
+    nlohmann_json::nlohmann_json
+    fmt::fmt
+    stdc++exp
+)
 
 target_compile_options(Hwmon PRIVATE
   -Wno-unknown-warning-option -Wall -Wextra -Wpedantic

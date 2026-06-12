@@ -6,6 +6,8 @@
 #include <nlohmann/json_fwd.hpp>
 #include <string>
 
+enum class SensorType;
+
 class Sensor {
 public:
   Sensor(std::filesystem::path path, std::string name, SensorType type);

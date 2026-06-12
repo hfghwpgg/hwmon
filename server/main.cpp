@@ -1,9 +1,10 @@
+#include "Logger.hpp"
 #include "Runner.hpp"
 #include "SharedState.hpp"
 #include "UDSServer.hpp"
 #include <atomic>
 #include <csignal>
-#include <print>
+#include <fmt/format.h>
 #include <string>
 #include <thread>
 
@@ -37,6 +38,6 @@ int main() {
   // Blocks on the accept loop until the shutdown flag is set.
   server.Run();
 
-  std::println("program finished");
+  Logger::logInfo("program ended gracefully");
   return 0;
 }

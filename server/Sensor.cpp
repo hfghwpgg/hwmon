@@ -1,26 +1,24 @@
 #include "Sensor.hpp"
+#include "Logger.hpp"
 #include "SensorReading.hpp"
 #include "SensorType.hpp"
 #include <cmath>
+#include <fmt/format.h>
 #include <format>
-#include <iostream>
 #include <nlohmann/json.hpp>
-#include <print>
 #include <stdexcept>
-#include <string>
 
 namespace fs = std::filesystem;
-using std::println;
 using std::string;
 
-Sensor::Sensor(fs::path path, string name1, SensorType type) :
+Sensor::Sensor(fs::path path, string name, SensorType type) :
     file(path),
-    name(name1),
+    name(name),
     type(type),
     divider(GetDivider(type)),
     readings{0, NAN, NAN, 0, 0} {
 #ifdef DEBUG
-  println("sensor init: {}\nits name: {}\n", path, name1);
+  Logger::debugInfo("sensor init: {}\nits name: {}\n", path.c_str(), name);
 #endif
   if (!file.is_open()) {
     throw std::runtime_error(std::format("unable to open file {}\n", path.string()));
@@ -31,7 +29,7 @@ Sensor::Sensor(fs::path path, string name1, SensorType type) :
 Sensor::~Sensor() {
   file.close();
 #ifdef DEBUG
-  println("sensor destroyed: {}", this->name);
+  Logger::debugInfo("sensor destroyed: {}", this->name);
 #endif
 }
 

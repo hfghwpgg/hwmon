@@ -1,8 +1,9 @@
 #include "EnergySensor.hpp"
-#include "SensorType.hpp"
 #include <chrono>
 #include <cmath>
 
+
+enum class SensorType;
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;
 using std::string;

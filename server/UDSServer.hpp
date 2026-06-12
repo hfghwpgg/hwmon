@@ -2,10 +2,13 @@
 #include "SharedState.hpp"
 #include <atomic>
 #include <memory>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <thread>
 #include <vector>
+
+struct SharedState;
 
 // Move-only RAII wrapper for a file descriptor. Guarantees the fd is
 // closed exactly once on destruction, on every code path.
@@ -21,8 +24,12 @@ public:
   FdGuard(const FdGuard &) = delete;
   FdGuard &operator=(const FdGuard &) = delete;
 
-  int get() const noexcept { return fd; }
-  bool valid() const noexcept { return fd >= 0; }
+  int get() const noexcept {
+    return fd;
+  }
+  bool valid() const noexcept {
+    return fd >= 0;
+  }
 
 private:
   void reset() noexcept;
