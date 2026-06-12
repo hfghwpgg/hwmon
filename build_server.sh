@@ -7,7 +7,7 @@ BUILD="${SERVER}/build"
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [help|debug|release|clear]
+Usage: $(basename "$0") [help|debug|release|clear|iwyu]
 
 Build the Hwmon server (CMake project in server/).
 
@@ -15,6 +15,8 @@ Subcommands:
   help     Show this message (default)
   debug    Configure and build with CMAKE_BUILD_TYPE=Debug
   release  Configure and build with CMAKE_BUILD_TYPE=Release
+  iwyu     Run include-what-you-use in debug mode and fix includes
+           Build from iwyu won't be saved.
   clear    Remove server/build
 
 Output binary: server/build/Hwmon
@@ -29,9 +31,21 @@ ensure_build_dir() {
 
 build_with_type() {
   local build_type="$1"
+  local is_iwyu="${2:-false}"
+  local -a cmake_extra=()
+  if [[ "$is_iwyu" == true ]]; then
+    cmake_extra+=(-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=include-what-you-use)
+    rm -rf "$BUILD"
+  fi
   ensure_build_dir
-  cmake -S "$SERVER" -B "$BUILD" -DCMAKE_BUILD_TYPE="$build_type"
-  cmake --build "$BUILD" --parallel "$(nproc 2>/dev/null || echo 1)"
+  cmake -S "$SERVER" -B "$BUILD" -DCMAKE_BUILD_TYPE="$build_type" "${cmake_extra[@]}"
+  if [[ "$is_iwyu" == true ]]; then
+    cmake --build "$BUILD" --parallel "$(nproc 2>/dev/null || echo 1)" > iwyu.log 2>&1
+    iwyu-fix-includes < iwyu.log
+    rm -rf "$BUILD"
+  else
+    cmake --build "$BUILD" --parallel "$(nproc 2>/dev/null || echo 1)"
+  fi
 }
 
 cmd="${1:-help}"
@@ -48,6 +62,9 @@ case "$cmd" in
     ;;
   clear)
     rm -rf "$BUILD"
+    ;;
+  iwyu)
+    build_with_type Debug true
     ;;
   *)
     echo "Unknown command: $cmd" >&2

@@ -1,9 +1,10 @@
 #pragma once
-#include "Sensor.hpp"
-#include "SensorType.hpp"
 #include <chrono>
 #include <filesystem>
 #include <string>
+
+#include "Sensor.hpp"
+#include "SensorType.hpp"
 
 enum class SensorType;
 

@@ -1,24 +1,27 @@
 #include "UDSServer.hpp"
-#include "SharedState.hpp"
+
+#include <nlohmann/detail/json_ref.hpp>
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
+#include <poll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <fmt/format.h>
 #include <array>
 #include <atomic>
 #include <cerrno>
 #include <cstring>
 #include <memory>
-#include <nlohmann/detail/json_ref.hpp>
-#include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
-#include <poll.h>
-#include <print>
 #include <string>
 #include <string_view>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <unistd.h>
 #include <utility>
+#include <map>
 
-using std::println;
+#include "Logger.hpp"
+#include "SharedState.hpp"
+
 using json = nlohmann::json;
 
 // ---------------------------------------------------------------------------
@@ -70,14 +73,14 @@ UDSServer::~UDSServer() {
 bool UDSServer::Setup() {
   FdGuard fd{::socket(AF_UNIX, SOCK_STREAM, 0)};
   if (!fd.valid()) {
-    println("ERROR: couldn't open socket: {}", std::strerror(errno));
+    Logger::LogError("ERROR: couldn't open socket: {}", std::strerror(errno));
     return false;
   }
 
   sockaddr_un addr{};
   addr.sun_family = AF_UNIX;
   if (udsPath.size() >= sizeof(addr.sun_path)) {
-    println("ERROR: socket path too long: {}", udsPath);
+    Logger::LogError("ERROR: socket path too long: {}", udsPath);
     return false;
   }
   std::memcpy(addr.sun_path, udsPath.c_str(), udsPath.size() + 1);
@@ -86,12 +89,12 @@ bool UDSServer::Setup() {
   ::unlink(udsPath.c_str());
 
   if (::bind(fd.get(), reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) != 0) {
-    println("ERROR: couldn't bind socket: {}", std::strerror(errno));
+    Logger::LogError("ERROR: couldn't bind socket: {}", std::strerror(errno));
     return false;
   }
 
   if (::listen(fd.get(), backlog) != 0) {
-    println("ERROR: listen failed: {}", std::strerror(errno));
+    Logger::LogError("ERROR: listen failed: {}", std::strerror(errno));
     return false;
   }
 
@@ -105,7 +108,7 @@ void UDSServer::Run() {
     return;
   }
 
-  println("UDS server listening on {}", udsPath);
+  Logger::logInfo("UDS server listening on {}", udsPath);
 
   while (state.running.load(std::memory_order_relaxed)) {
     pollfd pfd{.fd = listenFd.get(), .events = POLLIN, .revents = 0};
@@ -116,7 +119,7 @@ void UDSServer::Run() {
       if (errno == EINTR) {
         continue;
       }
-      println("ERROR: poll failed: {}", std::strerror(errno));
+      Logger::LogError("ERROR: poll failed: {}", std::strerror(errno));
       break;
     }
     if (ready == 0) {
@@ -130,7 +133,7 @@ void UDSServer::Run() {
         if (errno == EINTR) {
           continue;
         }
-        println("ERROR: accept failed: {}", std::strerror(errno));
+        Logger::LogError("ERROR: accept failed: {}", std::strerror(errno));
         continue;
       }
 
@@ -196,7 +199,7 @@ void UDSServer::HandleClient(std::stop_token stopToken, FdGuard clientFd,
 
     buffer.append(chunk.data(), static_cast<size_t>(received));
     if (buffer.size() > maxRequestBytes) {
-      println("WARN: client request exceeded limit, dropping connection");
+      Logger::logWarning("WARN: client request exceeded limit, dropping connection");
       break;
     }
 

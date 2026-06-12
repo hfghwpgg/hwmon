@@ -8,3 +8,4 @@ commit.txt
 TODO
 log.txt
 output.json
+*.log

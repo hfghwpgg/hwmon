@@ -1,18 +1,21 @@
 #include "Runner.hpp"
-#include "Device.hpp"
-#include "DeviceType.hpp"
-#include "Logger.hpp"
-#include "SharedState.hpp"
+
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
+#include <fmt/format.h>
 #include <atomic>
 #include <chrono>
 #include <filesystem>
-#include <fmt/format.h>
 #include <memory>
-#include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <thread>
 #include <vector>
+#include <map>
+
+#include "Device.hpp"
+#include "DeviceType.hpp"
+#include "SharedState.hpp"
+#include "Logger.hpp"
 
 namespace fs = std::filesystem;
 using nlohmann::json;

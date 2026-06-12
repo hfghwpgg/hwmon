@@ -1,19 +1,22 @@
 #include "Device.hpp"
+
+#include <fmt/format.h>
+#include <nlohmann/json.hpp>
+#include <stddef.h>
+#include <filesystem>
+#include <fstream>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <vector>
+#include <utility>
+
 #include "EnergySensor.hpp"
 #include "Logger.hpp"
 #include "Sensor.hpp"
 #include "SensorType.hpp"
 #include "SensorWhitelist.hpp"
-#include <filesystem>
-#include <fmt/format.h>
-#include <fstream>
-#include <memory>
-#include <nlohmann/json.hpp>
-#include <stddef.h>
-#include <string>
-#include <string_view>
-#include <unordered_map>
-#include <vector>
 
 enum class DeviceType;
 

@@ -1,13 +1,14 @@
 #pragma once
-#include "DeviceType.hpp"
-#include "Sensor.hpp"
-#include "SensorType.hpp"
+#include <nlohmann/json_fwd.hpp>
 #include <filesystem>
 #include <memory>
-#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "DeviceType.hpp"
+#include "Sensor.hpp"
+#include "SensorType.hpp"
 
 class Sensor;
 enum class DeviceType;

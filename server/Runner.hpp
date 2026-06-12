@@ -1,14 +1,17 @@
 #pragma once
+#include <vector>
+
 #include "Device.hpp"
 #include "SharedState.hpp"
-#include <vector>
 
 struct SharedState;
 
 class Runner {
 public:
   explicit Runner(SharedState &state);
+#ifdef DEBUG
   ~Runner();
+#endif
   void Run();
 
 private:

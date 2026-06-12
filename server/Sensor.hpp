@@ -1,10 +1,11 @@
 #pragma once
-#include "SensorReading.hpp"
-#include "SensorType.hpp"
+#include <nlohmann/json_fwd.hpp>
 #include <filesystem>
 #include <fstream>
-#include <nlohmann/json_fwd.hpp>
 #include <string>
+
+#include "SensorReading.hpp"
+#include "SensorType.hpp"
 
 enum class SensorType;
 

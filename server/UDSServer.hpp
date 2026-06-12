@@ -1,5 +1,4 @@
 #pragma once
-#include "SharedState.hpp"
 #include <atomic>
 #include <memory>
 #include <stop_token>
@@ -7,6 +6,8 @@
 #include <string_view>
 #include <thread>
 #include <vector>
+
+#include "SharedState.hpp"
 
 struct SharedState;
 

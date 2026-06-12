@@ -12,3 +12,4 @@ AllowShortBlocksOnASingleLine: Empty
 
 ColumnLimit: 100
 BinPackParameters: true
+SortIncludes: Never
