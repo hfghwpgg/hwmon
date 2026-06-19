@@ -7,7 +7,7 @@ BUILD="${SERVER}/build"
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [help|debug|release|clear|iwyu]
+Usage: $(basename "$0") [help|debug|release|test|clear|iwyu]
 
 Build the Hwmon server (CMake project in server/).
 
@@ -15,6 +15,7 @@ Subcommands:
   help     Show this message (default)
   debug    Configure and build with CMAKE_BUILD_TYPE=Debug
   release  Configure and build with CMAKE_BUILD_TYPE=Release
+  test     Configure and build with unit tests enabled, then run them
   iwyu     Run include-what-you-use in debug mode and fix includes
            Build from iwyu won't be saved.
   clear    Remove server/build
@@ -22,6 +23,7 @@ Subcommands:
 Output binary: server/build/Hwmon
 
 Prerequisites: CMake 3.30+, C++23-capable compiler (g++ or clang++).
+Tests additionally require GoogleTest (GTest).
 EOF
 }
 
@@ -48,6 +50,13 @@ build_with_type() {
   fi
 }
 
+run_tests() {
+  ensure_build_dir
+  cmake -S "$SERVER" -B "$BUILD" -DCMAKE_BUILD_TYPE=Debug -DHWMON_BUILD_TESTS=ON
+  cmake --build "$BUILD" --parallel "$(nproc 2>/dev/null || echo 1)"
+  ctest --test-dir "$BUILD" --output-on-failure
+}
+
 cmd="${1:-help}"
 
 case "$cmd" in
@@ -59,6 +68,9 @@ case "$cmd" in
     ;;
   release)
     build_with_type Release
+    ;;
+  test)
+    run_tests
     ;;
   clear)
     rm -rf "$BUILD"

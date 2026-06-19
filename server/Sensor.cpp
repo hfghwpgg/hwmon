@@ -1,5 +1,7 @@
 #include "Sensor.hpp"
 
+#include <exception>
+#include <nlohmann/detail/exceptions.hpp>
 #include <nlohmann/json.hpp>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
@@ -22,7 +24,7 @@ Sensor::Sensor(fs::path path, string name, SensorType type) :
     divider(getDivider(type)),
     readings{0, NAN, NAN, 0, 0} {
 #ifdef DEBUG
-  spdlog::debug("sensor init: {}\nits name: {}\n", path.string(), name);
+  spdlog::debug("sensor init: {}; its name: {}", path.string(), name);
 #endif
   if (!file.is_open()) {
     spdlog::critical("unable to open file {}\n", path.string());
@@ -45,9 +47,21 @@ string Sensor::readRawSensorString() {
   return str;
 }
 
+// sysfs returns only integers by design
+// but i use float to take advantage of
+// NAN to communicate an error in a quiet
+// way
 float Sensor::prepareValue() {
   string str = readRawSensorString();
-  return std::stof(str) / divider;
+  float readData;
+  try {
+    readData = std::stof(str);
+  } catch (const std::invalid_argument &) { // makes compilator happy
+    return NAN;
+  } catch (const std::out_of_range &) {
+    return NAN;
+  }
+  return readData / divider;
 }
 
 void Sensor::updateValue() {
