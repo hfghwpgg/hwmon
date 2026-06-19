@@ -71,7 +71,7 @@ UDSServer::~UDSServer() {
   ::unlink(udsPath.c_str());
 }
 
-bool UDSServer::Setup() {
+bool UDSServer::setup() {
   FdGuard fd{::socket(AF_UNIX, SOCK_STREAM, 0)};
   if (!fd.valid()) {
     spdlog::error("ERROR: couldn't open socket: {}", std::strerror(errno));
@@ -103,8 +103,8 @@ bool UDSServer::Setup() {
   return true;
 }
 
-void UDSServer::Run() {
-  if (!Setup()) {
+void UDSServer::run() {
+  if (!setup()) {
     state.running.store(false);
     return;
   }

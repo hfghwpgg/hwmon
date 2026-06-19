@@ -21,7 +21,7 @@ Subcommands:
 
 Output binary: server/build/Hwmon
 
-Prerequisites: CMake 3.30+, C++26-capable compiler (g++ or clang++).
+Prerequisites: CMake 3.30+, C++23-capable compiler (g++ or clang++).
 EOF
 }
 

@@ -39,10 +39,10 @@ int main() {
   Runner runner{state};
   UDSServer server{path, backlog, state};
 
-  std::jthread runnerThread{[&runner] { runner.Run(); }};
+  std::jthread runnerThread{[&runner] { runner.run(); }};
 
   // Blocks on the accept loop until the shutdown flag is set.
-  server.Run();
+  server.run();
   spdlog::info("program ended gracefully");
   return 0;
 }

@@ -19,17 +19,16 @@ Sensor::Sensor(fs::path path, string name, SensorType type) :
     file(path),
     name(name),
     type(type),
-    divider(GetDivider(type)),
+    divider(getDivider(type)),
     readings{0, NAN, NAN, 0, 0} {
 #ifdef DEBUG
-  spdlog::debug("sensor init: {}\nits name: {}\n", path.c_str(), name);
+  spdlog::debug("sensor init: {}\nits name: {}\n", path.string(), name);
 #endif
   if (!file.is_open()) {
     spdlog::critical("unable to open file {}\n", path.string());
     throw std::runtime_error(std::format("unable to open file {}\n", path.string()));
   };
 }
-
 
 Sensor::~Sensor() {
   file.close();
@@ -38,8 +37,7 @@ Sensor::~Sensor() {
 #endif
 }
 
-
-string Sensor::ReadRawSensorString() {
+string Sensor::readRawSensorString() {
   file.clear();
   file.seekg(0);
   string str;
@@ -47,13 +45,13 @@ string Sensor::ReadRawSensorString() {
   return str;
 }
 
-float Sensor::PrepareValue() {
-  string str = ReadRawSensorString();
+float Sensor::prepareValue() {
+  string str = readRawSensorString();
   return std::stof(str) / divider;
 }
 
-void Sensor::UpdateValue() {
-  float value = PrepareValue();
+void Sensor::updateValue() {
+  float value = prepareValue();
   if (std::isnan(value))
     return;
   this->readings.value = value;
@@ -68,14 +66,14 @@ void Sensor::UpdateValue() {
   }
 }
 
-SensorReading Sensor::GetReadings() {
+SensorReading Sensor::getReadings() {
   return this->readings;
 }
 
-nlohmann::json Sensor::Serialize() {
+nlohmann::json Sensor::serialize() {
   nlohmann::json j;
   j["name"] = this->name;
   j["type"] = this->type;
-  j["readings"] = this->readings.Serialize();
+  j["readings"] = this->readings.serialize();
   return j;
 }

@@ -1,7 +1,7 @@
 #include "SensorReading.hpp"
 #include <nlohmann/json.hpp>
 
-nlohmann::json SensorReading::Serialize() {
+nlohmann::json SensorReading::serialize() {
   nlohmann::json j;
   j["value"] = this->value;
   j["min_value"] = this->min_value;

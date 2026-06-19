@@ -9,13 +9,15 @@ struct SharedState;
 class Runner {
 public:
   explicit Runner(SharedState &state);
+
 #ifdef DEBUG
   ~Runner();
 #endif
-  void Run();
+
+  void run();
 
 private:
   SharedState &state;
   std::vector<Device> devices;
-  void Setup();
+  void setup();
 };

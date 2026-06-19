@@ -9,5 +9,5 @@ struct SensorReading {
   double sum;
   size_t times;
 
-  nlohmann::json Serialize();
+  nlohmann::json serialize();
 };

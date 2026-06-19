@@ -47,7 +47,7 @@ public:
   UDSServer(const UDSServer &) = delete;
   UDSServer &operator=(const UDSServer &) = delete;
 
-  void Run();
+  void run();
 
 private:
   // A running client connection plus a flag it sets when it finishes,
@@ -57,7 +57,7 @@ private:
     std::jthread thread;
   };
 
-  bool Setup();
+  bool setup();
   void HandleClient(std::stop_token stopToken, FdGuard clientFd,
                     std::shared_ptr<std::atomic<bool>> done);
   std::string ProcessRequest(std::string_view request);

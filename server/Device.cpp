@@ -29,9 +29,10 @@ Device::Device(fs::path path, string name, DeviceType type) :
     path(path),
     name(name),
     type(type),
-    Sensors() {
-  Sensors.reserve(10);
-  Initialize();
+    sensors() {
+  sensors.reserve(10);
+  spdlog::debug("CURRENT DEVICE: {} <{}>", this->path.string(), this->name);
+  initialize();
 }
 
 #ifdef DEBUG
@@ -40,7 +41,7 @@ Device::~Device() {
 }
 #endif
 
-SensorType Device::DeduceSensorType(string parsedPart1) {
+SensorType Device::deduceSensorType(string parsedPart1) {
   auto lastNonDigit = parsedPart1.find_last_not_of("0123456789");
 
   std::string_view prefix;
@@ -49,98 +50,105 @@ SensorType Device::DeduceSensorType(string parsedPart1) {
   } else {
     prefix = parsedPart1;
   }
-  auto it = SensorConfigMap.find(prefix);
-  if (it != SensorConfigMap.end()) {
+  auto it = sensorConfigMap.find(prefix);
+  if (it != sensorConfigMap.end()) {
     return it->second;
   }
-  spdlog::warn("unable to find type {} for sensor {}", parsedPart1, this->name);
+  // fallback
   return SensorType::UNKNOWN;
 }
 
-void Device::Initialize() {
+void Device::initialize() {
   unordered_map<string, vector<string>> available_sensors;
   for (const auto &entry : fs::directory_iterator(path)) {
-    if (entry.is_regular_file()) {
-      // stem returns filename
-      // without extension
-      string filename = entry.path().stem();
-      size_t underscorePos = filename.find('_');
-      if (underscorePos != string::npos) {
-        string part1 = filename.substr(0, underscorePos);
-        string part2 = filename.substr(underscorePos + 1);
-
-        if (!IsWhitelistedSensorAttribute(part2))
-          continue;
-
-        if (available_sensors.count(part1)) {
-          available_sensors.at(part1).push_back(part2);
-        } else {
-          available_sensors.insert({part1, vector<string>{part2}});
-        }
-      }
+    if (!entry.is_regular_file()) {
+      spdlog::warn("{} is not a regular file", entry.path().string());
+      continue;
     }
-  }
-  CreateSensors(available_sensors);
-}
-
-void Device::CreateSensors(unordered_map<string, vector<string>> availableSensors) {
-  for (const auto &[sensorBase, extensions] : availableSensors) {
-    bool hasInput = false;
-    bool hasAverage = false;
-    bool hasLabel = false;
-    for (const auto &ext : extensions) {
-      if (ext == "input")
-        hasInput = true;
-      if (ext == "average")
-        hasAverage = true;
-      if (ext == "label")
-        hasLabel = true;
-    }
-    // if no reading available, continue
-    if (hasInput == false && hasAverage == false) {
-      spdlog::warn("sensor {} exposes no known reading interface", sensorBase);
+    // stem returns filename
+    // without extension
+    string filename = entry.path().stem();
+    size_t underscorePos = filename.find('_');
+    if (underscorePos == string::npos) {
+      spdlog::warn("{} does not contain an underscore", filename);
       continue;
     }
 
-    string label = sensorBase;
+    string part1 = filename.substr(0, underscorePos);
+    string part2 = filename.substr(underscorePos + 1);
+
+    if (!IsWhitelistedSensorAttribute(part2))
+      continue;
+
+    if (available_sensors.count(part1)) {
+      available_sensors.at(part1).push_back(part2);
+    } else {
+      available_sensors.insert({part1, vector<string>{part2}});
+    }
+  }
+  createSensors(available_sensors);
+}
+
+void Device::createSensors(unordered_map<string, vector<string>> availableSensors) {
+  for (const auto &[sensorBase, extensions] : availableSensors) {
+    bool hasInput = false;
+    bool hasAverage = false;
     string valueSrc;
-    SensorType type = DeduceSensorType(sensorBase);
+    string label = sensorBase;
+    for (const auto &ext : extensions) {
+      if (ext == "input") {
+        hasInput = true;
+        valueSrc = this->path / (sensorBase + "_input");
+      }
+      if (ext == "average") {
+        hasAverage = true;
+        valueSrc = this->path / (sensorBase + "_average");
+      }
 
-    if (hasInput) {
-      valueSrc = path / (sensorBase + "_input");
-    } else if (hasAverage) {
-      valueSrc = path / (sensorBase + "_average");
+      if (ext == "label") {
+        string temp = path / (sensorBase + "_label");
+        std::ifstream f{temp};
+        f.clear();
+        f.seekg(0);
+        std::getline(f, label);
+        f.close();
+      }
     }
-    if (hasLabel) {
-      string temp = path / (sensorBase + "_label");
-      std::ifstream f{temp};
-      f.clear();
-      f.seekg(0);
-      std::getline(f, label);
-      f.close();
+    // if no reading available, continue
+    if (!hasInput && !hasAverage) {
+      spdlog::warn("sensor {} exposes no known reading interface", sensorBase);
+      continue;
+    } else if (hasInput && hasAverage) {
+      spdlog::warn("singular sensor has both input and average fields, please report this to the "
+                   "maintainer. ignoring this sensor");
+      continue;
     }
 
+    SensorType type = deduceSensorType(sensorBase);
+    if (type == SensorType::UNKNOWN) {
+      spdlog::warn("unable to find type {} for sensor", sensorBase);
+    }
 
     if (type == SensorType::ENERGY) {
-      Sensors.emplace_back(std::make_unique<EnergySensor>(valueSrc, label, type));
+      sensors.emplace_back(std::make_unique<EnergySensor>(valueSrc, label, type));
     } else {
-      Sensors.emplace_back(std::make_unique<Sensor>(valueSrc, label, type));
+      sensors.emplace_back(std::make_unique<Sensor>(valueSrc, label, type));
     }
   }
 }
 
-void Device::Read() {
-  for (auto &sensor : Sensors) {
-    sensor->UpdateValue();
+void Device::read() {
+  for (auto &sensor : sensors) {
+    sensor->updateValue();
   }
 }
 
-nlohmann::json Device::Serialize() {
+nlohmann::json Device::serialize() {
   nlohmann::json j;
   j["name"] = this->name;
   j["type"] = this->type;
-  for (auto &sensor : Sensors) {
-    j["sensors"] += sensor->Serialize();
+  for (auto &sensor : sensors) {
+    j["sensors"] += sensor->serialize();
   }
   return j;
 }

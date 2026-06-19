@@ -22,7 +22,7 @@ using nlohmann::json;
 Runner::Runner(SharedState &state) :
     state(state) {
   devices.reserve(10);
-  Setup();
+  setup();
 };
 #ifdef DEBUG
 Runner::~Runner() {
@@ -30,7 +30,7 @@ Runner::~Runner() {
 }
 #endif
 
-void Runner::Setup() {
+void Runner::setup() {
   const fs::path Path = "/sys/class/hwmon";
   for (auto &entry : fs::directory_iterator(Path)) {
     // placeholder
@@ -38,12 +38,12 @@ void Runner::Setup() {
   }
 };
 
-void Runner::Run() {
+void Runner::run() {
   while (state.running.load(std::memory_order_relaxed)) {
     json serializedDevices = json::array();
     for (auto &device : devices) {
-      device.Read();
-      serializedDevices.push_back(device.Serialize());
+      device.read();
+      serializedDevices.push_back(device.serialize());
     }
 
     // Publish the latest snapshot for clients to pull on request.

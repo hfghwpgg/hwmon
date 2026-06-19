@@ -14,8 +14,8 @@ EnergySensor::EnergySensor(fs::path path, string name, SensorType type) :
   lastTime = chrono::steady_clock::now();
 }
 
-float EnergySensor::PrepareValue() {
-  string str = ReadRawSensorString();
+float EnergySensor::prepareValue() {
+  string str = readRawSensorString();
   long double reading = stold(str);
 
   if (std::isnan(lastReading)) {

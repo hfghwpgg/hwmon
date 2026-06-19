@@ -29,19 +29,16 @@ public:
   ~Device();
 #endif
 
-  void Read();
-  nlohmann::json Serialize();
-
-  // TEMPORARY, TO BE REMOVED
-  void Display();
+  void read();
+  nlohmann::json serialize();
 
 private:
   fs::path path;
   std::string name;
   DeviceType type;
-  std::vector<std::unique_ptr<Sensor>> Sensors;
+  std::vector<std::unique_ptr<Sensor>> sensors;
 
-  SensorType DeduceSensorType(std::string parsedPart1);
-  void CreateSensors(std::unordered_map<std::string, std::vector<std::string>> availableSensors);
-  void Initialize();
+  SensorType deduceSensorType(std::string parsedPart1);
+  void createSensors(std::unordered_map<std::string, std::vector<std::string>> availableSensors);
+  void initialize();
 };
