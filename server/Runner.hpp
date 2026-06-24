@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <vector>
 
 #include "Device.hpp"
@@ -18,6 +19,6 @@ public:
 
 private:
   SharedState &state;
-  std::vector<Device> devices;
+  std::vector<std::unique_ptr<Device>> devices;
   void setup();
 };

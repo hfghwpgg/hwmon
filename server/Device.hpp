@@ -18,6 +18,7 @@ namespace fs = std::filesystem;
 
 class Device {
 public:
+  // look CpuDevide:8
   Device(fs::path path, std::string name, DeviceType type);
 
 #ifdef DEBUG
@@ -26,13 +27,13 @@ public:
 
   Device(const Device &) noexcept = delete;
 
-  ~Device();
+  virtual ~Device();
 #endif
 
   void read();
   nlohmann::json serialize();
 
-private:
+protected:
   fs::path path;
   std::string name;
   DeviceType type;

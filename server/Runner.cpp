@@ -14,6 +14,7 @@
 
 #include "Device.hpp"
 #include "DeviceType.hpp"
+#include "Devices/CpuDevice.hpp"
 #include "SharedState.hpp"
 
 namespace fs = std::filesystem;
@@ -30,20 +31,25 @@ Runner::~Runner() {
 }
 #endif
 
+// void Runner::setup() {
+//   const fs::path Path = "/sys/class/hwmon";
+//   for (auto &entry : fs::directory_iterator(Path)) {
+//     // placeholder
+//     this->devices.emplace_back(
+//         std::make_unique<Device>(entry.path(), entry.path().filename(), DeviceType::UNKNOWN));
+//   }
+// };
+
 void Runner::setup() {
-  const fs::path Path = "/sys/class/hwmon";
-  for (auto &entry : fs::directory_iterator(Path)) {
-    // placeholder
-    this->devices.emplace_back(entry.path(), entry.path().filename(), DeviceType::UNKNOWN);
-  }
-};
+  this->devices.emplace_back(std::make_unique<CpuDevice>());
+}
 
 void Runner::run() {
   while (state.running.load(std::memory_order_relaxed)) {
     json serializedDevices = json::array();
     for (auto &device : devices) {
-      device.read();
-      serializedDevices.push_back(device.serialize());
+      device->read();
+      serializedDevices.push_back(device->serialize());
     }
 
     // Publish the latest snapshot for clients to pull on request.
