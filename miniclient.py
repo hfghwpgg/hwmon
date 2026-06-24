@@ -10,7 +10,7 @@ def receive_data(sock):
             return None
         return json.loads(line.strip())
     except Exception as e:
-        print(f"Błąd podczas odbierania: {e}")
+        print(f"Error recieving: {e}")
         return None
 
 
