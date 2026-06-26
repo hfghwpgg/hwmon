@@ -25,6 +25,7 @@ target_compile_definitions(hwmon_opts INTERFACE
 )
 
 add_library(HwmonCore STATIC
+    "helpers.hpp"
     "SensorReading.cpp"
     "Sensor.cpp"
     "EnergySensor.cpp"

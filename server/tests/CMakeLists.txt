@@ -4,7 +4,7 @@ include(GoogleTest)
 add_executable(hwmon_tests
     "test_main.cpp"
     "test_sensor_type.cpp"
-    "test_utils.cpp"
+    "test_helpers.cpp"
     "test_sensor_reading.cpp"
     "test_sensor.cpp"
     "test_device.cpp"
