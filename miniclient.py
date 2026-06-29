@@ -37,6 +37,6 @@ def get_data(sock):
 with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
     sock.connect("/tmp/hwmon.sock")
 
-    send_ping(sock)
-    set_interval(sock)
+    # send_ping(sock)
+    # set_interval(sock)
     get_data(sock)

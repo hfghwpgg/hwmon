@@ -215,8 +215,7 @@ TEST_F(UDSServerTest, HandlesMultipleRequestsOnOneConnection) {
   int fd = connectClient();
   ASSERT_GE(fd, 0);
 
-  const std::string payload = std::string(R"({"cmd":"ping"})") + "\n" +
-                              R"({"cmd":"ping"})" + "\n";
+  const std::string payload = std::string(R"({"cmd":"ping"})") + "\n" + R"({"cmd":"ping"})" + "\n";
   ASSERT_GT(::send(fd, payload.data(), payload.size(), 0), 0);
 
   std::string response;

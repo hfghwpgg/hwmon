@@ -13,6 +13,7 @@
 #include <map>
 
 #include "Device.hpp"
+#include "Devices/GeneralDevice.hpp"
 #include "DeviceType.hpp"
 #include "Devices/CpuDevice.hpp"
 #include "SharedState.hpp"
@@ -31,18 +32,22 @@ Runner::~Runner() {
 }
 #endif
 
-// void Runner::setup() {
-//   const fs::path Path = "/sys/class/hwmon";
-//   for (auto &entry : fs::directory_iterator(Path)) {
-//     // placeholder
-//     this->devices.emplace_back(
-//         std::make_unique<Device>(entry.path(), entry.path().filename(), DeviceType::UNKNOWN));
-//   }
-// };
-
 void Runner::setup() {
-  this->devices.emplace_back(std::make_unique<CpuDevice>());
-}
+  const fs::path Path = "/sys/class/hwmon";
+  for (auto &entry : fs::directory_iterator(Path)) {
+    // placeholder
+    auto tmp =
+        std::make_unique<GeneralDevice>(entry.path().filename(), DeviceType::UNKNOWN, entry.path());
+    tmp->initialize();
+    this->devices.push_back(std::move(tmp));
+  }
+};
+
+// void Runner::setup() {
+//   auto c = std::make_unique<CpuDevice>();
+//   c->initialize();
+//   this->devices.push_back(std::move(c));
+// }
 
 void Runner::run() {
   while (state.running.load(std::memory_order_relaxed)) {

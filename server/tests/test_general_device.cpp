@@ -10,7 +10,7 @@
 #include <string>
 #include <thread>
 
-#include "Device.hpp"
+#include "Devices/GeneralDevice.hpp"
 #include "DeviceType.hpp"
 #include "SensorType.hpp"
 
@@ -22,9 +22,8 @@ class DeviceTest : public ::testing::Test {
 protected:
   void SetUp() override {
     static std::atomic<unsigned> counter{0};
-    dir = fs::temp_directory_path() /
-          ("hwmon_device_test_" + std::to_string(::getpid()) + "_" +
-           std::to_string(counter.fetch_add(1)));
+    dir = fs::temp_directory_path() / ("hwmon_device_test_" + std::to_string(::getpid()) + "_" +
+                                       std::to_string(counter.fetch_add(1)));
     fs::create_directories(dir);
   }
 
@@ -63,7 +62,8 @@ TEST_F(DeviceTest, DiscoversWhitelistedSensorsAndDeducesTypes) {
   // No underscore -> must be skipped.
   writeFile("name", "mychip");
 
-  Device device{dir, "mydev", DeviceType::UNKNOWN};
+  GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
+  device.initialize();
   device.read();
   const nlohmann::json j = device.serialize();
 
@@ -96,7 +96,8 @@ TEST_F(DeviceTest, SensorWithoutReadingInterfaceIsSkipped) {
   writeFile("temp1_label", "Orphan");
   writeFile("fan1_input", "1500");
 
-  Device device{dir, "mydev", DeviceType::UNKNOWN};
+  GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
+  device.initialize();
   device.read();
   const nlohmann::json j = device.serialize();
 
@@ -106,7 +107,7 @@ TEST_F(DeviceTest, SensorWithoutReadingInterfaceIsSkipped) {
 }
 
 TEST_F(DeviceTest, EmptyDeviceSerializesWithNoSensors) {
-  Device device{dir, "empty", DeviceType::CPU};
+  GeneralDevice device{"empty", DeviceType::CPU, dir};
   device.read();
   const nlohmann::json j = device.serialize();
 
@@ -119,7 +120,8 @@ TEST_F(DeviceTest, EmptyDeviceSerializesWithNoSensors) {
 TEST_F(DeviceTest, ReadsFromAverageInterface) {
   writeFile("temp1_average", "45000");
 
-  Device device{dir, "mydev", DeviceType::UNKNOWN};
+  GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
+  device.initialize();
   device.read();
   const nlohmann::json j = device.serialize();
 
@@ -133,7 +135,7 @@ TEST_F(DeviceTest, SkipsSensorWithBothInputAndAverage) {
   writeFile("temp1_input", "42000");
   writeFile("temp1_average", "43000");
 
-  Device device{dir, "mydev", DeviceType::UNKNOWN};
+  GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
   device.read();
   const nlohmann::json j = device.serialize();
 
@@ -146,7 +148,8 @@ TEST_F(DeviceTest, SkipsSensorWithBothInputAndAverage) {
 TEST_F(DeviceTest, EnergyInputCreatesEnergySensor) {
   writeFile("energy1_input", "1000000");
 
-  Device device{dir, "mydev", DeviceType::UNKNOWN};
+  GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
+  device.initialize();
   device.read(); // baseline only
 
   writeFile("energy1_input", "3000000");
@@ -165,7 +168,8 @@ TEST_F(DeviceTest, EnergyInputCreatesEnergySensor) {
 TEST_F(DeviceTest, RepeatedReadUpdatesAggregates) {
   writeFile("temp1_input", "30000");
 
-  Device device{dir, "mydev", DeviceType::UNKNOWN};
+  GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
+  device.initialize();
   device.read();
 
   writeFile("temp1_input", "31000");
@@ -182,7 +186,8 @@ TEST_F(DeviceTest, RepeatedReadUpdatesAggregates) {
 TEST_F(DeviceTest, UnknownPrefixUsesUnscaledDivider) {
   writeFile("bogus1_input", "12345");
 
-  Device device{dir, "mydev", DeviceType::UNKNOWN};
+  GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
+  device.initialize();
   device.read();
   const nlohmann::json bogus = findSensor(device.serialize()["sensors"], "bogus1");
   ASSERT_FALSE(bogus.empty());

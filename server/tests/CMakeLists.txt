@@ -7,7 +7,7 @@ add_executable(hwmon_tests
     "test_helpers.cpp"
     "test_sensor_reading.cpp"
     "test_sensor.cpp"
-    "test_device.cpp"
+    "test_general_device.cpp"
     "test_uds_server.cpp"
 )
 

@@ -1,45 +1,26 @@
 #pragma once
 #include <nlohmann/json_fwd.hpp>
-#include <filesystem>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "DeviceType.hpp"
 #include "Sensor.hpp"
-#include "SensorType.hpp"
-
-class Sensor;
-enum class DeviceType;
-
-
-namespace fs = std::filesystem;
 
 class Device {
 public:
-  // look CpuDevide:8
-  Device(fs::path path, std::string name, DeviceType type);
+  Device(std::string name, DeviceType type);
 
 #ifdef DEBUG
-  Device(Device &&) noexcept = default;
-  Device &operator=(Device &&) noexcept = default;
-
-  Device(const Device &) noexcept = delete;
-
   virtual ~Device();
 #endif
 
-  void read();
-  nlohmann::json serialize();
+  virtual void initialize() = 0;
+  virtual void read();
+  virtual nlohmann::json serialize();
 
 protected:
-  fs::path path;
   std::string name;
   DeviceType type;
   std::vector<std::unique_ptr<Sensor>> sensors;
-
-  SensorType deduceSensorType(std::string parsedPart1);
-  void createSensors(std::unordered_map<std::string, std::vector<std::string>> availableSensors);
-  void initialize();
 };

@@ -15,7 +15,6 @@ public:
 private:
   float prepareValue() override;
 
-private:
   long double lastReading;
   std::chrono::steady_clock::time_point lastTime;
 };
