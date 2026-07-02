@@ -1,6 +1,6 @@
 #pragma once
 #include <chrono>
-#include <filesystem>
+#include <memory>
 #include <string>
 
 #include "Sensor.hpp"
@@ -10,11 +10,13 @@ enum class SensorType;
 
 class EnergySensor : public Sensor {
 public:
-  EnergySensor(std::filesystem::path path, std::string name, SensorType type);
+  EnergySensor(std::unique_ptr<std::istream> file, std::string name, SensorType type);
 
 private:
   float prepareValue() override;
 
-  long double lastReading;
-  std::chrono::steady_clock::time_point lastTime;
+  struct {
+    long double value;
+    std::chrono::steady_clock::time_point time;
+  } lastReading;
 };

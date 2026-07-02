@@ -13,37 +13,33 @@
 #include "SensorReading.hpp"
 #include "SensorType.hpp"
 
-
-namespace fs = std::filesystem;
 using std::string;
 
-Sensor::Sensor(fs::path path, string name, SensorType type) :
-    file(path),
+Sensor::Sensor(std::shared_ptr<std::istream> file, string name, SensorType type,
+               unsigned int divider) :
+    file(file),
     name(name),
     type(type),
-    divider(getDivider(type)),
+    // divider(getDivider(type)),
+    divider(divider),
     readings{0, NAN, NAN, 0, 0} {
 #ifdef DEBUG
-  spdlog::debug("sensor init: {}; its name: {}", path.string(), name);
+  spdlog::debug("sensor init; its name: {}", name);
 #endif
-  if (!file.is_open()) {
-    spdlog::critical("unable to open file {}\n", path.string());
-    throw std::runtime_error(std::format("unable to open file {}\n", path.string()));
-  };
 }
 
+Sensor::Sensor(std::shared_ptr<std::istream> file, string name, SensorType type) :
+    Sensor(file, name, type, getDivider(type)) {}
+
 Sensor::~Sensor() {
-  file.close();
-#ifdef DEBUG
-  spdlog::debug("sensor destroyed: {}", this->name);
-#endif
+  spdlog::debug("sensor destroyed: {}", name);
 }
 
 string Sensor::readRawSensorString() {
-  file.clear();
-  file.seekg(0);
+  file->clear();
+  file->seekg(0);
   string str;
-  std::getline(file, str);
+  std::getline(*file, str);
   return str;
 }
 
@@ -66,28 +62,30 @@ float Sensor::prepareValue() {
 
 void Sensor::updateValue() {
   float value = prepareValue();
-  if (std::isnan(value))
+  if (std::isnan(value)) {
+    spdlog::warn("{}: value of recieved data is NaN", name);
     return;
-  this->readings.value = value;
-  this->readings.sum += value;
-  this->readings.times++;
-
-  if (this->readings.min_value > value || std::isnan(this->readings.min_value)) {
-    this->readings.min_value = value;
   }
-  if (this->readings.max_value < value || std::isnan(this->readings.max_value)) {
-    this->readings.max_value = value;
+  readings.value = value;
+  readings.sum += value;
+  readings.times++;
+
+  if (readings.min_value > value || std::isnan(readings.min_value)) {
+    readings.min_value = value;
+  }
+  if (readings.max_value < value || std::isnan(readings.max_value)) {
+    readings.max_value = value;
   }
 }
 
 SensorReading Sensor::getReadings() {
-  return this->readings;
+  return readings;
 }
 
 nlohmann::json Sensor::serialize() {
   nlohmann::json j;
-  j["name"] = this->name;
-  j["type"] = this->type;
-  j["readings"] = this->readings.serialize();
+  j["name"] = name;
+  j["type"] = type;
+  j["readings"] = readings.serialize();
   return j;
 }

@@ -4,14 +4,15 @@
 
 
 enum class SensorType;
-namespace fs = std::filesystem;
 namespace chrono = std::chrono;
 using std::string;
 
-EnergySensor::EnergySensor(fs::path path, string name, SensorType type) :
-    Sensor(path, name, type) {
-  lastReading = NAN;
-  lastTime = chrono::steady_clock::now();
+EnergySensor::EnergySensor(std::unique_ptr<std::istream> file, string name, SensorType type) :
+    // energy sensor gets file desciptor as unique
+    // as it doesnt need to be shared
+    Sensor(std::move(file), name, type) {
+  lastReading.value = NAN;
+  lastReading.time = chrono::steady_clock::now();
 }
 
 float EnergySensor::prepareValue() {
@@ -25,16 +26,16 @@ float EnergySensor::prepareValue() {
     return NAN;
   }
 
-  if (std::isnan(lastReading)) {
-    lastReading = readData;
+  if (std::isnan(lastReading.value)) {
+    lastReading.value = readData;
     return NAN;
   }
   auto time = chrono::steady_clock::now();
-  auto deltaTime = chrono::duration_cast<chrono::microseconds>(time - lastTime).count();
+  auto deltaTime = chrono::duration_cast<chrono::microseconds>(time - lastReading.time).count();
   // deliberately used microseconds, cuz interface is in micro joules
-  auto ret = (readData - lastReading) / deltaTime;
+  auto ret = (readData - lastReading.value) / deltaTime;
 
-  lastReading = readData;
-  lastTime = time;
+  lastReading.value = readData;
+  lastReading.time = time;
   return ret;
 }

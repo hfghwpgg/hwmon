@@ -3,11 +3,11 @@
 
 nlohmann::json SensorReading::serialize() {
   nlohmann::json j;
-  j["value"] = this->value;
-  j["min_value"] = this->min_value;
-  j["max_value"] = this->max_value;
-  j["sum"] = this->sum;
-  j["times"] = this->times;
+  j["value"] = value;
+  j["min_value"] = min_value;
+  j["max_value"] = max_value;
+  j["sum"] = sum;
+  j["times"] = times;
 
   return j;
 }

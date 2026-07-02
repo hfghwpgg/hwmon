@@ -34,19 +34,21 @@ Runner::~Runner() {
 
 void Runner::setup() {
   const fs::path Path = "/sys/class/hwmon";
+  // auto fail = std::make_unique<GeneralDevice>("asd", DeviceType::CPU, "fsa");
+  // devices.push_back(std::move(fail));
   for (auto &entry : fs::directory_iterator(Path)) {
     // placeholder
     auto tmp =
         std::make_unique<GeneralDevice>(entry.path().filename(), DeviceType::UNKNOWN, entry.path());
     tmp->initialize();
-    this->devices.push_back(std::move(tmp));
+    devices.push_back(std::move(tmp));
   }
 };
 
 // void Runner::setup() {
 //   auto c = std::make_unique<CpuDevice>();
 //   c->initialize();
-//   this->devices.push_back(std::move(c));
+//   devices.push_back(std::move(c));
 // }
 
 void Runner::run() {

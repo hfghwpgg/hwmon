@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <unistd.h>
 #include <atomic>
@@ -27,6 +28,7 @@ protected:
     static std::atomic<unsigned> counter{0};
     path = fs::temp_directory_path() / ("hwmon_sensor_test_" + std::to_string(::getpid()) + "_" +
                                         std::to_string(counter.fetch_add(1)));
+    file = std::make_unique<std::ifstream>(path);
   }
 
   void TearDown() override {
@@ -41,17 +43,18 @@ protected:
   }
 
   fs::path path;
+  std::unique_ptr<std::ifstream> file;
 };
 
 } // namespace
 
 TEST_F(SensorFileTest, ThrowsWhenFileMissing) {
-  EXPECT_THROW(Sensor(path, "missing", SensorType::TEMPERATURE), std::runtime_error);
+  EXPECT_THROW(Sensor(std::move(file), "missing", SensorType::TEMPERATURE), std::runtime_error);
 }
 
 TEST_F(SensorFileTest, ScalesRawValueByDivider) {
   writeRaw("30000\n");
-  Sensor sensor{path, "cpu", SensorType::TEMPERATURE};
+  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
   sensor.updateValue();
 
   const SensorReading r = sensor.getReadings();
@@ -63,14 +66,14 @@ TEST_F(SensorFileTest, ScalesRawValueByDivider) {
 
 TEST_F(SensorFileTest, FanSpeedIsNotScaled) {
   writeRaw("1200");
-  Sensor sensor{path, "fan", SensorType::FAN_SPEED};
+  Sensor sensor{std::move(file), "fan", SensorType::FAN_SPEED};
   sensor.updateValue();
   EXPECT_FLOAT_EQ(sensor.getReadings().value, 1200.0f);
 }
 
 TEST_F(SensorFileTest, AggregatesMinMaxSumAcrossReads) {
   writeRaw("30000");
-  Sensor sensor{path, "cpu", SensorType::TEMPERATURE};
+  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
 
   sensor.updateValue(); // 30
   writeRaw("31000");
@@ -88,7 +91,7 @@ TEST_F(SensorFileTest, AggregatesMinMaxSumAcrossReads) {
 
 TEST_F(SensorFileTest, SerializeEmitsNameTypeAndReadings) {
   writeRaw("45000");
-  Sensor sensor{path, "core", SensorType::TEMPERATURE};
+  Sensor sensor{std::move(file), "core", SensorType::TEMPERATURE};
   sensor.updateValue();
 
   const nlohmann::json j = sensor.serialize();
@@ -100,7 +103,7 @@ TEST_F(SensorFileTest, SerializeEmitsNameTypeAndReadings) {
 
 TEST_F(SensorFileTest, EnergySensorFirstReadProducesNoSample) {
   writeRaw("1000000");
-  EnergySensor sensor{path, "rapl", SensorType::ENERGY};
+  EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
   sensor.updateValue();
 
   // The first reading only establishes a baseline; nothing is recorded yet.
@@ -109,7 +112,7 @@ TEST_F(SensorFileTest, EnergySensorFirstReadProducesNoSample) {
 
 TEST_F(SensorFileTest, EnergySensorComputesPositivePowerFromDelta) {
   writeRaw("1000000");
-  EnergySensor sensor{path, "rapl", SensorType::ENERGY};
+  EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
   sensor.updateValue(); // baseline
 
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
@@ -125,7 +128,7 @@ TEST_F(SensorFileTest, EnergySensorComputesPositivePowerFromDelta) {
 
 TEST_F(SensorFileTest, EnergySensorReportsNegativePowerOnCounterReset) {
   writeRaw("1000000");
-  EnergySensor sensor{path, "rapl", SensorType::ENERGY};
+  EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
   sensor.updateValue(); // baseline
 
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
@@ -141,21 +144,21 @@ TEST_F(SensorFileTest, EnergySensorReportsNegativePowerOnCounterReset) {
 
 TEST_F(SensorFileTest, SurvivesEmptySensorRead) {
   writeRaw(""); // empty read, e.g. transient sysfs state
-  Sensor sensor{path, "cpu", SensorType::TEMPERATURE};
+  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
   EXPECT_NO_THROW(sensor.updateValue());
   EXPECT_EQ(sensor.getReadings().times, 0u);
 }
 
 TEST_F(SensorFileTest, SurvivesNonNumericSensorRead) {
   writeRaw("garbage");
-  Sensor sensor{path, "cpu", SensorType::TEMPERATURE};
+  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
   EXPECT_NO_THROW(sensor.updateValue());
   EXPECT_EQ(sensor.getReadings().times, 0u);
 }
 
 TEST_F(SensorFileTest, BadReadDoesNotClobberPreviousAggregates) {
   writeRaw("30000");
-  Sensor sensor{path, "cpu", SensorType::TEMPERATURE};
+  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
   sensor.updateValue(); // good sample: 30.0
 
   writeRaw("not_a_number");
@@ -168,6 +171,6 @@ TEST_F(SensorFileTest, BadReadDoesNotClobberPreviousAggregates) {
 
 TEST_F(SensorFileTest, EnergySensorSurvivesNonNumericRead) {
   writeRaw("garbage");
-  EnergySensor sensor{path, "rapl", SensorType::ENERGY};
+  EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
   EXPECT_NO_THROW(sensor.updateValue());
 }

@@ -2,6 +2,7 @@
 #include "GeneralDevice.hpp"
 
 #include <fmt/format.h>
+#include <istream>
 #include <nlohmann/json.hpp>
 #include <stddef.h>
 #include <spdlog/spdlog.h>
@@ -9,6 +10,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -30,12 +32,16 @@ using std::vector;
 GeneralDevice::GeneralDevice(string name, DeviceType type, fs::path path) :
     Device(name, type),
     path(path) {
-  spdlog::debug("CURRENT GENERAL DEVICE: {} <{}>", this->path.string(), this->name);
+  spdlog::debug("CURRENT GENERAL DEVICE: {} <{}>", path.string(), name);
+  if (helpers::pathType(path) != helpers::pathTypeEnum::DIRECTORY) {
+    spdlog::critical("invalid path for device {}: {}", name, path.string());
+    throw std::runtime_error("invalid path, check logs");
+  };
 }
 
 #ifdef DEBUG
 GeneralDevice::~GeneralDevice() {
-  spdlog::debug("GeneralDevice destroyed: {}", this->name);
+  spdlog::debug("GeneralDevice destroyed: {}", name);
 }
 #endif
 
@@ -67,23 +73,23 @@ void GeneralDevice::initialize() {
       available_sensors.insert({part1, vector<string>{part2}});
     }
   }
-  this->createSensors(available_sensors);
+  createSensors(available_sensors);
 }
 
 void GeneralDevice::createSensors(unordered_map<string, vector<string>> availableSensors) {
   for (const auto &[sensorBase, extensions] : availableSensors) {
     bool hasInput = false;
     bool hasAverage = false;
-    string valueSrc;
+    fs::path valueSrcPath;
     string label = sensorBase;
     for (const auto &ext : extensions) {
       if (ext == "input") {
         hasInput = true;
-        valueSrc = this->path / (sensorBase + "_input");
+        valueSrcPath = path / (sensorBase + "_input");
       }
       if (ext == "average") {
         hasAverage = true;
-        valueSrc = this->path / (sensorBase + "_average");
+        valueSrcPath = path / (sensorBase + "_average");
       }
 
       if (ext == "label") {
@@ -110,10 +116,16 @@ void GeneralDevice::createSensors(unordered_map<string, vector<string>> availabl
       spdlog::warn("unable to find type {} for sensor", sensorBase);
     }
 
+    auto valueSrc_ptr = std::make_unique<std::ifstream>(valueSrcPath);
+    if (!valueSrc_ptr->is_open()) {
+      spdlog::critical("unable to open file {}\n", valueSrcPath.string());
+      throw std::runtime_error(std::format("unable to open file {}\n", valueSrcPath));
+    };
+
     if (type == SensorType::ENERGY) {
-      this->sensors.emplace_back(std::make_unique<EnergySensor>(valueSrc, label, type));
+      sensors.emplace_back(std::make_unique<EnergySensor>(std::move(valueSrc_ptr), label, type));
     } else {
-      this->sensors.emplace_back(std::make_unique<Sensor>(valueSrc, label, type));
+      sensors.emplace_back(std::make_unique<Sensor>(std::move(valueSrc_ptr), label, type));
     }
   }
 }

@@ -25,12 +25,12 @@ Device::Device(string name, DeviceType type) :
     type(type),
     sensors() {
   sensors.reserve(10);
-  spdlog::debug("CURRENT DEVICE: <{}>", this->name);
+  spdlog::debug("CURRENT DEVICE: <{}>", name);
 }
 
 #ifdef DEBUG
 Device::~Device() {
-  spdlog::debug("Device destroyed: {}", this->name);
+  spdlog::debug("Device destroyed: {}", name);
 }
 #endif
 
@@ -42,8 +42,8 @@ void Device::read() {
 
 nlohmann::json Device::serialize() {
   nlohmann::json j;
-  j["name"] = this->name;
-  j["type"] = this->type;
+  j["name"] = name;
+  j["type"] = type;
   for (auto &sensor : sensors) {
     j["sensors"] += sensor->serialize();
   }

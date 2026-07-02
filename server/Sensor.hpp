@@ -1,7 +1,8 @@
 #pragma once
+#include <istream>
+#include <memory>
 #include <nlohmann/json_fwd.hpp>
 #include <filesystem>
-#include <fstream>
 #include <string>
 
 #include "SensorReading.hpp"
@@ -11,7 +12,9 @@ enum class SensorType;
 
 class Sensor {
 public:
-  Sensor(std::filesystem::path path, std::string name, SensorType type);
+  Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType type,
+         unsigned int divider);
+  Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType type);
   virtual ~Sensor();
 
   void updateValue();
@@ -22,7 +25,7 @@ protected:
   virtual float prepareValue();
   std::string readRawSensorString();
 
-  std::ifstream file;
+  std::shared_ptr<std::istream> file;
   std::string name;
   const SensorType type;
   const unsigned int divider;

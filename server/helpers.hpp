@@ -1,9 +1,11 @@
 #pragma once
 #include <cmath>
+#include <filesystem>
 #include <string>
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <sys/stat.h>
 #include "SensorType.hpp"
 
 namespace helpers {
@@ -37,5 +39,16 @@ static inline SensorType deduceSensorType(std::string parsedPart1) {
   }
   // fallback
   return SensorType::UNKNOWN;
+}
+
+enum class pathTypeEnum { FILE, DIRECTORY, INVALID };
+
+static inline pathTypeEnum pathType(const std::filesystem::path &path) {
+  struct stat sb; // struct for metadata
+  if (stat(path.c_str(), &sb) == 0) {
+    // S_IFDIR = 1 => directory
+    return (sb.st_mode & S_IFDIR) ? pathTypeEnum::DIRECTORY : pathTypeEnum::FILE;
+  }
+  return pathTypeEnum::INVALID;
 }
 } // namespace helpers
