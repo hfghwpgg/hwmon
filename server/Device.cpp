@@ -5,15 +5,9 @@
 #include <stddef.h>
 #include <spdlog/spdlog.h>
 #include <fmt/base.h>
-#include <filesystem>
-#include <fstream>
 #include <memory>
 #include <string>
-#include <string_view>
-#include <unordered_map>
 #include <vector>
-#include <utility>
-
 #include "Sensor.hpp"
 
 enum class DeviceType;
@@ -37,6 +31,12 @@ Device::~Device() {
 void Device::read() {
   for (auto &sensor : sensors) {
     sensor->updateValue();
+  }
+}
+
+void Device::resetReadings() {
+  for (auto &sensor : sensors) {
+    sensor->resetReadings();
   }
 }
 

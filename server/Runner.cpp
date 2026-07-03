@@ -63,7 +63,18 @@ void Runner::run() {
     state.snapshot.store(std::make_shared<const std::string>(serializedDevices.dump()),
                          std::memory_order_release);
 
+    if (state.resetFlag.load(std::memory_order_relaxed)) {
+      resetReadings();
+      state.resetFlag.store(false, std::memory_order_relaxed);
+    }
+
     const unsigned int intervalMs = state.intervalMs.load(std::memory_order_relaxed);
     std::this_thread::sleep_for(std::chrono::milliseconds{intervalMs});
+  }
+}
+
+void Runner::resetReadings() {
+  for (auto &device : devices) {
+    device->resetReadings();
   }
 }

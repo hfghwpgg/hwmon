@@ -11,3 +11,11 @@ nlohmann::json SensorReading::serialize() {
 
   return j;
 }
+
+void SensorReading::reset() {
+  value = NAN;
+  min_value = NAN;
+  max_value = NAN;
+  sum = 0;
+  times = 0;
+}

@@ -2,7 +2,6 @@
 #include "../Device.hpp"
 #include <string>
 #include <unordered_map>
-#include <vector>
 #include <fstream>
 
 struct lastReading { // cpu time

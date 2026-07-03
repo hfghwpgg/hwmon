@@ -12,16 +12,15 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 #include <vector>
 #include <utility>
 
-#include "EnergySensor.hpp"
-#include "Sensor.hpp"
-#include "SensorType.hpp"
-#include "SensorWhitelist.hpp"
-#include "helpers.hpp"
+#include "../EnergySensor.hpp"
+#include "../Sensor.hpp"
+#include "../SensorType.hpp"
+#include "../SensorWhitelist.hpp"
+#include "../helpers.hpp"
 
 enum class DeviceType;
 

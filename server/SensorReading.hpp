@@ -10,4 +10,5 @@ struct SensorReading {
   size_t times;
 
   nlohmann::json serialize();
+  void reset();
 };

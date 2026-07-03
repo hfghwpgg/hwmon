@@ -2,7 +2,6 @@
 #include <chrono>
 #include <cmath>
 
-
 enum class SensorType;
 namespace chrono = std::chrono;
 using std::string;

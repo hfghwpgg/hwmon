@@ -1,13 +1,12 @@
 #include "Sensor.hpp"
 
-#include <exception>
+#include <memory>
 #include <nlohmann/detail/exceptions.hpp>
 #include <nlohmann/json.hpp>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <fmt/base.h>
 #include <cmath>
-#include <format>
 #include <stdexcept>
 
 #include "SensorReading.hpp"
@@ -17,12 +16,11 @@ using std::string;
 
 Sensor::Sensor(std::shared_ptr<std::istream> file, string name, SensorType type,
                unsigned int divider) :
-    file(file),
+    dataStream(file),
     name(name),
     type(type),
-    // divider(getDivider(type)),
     divider(divider),
-    readings{0, NAN, NAN, 0, 0} {
+    readings{NAN, NAN, NAN, 0, 0} {
 #ifdef DEBUG
   spdlog::debug("sensor init; its name: {}", name);
 #endif
@@ -36,10 +34,10 @@ Sensor::~Sensor() {
 }
 
 string Sensor::readRawSensorString() {
-  file->clear();
-  file->seekg(0);
+  dataStream->clear();
+  dataStream->seekg(0);
   string str;
-  std::getline(*file, str);
+  std::getline(*dataStream, str);
   return str;
 }
 
@@ -80,6 +78,10 @@ void Sensor::updateValue() {
 
 SensorReading Sensor::getReadings() {
   return readings;
+}
+
+void Sensor::resetReadings() {
+  readings.reset();
 }
 
 nlohmann::json Sensor::serialize() {

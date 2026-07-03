@@ -16,6 +16,9 @@ struct SharedState {
   // Cooperative shutdown flag (also set from the signal handler).
   std::atomic<bool> running{true};
 
+  std::atomic<bool> resetFlag{false};
+
+
   explicit SharedState(unsigned int initialIntervalMs) :
       intervalMs(initialIntervalMs) {}
 };

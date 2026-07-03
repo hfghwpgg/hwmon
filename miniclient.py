@@ -1,5 +1,6 @@
 import json
 import socket
+from time import sleep
 
 
 def receive_data(sock):
@@ -34,9 +35,16 @@ def get_data(sock):
     send_data(sock, '{"cmd": "get"}')
 
 
+def reset(sock):
+    send_data(sock, '{"cmd": "reset"}')
+
+
 with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
     sock.connect("/tmp/hwmon.sock")
 
     # send_ping(sock)
     # set_interval(sock)
+    get_data(sock)
+    reset(sock)
+    sleep(1)
     get_data(sock)

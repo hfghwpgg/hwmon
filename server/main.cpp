@@ -5,7 +5,6 @@
 #include <csignal>
 #include <string>
 #include <thread>
-#include <memory>
 
 #include "Runner.hpp"
 #include "SharedState.hpp"

@@ -40,10 +40,10 @@ constexpr unsigned int getDivider(SensorType type) {
 static const std::unordered_map<std::string_view, SensorType> sensorConfigMap = {
     {"temp", SensorType::TEMPERATURE},
     {"in", SensorType::VOLTAGE},
+    {"voltage", SensorType::VOLTAGE},
     {"fan", SensorType::FAN_SPEED},
     {"power", SensorType::POWER},
     {"current", SensorType::CURRENT},
-    {"voltage", SensorType::VOLTAGE},
     {"freq", SensorType::FREQUENCY},
     {"energy", SensorType::ENERGY}, // energy is provided in ujoules, needs different
                                     // calculations

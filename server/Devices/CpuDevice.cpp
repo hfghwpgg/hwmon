@@ -1,27 +1,22 @@
 #include "CpuDevice.hpp"
 #include "../Device.hpp"
 #include "../DeviceType.hpp"
-#include "Sensor.hpp"
-#include "SensorType.hpp"
+#include "../Sensor.hpp"
+#include "../SensorType.hpp"
 #include <cstdio>
 #include <exception>
 #include <filesystem>
-#include <format>
 #include "spdlog/spdlog.h"
 #include <fstream>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <unistd.h>
-#include <variant>
 #include <vector>
-#include <print>
 #include "helpers.hpp"
 
 namespace fs = std::filesystem;
-using std::string;
 
 namespace {
 const fs::path CPUFREQ_PATH = "/sys/devices/system/cpu/cpufreq/";
@@ -44,13 +39,14 @@ CpuDevice::~CpuDevice() {
 }
 
 
+// this interface returns frequency in kHz, not Hz.
 void CpuDevice::getCpuCoreFrequency() {
   if (!fs::exists(CPUFREQ_PATH) || access(CPUFREQ_PATH.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible", CPUFREQ_PATH.string());
     return;
   }
   for (const auto &policy : fs::directory_iterator(CPUFREQ_PATH)) {
-    const string filename = policy.path().stem().string();
+    const std::string filename = policy.path().stem().string();
     if (!filename.starts_with("policy"))
       continue;
 
@@ -59,18 +55,17 @@ void CpuDevice::getCpuCoreFrequency() {
         // we know that file starts with 'policy', and thats 6 letters.
         // we only want core number, so we substr the beginning
         std::move(fd), "cpu" + filename.substr(6), SensorType::FREQUENCY, 1000));
-    // this interface returns frequency in kHz, not Hz.
   }
 }
 
-string CpuDevice::getCpuName() {
+std::string CpuDevice::getCpuName() {
   std::string name = "cpumodel";
   if (!fs::exists(CPUINFO_PATH) || access(CPUINFO_PATH.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible; setting general name for cpu", CPUINFO_PATH.string());
     return name;
   }
   std::ifstream CPUINFO_FD(CPUINFO_PATH);
-  string line;
+  std::string line;
   while (std::getline(CPUINFO_FD, line)) {
     if (line.find("model name") == std::string::npos)
       continue;
@@ -98,7 +93,7 @@ void CpuDevice::getCpuUtilization() {
   }
 
   CPUUTIL_FD.open(CPUUTIL_PATH);
-  string line;
+  std::string line;
   while (std::getline(CPUUTIL_FD, line)) {
     line = helpers::trim(line);
     if (!line.starts_with("cpu")) {
@@ -128,13 +123,13 @@ void CpuDevice::readCpuUtilization() {
   CPUUTIL_FD.clear();
   CPUUTIL_FD.seekg(0);
 
-  string line;
+  std::string line;
   while (std::getline(CPUUTIL_FD, line)) {
     if (!line.starts_with("cpu"))
       continue;
 
     std::stringstream ss(line);
-    string cpuCoreNum;
+    std::string cpuCoreNum;
     ss >> cpuCoreNum; // cpu or cpuN
 
     unsigned long long number; // placeholder for readings

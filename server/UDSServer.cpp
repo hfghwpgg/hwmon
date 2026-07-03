@@ -19,7 +19,6 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#include <map>
 
 #include "SharedState.hpp"
 
@@ -263,6 +262,11 @@ std::string UDSServer::ProcessRequest(std::string_view request) {
     }
     state.intervalMs.store(value, std::memory_order_relaxed);
     return json{{"ok", true}, {"interval", value}}.dump();
+  }
+
+  if (cmd == "reset") {
+    state.resetFlag.store(true, std::memory_order_relaxed);
+    return json{{"ok", true}}.dump();
   }
 
   if (cmd == "ping") {

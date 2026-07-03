@@ -21,4 +21,5 @@ private:
   SharedState &state;
   std::vector<std::unique_ptr<Device>> devices;
   void setup();
+  void resetReadings();
 };

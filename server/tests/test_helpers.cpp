@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include "SensorType.hpp"
 
 #include "helpers.hpp"
 
@@ -34,4 +35,34 @@ TEST(IsInVector, WorksWithStrings) {
   const std::vector<std::string> words{"input", "label"};
   EXPECT_TRUE(helpers::isInVector<std::string>(words, "label"));
   EXPECT_FALSE(helpers::isInVector<std::string>(words, "average"));
+}
+
+TEST(trim, ClearsTrailingSpaces) {
+  std::string word1 = "     asd           ";
+  std::string word2 = "          fsa";
+  std::string word3 = "gfd               ";
+  std::string word4 = "     |          dsa  |           ";
+  EXPECT_EQ(helpers::trim(word1), "asd");
+  EXPECT_EQ(helpers::trim(word2), "fsa");
+  EXPECT_EQ(helpers::trim(word3), "gfd");
+  EXPECT_EQ(helpers::trim(word4), "|          dsa  |");
+}
+
+TEST(deduceSensorType, ReturnsCorrectSensorType) {
+  EXPECT_EQ(helpers::deduceSensorType("temp1_input"), SensorType::TEMPERATURE);
+  EXPECT_EQ(helpers::deduceSensorType("in3_input"), SensorType::VOLTAGE);
+  EXPECT_EQ(helpers::deduceSensorType("voltage2_input"), SensorType::VOLTAGE);
+  EXPECT_EQ(helpers::deduceSensorType("fan2_input"), SensorType::FAN_SPEED);
+  EXPECT_EQ(helpers::deduceSensorType("power5_input"), SensorType::POWER);
+  EXPECT_EQ(helpers::deduceSensorType("curr4_input"), SensorType::CURRENT);
+  EXPECT_EQ(helpers::deduceSensorType("freq1_input"), SensorType::FREQUENCY);
+  EXPECT_EQ(helpers::deduceSensorType("energy3_input"), SensorType::ENERGY);
+  EXPECT_EQ(helpers::deduceSensorType("util2_input"), SensorType::UTILIZATION);
+  EXPECT_EQ(helpers::deduceSensorType("unknown7_input"), SensorType::UNKNOWN);
+}
+
+TEST(pathType, ReturnsCorrectPathType) {
+  EXPECT_EQ(helpers::pathType("/"), helpers::pathTypeEnum::DIRECTORY);
+  EXPECT_EQ(helpers::pathType("/dev/null"), helpers::pathTypeEnum::FILE);
+  EXPECT_EQ(helpers::pathType("/nonexistent/path"), helpers::pathTypeEnum::INVALID);
 }

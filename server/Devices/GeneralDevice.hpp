@@ -1,19 +1,12 @@
 #pragma once
 #include <nlohmann/json_fwd.hpp>
 #include <filesystem>
-#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "Device.hpp"
-#include "DeviceType.hpp"
-#include "Sensor.hpp"
-#include "SensorType.hpp"
-
-// class Sensor;
-// enum class DeviceType;
-
+#include "../Device.hpp"
+#include "../DeviceType.hpp"
 
 namespace fs = std::filesystem;
 

@@ -18,6 +18,7 @@ public:
   virtual void initialize() = 0;
   virtual void read();
   virtual nlohmann::json serialize();
+  virtual void resetReadings();
 
 protected:
   std::string name;
