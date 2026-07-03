@@ -3,6 +3,7 @@
 #include "../DeviceType.hpp"
 #include "../Sensor.hpp"
 #include "../SensorType.hpp"
+#include <cstdint>
 #include <cstdio>
 #include <exception>
 #include <filesystem>
@@ -86,7 +87,7 @@ std::string CpuDevice::getCpuName() {
 
 // this is just creating right amount of
 // stringstreams for whole cpu + each core
-void CpuDevice::getCpuUtilization() {
+void CpuDevice::initCpuUtilization() {
   if (!fs::exists(CPUUTIL_PATH) || access(CPUUTIL_PATH.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible", CPUUTIL_PATH.string());
     return;
@@ -102,16 +103,16 @@ void CpuDevice::getCpuUtilization() {
     std::stringstream ss(line);
     std::string cpuCoreNum;
     ss >> cpuCoreNum;
-    utilSensorDescriptors.emplace(cpuCoreNum, std::make_shared<std::stringstream>());
-    utilOld.emplace(cpuCoreNum, lastReading{false, 0, 0});
-    sensors.emplace_back(std::make_unique<Sensor>(utilSensorDescriptors.at(cpuCoreNum), cpuCoreNum,
+    utilSensors.emplace(cpuCoreNum,
+                        utilSensorData{std::make_shared<std::stringstream>(), {0, 0, false}});
+    sensors.emplace_back(std::make_unique<Sensor>(utilSensors.at(cpuCoreNum).dataStream, cpuCoreNum,
                                                   SensorType::UTILIZATION));
   }
 }
 
 // actually reading stuff
 void CpuDevice::readCpuUtilization() {
-  if (utilSensorDescriptors.size() == 0) {
+  if (utilSensors.size() == 0) {
     spdlog::critical("no cpu utilization detected");
     return;
   }
@@ -132,11 +133,10 @@ void CpuDevice::readCpuUtilization() {
     std::string cpuCoreNum;
     ss >> cpuCoreNum; // cpu or cpuN
 
-    unsigned long long number; // placeholder for readings
-
+    unsigned long long number;        // placeholder for readings
     unsigned long long totalTime = 0; // cpu time
     unsigned long long idleTime = 0;  // cpu time
-    size_t column = 0;
+    unsigned short column = 0;
     try {
       while (ss >> number) {
         totalTime += number;
@@ -146,20 +146,27 @@ void CpuDevice::readCpuUtilization() {
         }
         column++;
       }
-      if (utilOld.at(cpuCoreNum).hasRead) {
-        const long long calc_totalTime = totalTime - utilOld.at(cpuCoreNum).totalTime;
-        const long long calc_idleTime = idleTime - utilOld.at(cpuCoreNum).idleTime;
-        utilOld.at(cpuCoreNum).totalTime = totalTime;
-        utilOld.at(cpuCoreNum).idleTime = idleTime;
 
-        auto &coreSS = *utilSensorDescriptors.at(cpuCoreNum);
-        coreSS.str("");
-        coreSS.clear();
-        coreSS << 100 * (calc_totalTime - calc_idleTime) / (double)calc_totalTime;
+      if (!utilSensors.contains(cpuCoreNum)) {
+        spdlog::critical("somehow, cpu core is not present in the cpuUtil map. aborting");
+        throw std::runtime_error("");
+      }
+      auto &utilEntry = utilSensors.at(cpuCoreNum);
+      if (utilEntry.utilOld.hasRead) {
+        const long long calc_totalTime = totalTime - utilEntry.utilOld.totalTime;
+        const long long calc_idleTime = idleTime - utilEntry.utilOld.idleTime;
+        utilEntry.utilOld.totalTime = totalTime;
+        utilEntry.utilOld.idleTime = idleTime;
+
+        // auto &coreStringStream = *utilSensorDescriptors.at(cpuCoreNum);
+        auto &coreStringStream = utilEntry.dataStream;
+        coreStringStream->str("");
+        coreStringStream->clear();
+        *coreStringStream << 100 * (calc_totalTime - calc_idleTime) / (double)calc_totalTime;
       } else {
-        utilOld.at(cpuCoreNum).totalTime = totalTime;
-        utilOld.at(cpuCoreNum).idleTime = idleTime;
-        utilOld.at(cpuCoreNum).hasRead = true;
+        utilEntry.utilOld.totalTime = totalTime;
+        utilEntry.utilOld.idleTime = idleTime;
+        utilEntry.utilOld.hasRead = true;
       }
     } catch (const std::out_of_range &) {
       spdlog::critical("somehow, amount of cores read is invalid. aborting");
@@ -180,5 +187,5 @@ void CpuDevice::read() {
 
 void CpuDevice::initialize() {
   getCpuCoreFrequency();
-  getCpuUtilization();
+  initCpuUtilization();
 }

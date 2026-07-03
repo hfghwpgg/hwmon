@@ -28,6 +28,18 @@ using std::string;
 using std::unordered_map;
 using std::vector;
 
+namespace {
+const inline string readFileFirstLine(fs::path pathToFile) {
+  string content;
+  std::ifstream f{pathToFile};
+  f.clear();
+  f.seekg(0);
+  std::getline(f, content);
+  f.close();
+  return content;
+}
+} // namespace
+
 GeneralDevice::GeneralDevice(string name, DeviceType type, fs::path path) :
     Device(name, type),
     path(path) {
@@ -54,6 +66,17 @@ void GeneralDevice::initialize() {
     // stem returns filename
     // without extension
     string filename = entry.path().stem();
+
+    // if hwmon contains name field, we use it
+    // as device name
+    if (filename == "name") {
+      name = readFileFirstLine(path / "name");
+    }
+
+    // usually sensors contain underscores
+    // not all tho
+    // TODO: include sensors that DO NOT contain
+    // underscores (i think fan sensors dont (?))
     size_t underscorePos = filename.find('_');
     if (underscorePos == string::npos) {
       spdlog::warn("{} does not contain an underscore", filename);
@@ -66,7 +89,7 @@ void GeneralDevice::initialize() {
     if (!IsWhitelistedSensorAttribute(part2))
       continue;
 
-    if (available_sensors.count(part1)) {
+    if (available_sensors.contains(part1)) {
       available_sensors.at(part1).push_back(part2);
     } else {
       available_sensors.insert({part1, vector<string>{part2}});
@@ -92,12 +115,13 @@ void GeneralDevice::createSensors(unordered_map<string, vector<string>> availabl
       }
 
       if (ext == "label") {
-        string temp = path / (sensorBase + "_label");
-        std::ifstream f{temp};
-        f.clear();
-        f.seekg(0);
-        std::getline(f, label);
-        f.close();
+        // string temp = path / (sensorBase + "_label");
+        // std::ifstream f{temp};
+        // f.clear();
+        // f.seekg(0);
+        // std::getline(f, label);
+        // f.close();
+        label = readFileFirstLine(path / (sensorBase + "_label"));
       }
     }
     // if no reading available, continue
@@ -110,7 +134,7 @@ void GeneralDevice::createSensors(unordered_map<string, vector<string>> availabl
       continue;
     }
 
-    SensorType type = helpers::deduceSensorType(sensorBase);
+    const SensorType type = helpers::deduceSensorType(sensorBase);
     if (type == SensorType::UNKNOWN) {
       spdlog::warn("unable to find type {} for sensor", sensorBase);
     }

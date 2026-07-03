@@ -22,7 +22,7 @@ public:
   nlohmann::json serialize();
 
 protected:
-  virtual float prepareValue();
+  virtual long double prepareValue();
   std::string readRawSensorString();
 
   std::shared_ptr<std::istream> dataStream;

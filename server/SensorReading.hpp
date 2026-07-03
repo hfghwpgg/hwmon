@@ -3,10 +3,10 @@
 #include <stddef.h>
 
 struct SensorReading {
-  float value;
-  float min_value;
-  float max_value;
-  double sum;
+  double value;
+  double min_value;
+  double max_value;
+  long double sum;
   size_t times;
 
   nlohmann::json serialize();

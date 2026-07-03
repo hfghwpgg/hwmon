@@ -1,4 +1,5 @@
 #include "EnergySensor.hpp"
+#include "Sensor.hpp"
 #include <chrono>
 #include <cmath>
 
@@ -14,16 +15,8 @@ EnergySensor::EnergySensor(std::unique_ptr<std::istream> file, string name, Sens
   lastReading.time = chrono::steady_clock::now();
 }
 
-float EnergySensor::prepareValue() {
-  string str = readRawSensorString();
-  long double readData;
-  try {
-    readData = std::stof(str);
-  } catch (const std::invalid_argument &) { // makes compilator happy
-    return NAN;
-  } catch (const std::out_of_range &) {
-    return NAN;
-  }
+long double EnergySensor::prepareValue() {
+  auto readData = Sensor::prepareValue();
 
   if (std::isnan(lastReading.value)) {
     lastReading.value = readData;
@@ -32,7 +25,7 @@ float EnergySensor::prepareValue() {
   auto time = chrono::steady_clock::now();
   auto deltaTime = chrono::duration_cast<chrono::microseconds>(time - lastReading.time).count();
   // deliberately used microseconds, cuz interface is in micro joules
-  auto ret = (readData - lastReading.value) / deltaTime;
+  long double ret = (readData - lastReading.value) / deltaTime;
 
   lastReading.value = readData;
   lastReading.time = time;

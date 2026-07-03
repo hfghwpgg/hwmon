@@ -1,13 +1,20 @@
 #pragma once
 #include "../Device.hpp"
+#include <memory>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <fstream>
 
 struct lastReading { // cpu time
   unsigned long long totalTime;
-  unsigned long idleTime;
+  unsigned long long idleTime;
   bool hasRead;
+};
+
+struct utilSensorData {
+  std::shared_ptr<std::stringstream> dataStream;
+  lastReading utilOld;
 };
 
 class CpuDevice : public Device {
@@ -19,13 +26,12 @@ public:
 
 private:
   std::ifstream CPUUTIL_FD;
-  std::unordered_map<std::string, std::shared_ptr<std::stringstream>> utilSensorDescriptors;
-  std::unordered_map<std::string, lastReading> utilOld;
+  std::unordered_map<std::string, utilSensorData> utilSensors;
 
   void read() override;
 
   void getCpuCoreFrequency();
-  void getCpuUtilization();
+  void initCpuUtilization();
   void readCpuUtilization();
   std::string getCpuName();
 };

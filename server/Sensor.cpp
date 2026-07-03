@@ -42,14 +42,14 @@ string Sensor::readRawSensorString() {
 }
 
 // sysfs returns only integers by design
-// but i use float to take advantage of
+// but i use double to take advantage of
 // NAN to communicate an error in a quiet
 // way
-float Sensor::prepareValue() {
+double long Sensor::prepareValue() {
   string str = readRawSensorString();
-  float readData;
+  long double readData;
   try {
-    readData = std::stof(str);
+    readData = std::stold(str);
   } catch (const std::invalid_argument &) { // makes compilator happy
     return NAN;
   } catch (const std::out_of_range &) {
@@ -59,7 +59,7 @@ float Sensor::prepareValue() {
 }
 
 void Sensor::updateValue() {
-  float value = prepareValue();
+  double value = prepareValue();
   if (std::isnan(value)) {
     spdlog::warn("{}: value of recieved data is NaN", name);
     return;

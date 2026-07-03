@@ -13,7 +13,7 @@ public:
   EnergySensor(std::unique_ptr<std::istream> file, std::string name, SensorType type);
 
 private:
-  float prepareValue() override;
+  long double prepareValue() override;
 
   struct {
     long double value;
