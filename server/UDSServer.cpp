@@ -1,23 +1,23 @@
 #include "UDSServer.hpp"
 
-#include <nlohmann/detail/json_ref.hpp>
-#include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
-#include <poll.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <unistd.h>
-#include <fmt/format.h>
-#include <spdlog/spdlog.h>
-#include <fmt/base.h>
 #include <array>
 #include <atomic>
 #include <cerrno>
 #include <cstring>
+#include <fmt/base.h>
+#include <fmt/format.h>
 #include <memory>
+#include <nlohmann/detail/json_ref.hpp>
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
+#include <poll.h>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <string_view>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <unistd.h>
 #include <utility>
 
 #include "SharedState.hpp"
@@ -257,8 +257,8 @@ std::string UDSServer::ProcessRequest(std::string_view request) {
       return json{{"error", "set_interval requires unsigned 'value'"}}.dump();
     }
     unsigned int value = req["value"].get<unsigned int>();
-    if (value == 0) {
-      return json{{"error", "interval must be > 0"}}.dump();
+    if (value < 50) {
+      return json{{"error", "interval must be >= 50"}}.dump();
     }
     state.intervalMs.store(value, std::memory_order_relaxed);
     return json{{"ok", true}, {"interval", value}}.dump();

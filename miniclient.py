@@ -27,8 +27,8 @@ def send_ping(sock):
     send_data(sock, '{"cmd": "ping"}')
 
 
-def set_interval(sock):
-    send_data(sock, '{"cmd": "set_interval"}')
+def set_interval(sock, i):
+    send_data(sock, f'{{"cmd": "set_interval", "value": {i}}}')
 
 
 def get_data(sock):
@@ -42,9 +42,6 @@ def reset(sock):
 with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
     sock.connect("/tmp/hwmon.sock")
 
-    # send_ping(sock)
-    # set_interval(sock)
     get_data(sock)
+    set_interval(sock, 50)
     # reset(sock)
-    # sleep(1)
-    # get_data(sock)

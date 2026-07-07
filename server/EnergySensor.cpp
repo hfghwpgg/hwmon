@@ -3,11 +3,9 @@
 #include <chrono>
 #include <cmath>
 
-enum class SensorType;
 namespace chrono = std::chrono;
-using std::string;
 
-EnergySensor::EnergySensor(std::unique_ptr<std::istream> file, string name, SensorType type) :
+EnergySensor::EnergySensor(std::unique_ptr<std::istream> file, std::string name, SensorType type) :
     // energy sensor gets file desciptor as unique
     // as it doesnt need to be shared
     Sensor(std::move(file), name, type) {

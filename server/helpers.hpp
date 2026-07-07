@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <sys/stat.h>
+#include <fstream>
 #include "SensorType.hpp"
 
 namespace helpers {
@@ -50,5 +51,15 @@ static inline pathTypeEnum pathType(const std::filesystem::path &path) {
     return (sb.st_mode & S_IFDIR) ? pathTypeEnum::DIRECTORY : pathTypeEnum::FILE;
   }
   return pathTypeEnum::INVALID;
+}
+
+const inline std::string readFileFirstLine(std::filesystem::path pathToFile) {
+  std::string content;
+  std::ifstream f{pathToFile};
+  f.clear();
+  f.seekg(0);
+  std::getline(f, content);
+  f.close();
+  return content;
 }
 } // namespace helpers

@@ -6,8 +6,6 @@
 #include "Sensor.hpp"
 #include "SensorType.hpp"
 
-enum class SensorType;
-
 class EnergySensor : public Sensor {
 public:
   EnergySensor(std::unique_ptr<std::istream> file, std::string name, SensorType type);

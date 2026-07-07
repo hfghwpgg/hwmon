@@ -30,6 +30,7 @@ add_library(HwmonCore STATIC
     "Sensor.cpp"
     "EnergySensor.cpp"
     "Device.cpp"
+    "Devices/SharedHwmonParser.cpp"
     "Devices/GeneralDevice.cpp"
     "Devices/CpuDevice.cpp"
     "UDSServer.cpp"

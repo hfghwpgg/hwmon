@@ -1,12 +1,11 @@
 #pragma once
-#include <nlohmann/json_fwd.hpp>
 #include <filesystem>
+#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "../Device.hpp"
-#include "../DeviceType.hpp"
 
 namespace fs = std::filesystem;
 
@@ -23,5 +22,5 @@ public:
 private:
   fs::path path;
 
-  void createSensors(std::unordered_map<std::string, std::vector<std::string>> availableSensors);
+  void getName();
 };

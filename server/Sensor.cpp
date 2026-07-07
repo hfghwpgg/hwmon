@@ -1,20 +1,18 @@
 #include "Sensor.hpp"
 
+#include <cmath>
+#include <fmt/base.h>
+#include <fmt/format.h>
 #include <memory>
 #include <nlohmann/detail/exceptions.hpp>
 #include <nlohmann/json.hpp>
-#include <fmt/format.h>
 #include <spdlog/spdlog.h>
-#include <fmt/base.h>
-#include <cmath>
 #include <stdexcept>
 
 #include "SensorReading.hpp"
 #include "SensorType.hpp"
 
-using std::string;
-
-Sensor::Sensor(std::shared_ptr<std::istream> file, string name, SensorType type,
+Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType type,
                unsigned int divider) :
     dataStream(file),
     name(name),
@@ -26,17 +24,17 @@ Sensor::Sensor(std::shared_ptr<std::istream> file, string name, SensorType type,
 #endif
 }
 
-Sensor::Sensor(std::shared_ptr<std::istream> file, string name, SensorType type) :
+Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType type) :
     Sensor(file, name, type, getDivider(type)) {}
 
 Sensor::~Sensor() {
   spdlog::debug("sensor destroyed: {}", name);
 }
 
-string Sensor::readRawSensorString() {
+std::string Sensor::readRawSensorString() {
   dataStream->clear();
   dataStream->seekg(0);
-  string str;
+  std::string str;
   std::getline(*dataStream, str);
   return str;
 }
@@ -46,7 +44,7 @@ string Sensor::readRawSensorString() {
 // NAN to communicate an error in a quiet
 // way
 double long Sensor::prepareValue() {
-  string str = readRawSensorString();
+  std::string str = readRawSensorString();
   long double readData;
   try {
     readData = std::stold(str);
@@ -61,7 +59,7 @@ double long Sensor::prepareValue() {
 void Sensor::updateValue() {
   double value = prepareValue();
   if (std::isnan(value)) {
-    spdlog::warn("{}: value of recieved data is NaN", name);
+    spdlog::debug("{}: value of recieved data is NaN", name);
     return;
   }
   readings.value = value;

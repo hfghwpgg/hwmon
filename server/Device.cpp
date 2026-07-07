@@ -10,11 +10,7 @@
 #include <vector>
 #include "Sensor.hpp"
 
-enum class DeviceType;
-
-using std::string;
-
-Device::Device(string name, DeviceType type) :
+Device::Device(std::string name, DeviceType type) :
     name(name),
     type(type),
     sensors() {
@@ -29,13 +25,13 @@ Device::~Device() {
 #endif
 
 void Device::read() {
-  for (auto &sensor : sensors) {
+  for (const auto &sensor : sensors) {
     sensor->updateValue();
   }
 }
 
 void Device::resetReadings() {
-  for (auto &sensor : sensors) {
+  for (const auto &sensor : sensors) {
     sensor->resetReadings();
   }
 }
