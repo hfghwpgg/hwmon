@@ -1,7 +1,9 @@
 #include "EnergySensor.hpp"
-#include "Sensor.hpp"
+
 #include <chrono>
 #include <cmath>
+
+#include "Sensor.hpp"
 
 namespace chrono = std::chrono;
 

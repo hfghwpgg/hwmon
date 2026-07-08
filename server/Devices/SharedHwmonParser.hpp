@@ -1,11 +1,11 @@
 #pragma once
-#include "Sensor.hpp"
 #include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "Sensor.hpp"
 
 struct SharedHwmonParser {
   SharedHwmonParser() = default;

@@ -4,12 +4,8 @@
 #include <atomic>
 #include <cerrno>
 #include <cstring>
-#include <fmt/base.h>
-#include <fmt/format.h>
 #include <memory>
-#include <nlohmann/detail/json_ref.hpp>
 #include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
 #include <poll.h>
 #include <spdlog/spdlog.h>
 #include <string>

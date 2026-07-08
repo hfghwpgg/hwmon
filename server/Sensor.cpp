@@ -1,8 +1,6 @@
 #include "Sensor.hpp"
 
 #include <cmath>
-#include <fmt/base.h>
-#include <fmt/format.h>
 #include <memory>
 #include <nlohmann/detail/exceptions.hpp>
 #include <nlohmann/json.hpp>

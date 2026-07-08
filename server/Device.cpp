@@ -1,13 +1,12 @@
 #include "Device.hpp"
 
-#include <fmt/format.h>
-#include <nlohmann/json.hpp>
-#include <stddef.h>
-#include <spdlog/spdlog.h>
-#include <fmt/base.h>
 #include <memory>
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+#include <stddef.h>
 #include <string>
 #include <vector>
+
 #include "Sensor.hpp"
 
 Device::Device(std::string name, DeviceType type) :

@@ -1,12 +1,12 @@
 #pragma once
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
-#include <string>
-#include <algorithm>
-#include <vector>
+#include <fstream>
 #include <string>
 #include <sys/stat.h>
-#include <fstream>
+#include <vector>
+
 #include "SensorType.hpp"
 
 namespace helpers {

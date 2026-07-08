@@ -1,19 +1,21 @@
-#include "CpuDevice.hpp"
-#include "../Device.hpp"
-#include "../Sensor.hpp"
-#include "../SensorType.hpp"
-#include "SharedHwmonParser.hpp"
-#include "helpers.hpp"
-#include "spdlog/spdlog.h"
 #include <exception>
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <set>
+#include <spdlog/spdlog.h>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unistd.h>
 #include <vector>
+
+#include "../Device.hpp"
+#include "../Sensor.hpp"
+#include "../SensorType.hpp"
+#include "CpuDevice.hpp"
+#include "SharedHwmonParser.hpp"
+#include "helpers.hpp"
 
 namespace fs = std::filesystem;
 
@@ -23,10 +25,7 @@ const fs::path CPUINFO_PATH = "/proc/cpuinfo";
 const fs::path CPUUTIL_PATH = "/proc/stat";
 } // namespace
 
-// prob need to remove those params
-// as this will be all managed by this
-// class itself (same in Device)
-CpuDevice::CpuDevice(std::vector<fs::path> &hwmonPaths) :
+CpuDevice::CpuDevice(std::set<fs::path> &hwmonPaths) :
     Device("cpu", DeviceType::CPU),
     hwmonPaths(hwmonPaths) {}
 
@@ -81,6 +80,7 @@ void CpuDevice::getTemperature() {
 
     const auto available_sensors = SharedHwmonParser::parseHwmonDirectory(dir);
     SharedHwmonParser::createSensors(dir, available_sensors, sensors);
+    hwmonPaths.erase(dir);
   }
 }
 

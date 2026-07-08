@@ -1,8 +1,6 @@
-#include <spdlog/spdlog.h>
-#include <spdlog/common.h>
-#include <spdlog/spdlog-inl.h>
 #include <atomic>
 #include <csignal>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <thread>
 

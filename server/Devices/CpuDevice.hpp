@@ -1,12 +1,13 @@
 #pragma once
-#include "../Device.hpp"
 #include <filesystem>
+#include <fstream>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
 #include <unordered_map>
-#include <fstream>
-#include <vector>
+
+#include "../Device.hpp"
 
 struct lastReading { // cpu time
   unsigned long long totalTime;
@@ -21,13 +22,13 @@ struct utilSensorData { // cpu time
 
 class CpuDevice : public Device {
 public:
-  CpuDevice(std::vector<std::filesystem::path> &hwmonPaths);
+  CpuDevice(std::set<std::filesystem::path> &hwmonPaths);
   ~CpuDevice();
 
   void initialize() override;
 
 private:
-  std::vector<std::filesystem::path> &hwmonPaths;
+  std::set<std::filesystem::path> &hwmonPaths;
   std::ifstream CPUUTIL_FD;
   std::unordered_map<std::string, utilSensorData> utilSensors;
 

@@ -7,11 +7,13 @@ Tool for monitoring temperature, voltages and more in real time.
 ## Prerequisites
 
 - Linux (tested on Arch Linux)
-- g++ or clang++ (tested with g++ version 16.1.0)
-  - C++20 `Threads` library
-  - `nlohmann/json` library
-  - `spdlog` library
-  - `include-what-you-use` tool
+- g++ or clang++ with c++23 support (tested with g++ version 16.1.0)
+  - Libraries:
+    - `Threads` library
+    - `nlohmann/json` library
+    - `spdlog` library
+    - `include-what-you-use` tool (optional)
+    - `GTest` testing framework (optional)
 - CMake (tested with version 4.3.2)
 - Make (tested with version 4.4.1)
 
@@ -86,7 +88,11 @@ make
 TODO:
 
 - server
-  - better error handling
+  - better error handling (dont know which error to abort on, and which just print out)
   - better device name deducing
+  - gpu support
+  - ram usage monitoring
+  - cmdline arguments
+  - more testing, preferably on other pc's
 
 - make client

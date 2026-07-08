@@ -1,5 +1,5 @@
-
 #include <filesystem>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -8,7 +8,6 @@
 #include "../SensorWhitelist.hpp"
 #include "../helpers.hpp"
 #include "SharedHwmonParser.hpp"
-#include "spdlog/spdlog.h"
 
 namespace fs = std::filesystem;
 
@@ -89,7 +88,8 @@ void SharedHwmonParser::createSensors(
     auto valueSrc_ptr = std::make_unique<std::ifstream>(valueSrcPath);
     if (!valueSrc_ptr->is_open()) {
       spdlog::critical("unable to open file {}\n", valueSrcPath.string());
-      throw std::runtime_error(std::format("unable to open file {}\n", valueSrcPath));
+      // throw std::runtime_error(std::format("unable to open file {}\n", valueSrcPath));
+      throw std::runtime_error(std::format("unable to open file {}\n", valueSrcPath.c_str()));
     };
 
     if (type == SensorType::ENERGY) {

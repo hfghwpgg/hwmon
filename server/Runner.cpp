@@ -3,10 +3,10 @@
 #include <atomic>
 #include <chrono>
 #include <filesystem>
-#include <map>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+#include <set>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <string>
@@ -33,18 +33,7 @@ Runner::~Runner() {
 }
 #endif
 
-// placeholder
-// void Runner::setup() {
-//   const fs::path Path = "/sys/class/hwmon";
-//   for (const auto &entry : fs::directory_iterator(Path)) {
-//     auto tmp =
-//         std::make_unique<GeneralDevice>(entry.path().filename(), DeviceType::UNKNOWN,
-//         entry.path());
-//     tmp->initialize();
-//     devices.push_back(std::move(tmp));
-//   }
-// };
-
+/* */
 void Runner::setup() {
   const fs::path Path = "/sys/class/hwmon";
   if (!fs::exists(Path) || access(Path.c_str(), R_OK) == -1) {
@@ -52,15 +41,27 @@ void Runner::setup() {
     throw std::runtime_error("no access to hwmon interface");
   }
 
-  std::vector<fs::path> hwmonPaths;
+  std::set<fs::path> hwmonPaths;
   for (const auto &entry : fs::directory_iterator(Path)) {
-    hwmonPaths.push_back(fs::canonical(entry.path()));
+    hwmonPaths.insert(fs::canonical(entry.path()));
   }
+
+  spdlog::debug("hwmon length: {}", hwmonPaths.size());
 
   auto cpu = std::make_unique<CpuDevice>(hwmonPaths);
   cpu->initialize();
   devices.push_back(std::move(cpu));
+
+  spdlog::debug("hwmon length: {}", hwmonPaths.size());
+
+  // rest of hwmon devices
+  for (const auto &entry : hwmonPaths) {
+    auto dev = std::make_unique<GeneralDevice>(entry.filename(), DeviceType::UNKNOWN, entry);
+    dev->initialize();
+    devices.push_back(std::move(dev));
+  }
 }
+/* */
 
 void Runner::run() {
   while (state.running.load(std::memory_order_relaxed)) {
