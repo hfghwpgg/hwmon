@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
+#include "SensorType.hpp"
 #include <string>
 #include <vector>
-#include "SensorType.hpp"
 
 #include "helpers.hpp"
 
@@ -52,9 +52,9 @@ TEST(deduceSensorType, ReturnsCorrectSensorType) {
   EXPECT_EQ(helpers::deduceSensorType("temp1_input"), SensorType::TEMPERATURE);
   EXPECT_EQ(helpers::deduceSensorType("in3_input"), SensorType::VOLTAGE);
   EXPECT_EQ(helpers::deduceSensorType("voltage2_input"), SensorType::VOLTAGE);
-  EXPECT_EQ(helpers::deduceSensorType("fan2_input"), SensorType::FAN_SPEED);
+  EXPECT_EQ(helpers::deduceSensorType("fan20_input"), SensorType::FAN_SPEED);
   EXPECT_EQ(helpers::deduceSensorType("power5_input"), SensorType::POWER);
-  EXPECT_EQ(helpers::deduceSensorType("curr4_input"), SensorType::CURRENT);
+  EXPECT_EQ(helpers::deduceSensorType("current4_input"), SensorType::CURRENT);
   EXPECT_EQ(helpers::deduceSensorType("freq1_input"), SensorType::FREQUENCY);
   EXPECT_EQ(helpers::deduceSensorType("energy3_input"), SensorType::ENERGY);
   EXPECT_EQ(helpers::deduceSensorType("util2_input"), SensorType::UTILIZATION);

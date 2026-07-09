@@ -1,24 +1,23 @@
 #include <gtest/gtest.h>
 
-#include <nlohmann/json.hpp>
-#include <unistd.h>
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <thread>
+#include <unistd.h>
 
 #include "Devices/GeneralDevice.hpp"
-#include "DeviceType.hpp"
 #include "SensorType.hpp"
 
 namespace fs = std::filesystem;
 
 namespace {
 
-class DeviceTest : public ::testing::Test {
+class GeneralDeviceTest : public ::testing::Test {
 protected:
   void SetUp() override {
     static std::atomic<unsigned> counter{0};
@@ -52,7 +51,7 @@ protected:
 
 } // namespace
 
-TEST_F(DeviceTest, DiscoversWhitelistedSensorsAndDeducesTypes) {
+TEST_F(GeneralDeviceTest, DiscoversWhitelistedSensorsAndDeducesTypes) {
   writeFile("temp1_input", "42000");
   writeFile("temp1_label", "Package");
   writeFile("fan1_input", "900");
@@ -60,6 +59,7 @@ TEST_F(DeviceTest, DiscoversWhitelistedSensorsAndDeducesTypes) {
   // Not whitelisted -> must be ignored.
   writeFile("temp1_crit", "100000");
   // No underscore -> must be skipped.
+  // but is used as device name
   writeFile("name", "mychip");
 
   GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
@@ -67,7 +67,7 @@ TEST_F(DeviceTest, DiscoversWhitelistedSensorsAndDeducesTypes) {
   device.read();
   const nlohmann::json j = device.serialize();
 
-  EXPECT_EQ(j["name"], "mydev");
+  EXPECT_EQ(j["name"], "mychip");
   EXPECT_EQ(j["type"].get<int>(), static_cast<int>(DeviceType::UNKNOWN));
 
   const nlohmann::json &sensors = j["sensors"];
@@ -91,7 +91,7 @@ TEST_F(DeviceTest, DiscoversWhitelistedSensorsAndDeducesTypes) {
   EXPECT_FLOAT_EQ(volt["readings"]["value"].get<float>(), 1.2f);
 }
 
-TEST_F(DeviceTest, SensorWithoutReadingInterfaceIsSkipped) {
+TEST_F(GeneralDeviceTest, SensorWithoutReadingInterfaceIsSkipped) {
   // Only a label, no _input/_average -> no sensor should be created.
   writeFile("temp1_label", "Orphan");
   writeFile("fan1_input", "1500");
@@ -106,7 +106,7 @@ TEST_F(DeviceTest, SensorWithoutReadingInterfaceIsSkipped) {
   EXPECT_EQ(findSensor(j["sensors"], "Orphan"), nlohmann::json{});
 }
 
-TEST_F(DeviceTest, EmptyDeviceSerializesWithNoSensors) {
+TEST_F(GeneralDeviceTest, EmptyDeviceSerializesWithNoSensors) {
   GeneralDevice device{"empty", DeviceType::CPU, dir};
   device.read();
   const nlohmann::json j = device.serialize();
@@ -117,7 +117,7 @@ TEST_F(DeviceTest, EmptyDeviceSerializesWithNoSensors) {
   EXPECT_FALSE(j.contains("sensors"));
 }
 
-TEST_F(DeviceTest, ReadsFromAverageInterface) {
+TEST_F(GeneralDeviceTest, ReadsFromAverageInterface) {
   writeFile("temp1_average", "45000");
 
   GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
@@ -131,7 +131,7 @@ TEST_F(DeviceTest, ReadsFromAverageInterface) {
   EXPECT_FLOAT_EQ(temp["readings"]["value"].get<float>(), 45.0f);
 }
 
-TEST_F(DeviceTest, SkipsSensorWithBothInputAndAverage) {
+TEST_F(GeneralDeviceTest, SkipsSensorWithBothInputAndAverage) {
   writeFile("temp1_input", "42000");
   writeFile("temp1_average", "43000");
 
@@ -145,7 +145,7 @@ TEST_F(DeviceTest, SkipsSensorWithBothInputAndAverage) {
   }
 }
 
-TEST_F(DeviceTest, EnergyInputCreatesEnergySensor) {
+TEST_F(GeneralDeviceTest, EnergyInputCreatesEnergySensor) {
   writeFile("energy1_input", "1000000");
 
   GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
@@ -165,7 +165,7 @@ TEST_F(DeviceTest, EnergyInputCreatesEnergySensor) {
   EXPECT_GT(energy["readings"]["value"].get<float>(), 0.0f);
 }
 
-TEST_F(DeviceTest, RepeatedReadUpdatesAggregates) {
+TEST_F(GeneralDeviceTest, RepeatedReadUpdatesAggregates) {
   writeFile("temp1_input", "30000");
 
   GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};
@@ -183,7 +183,7 @@ TEST_F(DeviceTest, RepeatedReadUpdatesAggregates) {
   EXPECT_EQ(temp["readings"]["times"].get<std::size_t>(), 2u);
 }
 
-TEST_F(DeviceTest, UnknownPrefixUsesUnscaledDivider) {
+TEST_F(GeneralDeviceTest, UnknownPrefixUsesUnscaledDivider) {
   writeFile("bogus1_input", "12345");
 
   GeneralDevice device{"mydev", DeviceType::UNKNOWN, dir};

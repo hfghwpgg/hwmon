@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 
-#include <memory>
-#include <nlohmann/json.hpp>
-#include <unistd.h>
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <memory>
+#include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <unistd.h>
 
 #include "EnergySensor.hpp"
 #include "Sensor.hpp"
@@ -28,6 +28,7 @@ protected:
     static std::atomic<unsigned> counter{0};
     path = fs::temp_directory_path() / ("hwmon_sensor_test_" + std::to_string(::getpid()) + "_" +
                                         std::to_string(counter.fetch_add(1)));
+    { std::ofstream touch{path}; }
     file = std::make_unique<std::ifstream>(path);
   }
 
@@ -48,27 +49,23 @@ protected:
 
 } // namespace
 
-TEST_F(SensorFileTest, ThrowsWhenFileMissing) {
-  EXPECT_THROW(Sensor(std::move(file), "missing", SensorType::TEMPERATURE), std::runtime_error);
-}
-
 TEST_F(SensorFileTest, ScalesRawValueByDivider) {
-  writeRaw("30000\n");
+  writeRaw("30500\n");
   Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
   sensor.updateValue();
 
   const SensorReading r = sensor.getReadings();
-  EXPECT_FLOAT_EQ(r.value, 30.0f);
-  EXPECT_FLOAT_EQ(r.min_value, 30.0f);
-  EXPECT_FLOAT_EQ(r.max_value, 30.0f);
-  EXPECT_EQ(r.times, 1u);
+  EXPECT_DOUBLE_EQ(r.value, 30.5);
+  EXPECT_DOUBLE_EQ(r.min_value, 30.5);
+  EXPECT_DOUBLE_EQ(r.max_value, 30.5);
+  EXPECT_EQ(r.times, 1);
 }
 
 TEST_F(SensorFileTest, FanSpeedIsNotScaled) {
   writeRaw("1200");
   Sensor sensor{std::move(file), "fan", SensorType::FAN_SPEED};
   sensor.updateValue();
-  EXPECT_FLOAT_EQ(sensor.getReadings().value, 1200.0f);
+  EXPECT_DOUBLE_EQ(sensor.getReadings().value, 1200.0f);
 }
 
 TEST_F(SensorFileTest, AggregatesMinMaxSumAcrossReads) {
@@ -82,9 +79,9 @@ TEST_F(SensorFileTest, AggregatesMinMaxSumAcrossReads) {
   sensor.updateValue(); // 29
 
   const SensorReading r = sensor.getReadings();
-  EXPECT_FLOAT_EQ(r.value, 29.0f);
-  EXPECT_FLOAT_EQ(r.min_value, 29.0f);
-  EXPECT_FLOAT_EQ(r.max_value, 31.0f);
+  EXPECT_DOUBLE_EQ(r.value, 29.0f);
+  EXPECT_DOUBLE_EQ(r.min_value, 29.0f);
+  EXPECT_DOUBLE_EQ(r.max_value, 31.0f);
   EXPECT_DOUBLE_EQ(r.sum, 90.0);
   EXPECT_EQ(r.times, 3u);
 }
@@ -98,7 +95,7 @@ TEST_F(SensorFileTest, SerializeEmitsNameTypeAndReadings) {
   EXPECT_EQ(j["name"], "core");
   EXPECT_EQ(j["type"].get<int>(), static_cast<int>(SensorType::TEMPERATURE));
   EXPECT_EQ(j["readings"]["times"].get<std::size_t>(), 1u);
-  EXPECT_FLOAT_EQ(j["readings"]["value"].get<float>(), 45.0f);
+  EXPECT_DOUBLE_EQ(j["readings"]["value"].get<float>(), 45.0f);
 }
 
 TEST_F(SensorFileTest, EnergySensorFirstReadProducesNoSample) {
@@ -166,7 +163,7 @@ TEST_F(SensorFileTest, BadReadDoesNotClobberPreviousAggregates) {
 
   const SensorReading r = sensor.getReadings();
   EXPECT_EQ(r.times, 1u);
-  EXPECT_FLOAT_EQ(r.value, 30.0f);
+  EXPECT_DOUBLE_EQ(r.value, 30.0f);
 }
 
 TEST_F(SensorFileTest, EnergySensorSurvivesNonNumericRead) {

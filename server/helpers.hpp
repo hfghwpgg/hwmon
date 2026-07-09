@@ -3,6 +3,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <sys/stat.h>
 #include <vector>
@@ -25,14 +26,14 @@ template <typename T> static inline bool isInVector(const std::vector<T> &vec, c
   return (std::find(vec.begin(), vec.end(), thing) != vec.end());
 }
 
-static inline SensorType deduceSensorType(std::string parsedPart1) {
-  auto lastNonDigit = parsedPart1.find_last_not_of("0123456789");
+static inline SensorType deduceSensorType(std::string sensorName) {
+  auto lastDigit = sensorName.find_first_of("0123456789");
 
   std::string_view prefix;
-  if (lastNonDigit != std::string::npos) {
-    prefix = std::string_view(parsedPart1).substr(0, lastNonDigit + 1);
+  if (lastDigit != std::string::npos) {
+    prefix = std::string_view(sensorName).substr(0, lastDigit);
   } else {
-    prefix = parsedPart1;
+    prefix = sensorName;
   }
   auto it = sensorConfigMap.find(prefix);
   if (it != sensorConfigMap.end()) {
