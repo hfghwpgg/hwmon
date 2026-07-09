@@ -184,3 +184,57 @@ TEST_F(CpuDeviceTest, CreatesFrequencySensorsFromCpufreq) {
   EXPECT_EQ(freq["type"].get<int>(), static_cast<int>(SensorType::FREQUENCY));
   EXPECT_FLOAT_EQ(freq["readings"]["value"].get<float>(), 2400.0f);
 }
+
+TEST_F(CpuDeviceTest, ResetReadingsClearsUtilizationAggregates) {
+  writeFile(statPath, "cpu 50 0 0 50 0 0 0 0 0 0\n"
+                      "cpu0 50 0 0 50 0 0 0 0 0 0\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  device.read();
+  writeFile(statPath, "cpu 100 0 0 100 0 0 0 0 0 0\n"
+                      "cpu0 100 0 0 100 0 0 0 0 0 0\n");
+  device.read();
+
+  const nlohmann::json cpuBefore = findSensor(device.serialize()["sensors"], "cpu");
+  ASSERT_EQ(cpuBefore["readings"]["times"].get<std::size_t>(), 1u);
+
+  device.resetReadings();
+  const nlohmann::json cpuAfterReset = findSensor(device.serialize()["sensors"], "cpu");
+  EXPECT_EQ(cpuAfterReset["readings"]["times"].get<std::size_t>(), 0u);
+}
+
+TEST_F(CpuDeviceTest, ResetReadingsForcesNewUtilizationBaseline) {
+  writeFile(statPath, "cpu 100 0 0 100 0 0 0 0 0 0\n"
+                      "cpu0 100 0 0 100 0 0 0 0 0 0\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  device.read(); // baseline
+  writeFile(statPath, "cpu 300 0 0 200 0 0 0 0 0 0\n"
+                      "cpu0 300 0 0 200 0 0 0 0 0 0\n");
+  device.read();
+
+  const nlohmann::json cpuBeforeReset = findSensor(device.serialize()["sensors"], "cpu");
+  ASSERT_EQ(cpuBeforeReset["readings"]["times"].get<std::size_t>(), 1u);
+
+  device.resetReadings();
+
+  // Re-establish baseline only; stale utilOld must not produce a sample.
+  writeFile(statPath, "cpu 600 0 0 400 0 0 0 0 0 0\n"
+                      "cpu0 600 0 0 400 0 0 0 0 0 0\n");
+  device.read();
+
+  const nlohmann::json cpuAfterBaseline = findSensor(device.serialize()["sensors"], "cpu");
+  EXPECT_EQ(cpuAfterBaseline["readings"]["times"].get<std::size_t>(), 0u);
+
+  writeFile(statPath, "cpu 700 0 0 500 0 0 0 0 0 0\n"
+                      "cpu0 700 0 0 500 0 0 0 0 0 0\n");
+  device.read();
+
+  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "cpu");
+  EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 1u);
+  EXPECT_FLOAT_EQ(cpu["readings"]["value"].get<float>(), 50.0f);
+}

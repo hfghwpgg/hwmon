@@ -48,10 +48,10 @@ void CpuDevice::read() {
 }
 
 void CpuDevice::resetReadings() {
-  if (utilSensors.empty())
-    return;
   for (auto &entry : utilSensors) {
     entry.second.utilOld.hasRead = false;
+    entry.second.dataStream->str("");
+    entry.second.dataStream->clear();
   }
   Device::resetReadings();
 }

@@ -211,6 +211,15 @@ TEST_F(UDSServerTest, RejectsNonStringCmd) {
   EXPECT_EQ(json::parse(*respNull)["error"], "missing cmd");
 }
 
+TEST_F(UDSServerTest, ResetCommandSetsResetFlag) {
+  EXPECT_FALSE(state.resetFlag.load());
+  auto resp = request(R"({"cmd":"reset"})");
+  ASSERT_TRUE(resp.has_value());
+  const json j = json::parse(*resp);
+  EXPECT_EQ(j["ok"], true);
+  EXPECT_TRUE(state.resetFlag.load());
+}
+
 TEST_F(UDSServerTest, HandlesMultipleRequestsOnOneConnection) {
   int fd = connectClient();
   ASSERT_GE(fd, 0);

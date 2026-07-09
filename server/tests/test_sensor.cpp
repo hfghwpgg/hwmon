@@ -97,6 +97,28 @@ TEST_F(SensorFileTest, SerializeEmitsNameTypeAndReadings) {
   EXPECT_DOUBLE_EQ(j["readings"]["value"].get<float>(), 45.0f);
 }
 
+TEST_F(SensorFileTest, ResetReadingsClearsAggregates) {
+  writeRaw("30000");
+  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
+  sensor.updateValue();
+  writeRaw("31000");
+  sensor.updateValue();
+  ASSERT_EQ(sensor.getReadings().times, 2u);
+
+  sensor.resetReadings();
+  const SensorReading cleared = sensor.getReadings();
+  EXPECT_EQ(cleared.times, 0u);
+  EXPECT_TRUE(std::isnan(cleared.value));
+  EXPECT_TRUE(std::isnan(cleared.min_value));
+  EXPECT_TRUE(std::isnan(cleared.max_value));
+  EXPECT_DOUBLE_EQ(cleared.sum, 0.0);
+
+  writeRaw("32000");
+  sensor.updateValue();
+  EXPECT_EQ(sensor.getReadings().times, 1u);
+  EXPECT_DOUBLE_EQ(sensor.getReadings().value, 32.0);
+}
+
 TEST_F(SensorFileTest, EnergySensorFirstReadProducesNoSample) {
   writeRaw("1000000");
   EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
@@ -169,4 +191,34 @@ TEST_F(SensorFileTest, EnergySensorSurvivesNonNumericRead) {
   writeRaw("garbage");
   EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
   EXPECT_NO_THROW(sensor.updateValue());
+}
+
+TEST_F(SensorFileTest, EnergySensorResetClearsAggregatesAndBaseline) {
+  writeRaw("1000000");
+  EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  sensor.updateValue(); // baseline
+
+  std::this_thread::sleep_for(std::chrono::milliseconds{5});
+  writeRaw("3000000");
+  sensor.updateValue();
+  ASSERT_EQ(sensor.getReadings().times, 1u);
+  const float valueBeforeReset = sensor.getReadings().value;
+
+  sensor.resetReadings();
+  const SensorReading cleared = sensor.getReadings();
+  EXPECT_EQ(cleared.times, 0u);
+  EXPECT_TRUE(std::isnan(cleared.value));
+  EXPECT_TRUE(std::isnan(cleared.min_value));
+  EXPECT_TRUE(std::isnan(cleared.max_value));
+  EXPECT_DOUBLE_EQ(cleared.sum, 0.0);
+
+  sensor.updateValue(); // re-establish baseline from current counter
+  EXPECT_EQ(sensor.getReadings().times, 0u);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds{5});
+  writeRaw("5000000");
+  sensor.updateValue();
+  EXPECT_EQ(sensor.getReadings().times, 1u);
+  EXPECT_GT(sensor.getReadings().value, 0.0f);
+  EXPECT_NE(sensor.getReadings().value, valueBeforeReset);
 }

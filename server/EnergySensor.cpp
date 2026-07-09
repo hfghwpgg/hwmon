@@ -11,7 +11,8 @@ EnergySensor::EnergySensor(std::unique_ptr<std::istream> file, std::string name,
     // energy sensor gets file desciptor as unique
     // as it doesnt need to be shared
     Sensor(std::move(file), name, type) {
-  resetReadings();
+  lastReading.value = NAN;
+  lastReading.time = chrono::steady_clock::now();
 }
 
 void EnergySensor::resetReadings() {

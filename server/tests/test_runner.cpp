@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "Runner.hpp"
+#include "SensorType.hpp"
 #include "SharedState.hpp"
 
 namespace fs = std::filesystem;
@@ -49,6 +50,53 @@ protected:
     writeFile(chip / "name", "testchip");
     writeFile(chip / "temp1_input", "30000");
     hwmonPath = hwmonRoot;
+  }
+
+  void createFakeHwmonWithEnergy() {
+    const fs::path hwmonRoot = root / "hwmon";
+    const fs::path chip = hwmonRoot / "hwmon0";
+    fs::create_directories(chip);
+    writeFile(chip / "name", "testchip");
+    writeFile(chip / "energy1_input", "1000000");
+    hwmonPath = hwmonRoot;
+  }
+
+  static bool snapshotHasEnergySensorTimes(const std::string &snapshot, std::size_t minTimes) {
+    const json devices = json::parse(snapshot);
+    for (const auto &device : devices) {
+      if (!device.contains("sensors")) {
+        continue;
+      }
+      for (const auto &sensor : device["sensors"]) {
+        if (sensor["type"].get<int>() != static_cast<int>(SensorType::ENERGY)) {
+          continue;
+        }
+        if (sensor["readings"]["times"].get<std::size_t>() >= minTimes) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  static bool allEnergySensorTimesAre(const std::string &snapshot, std::size_t times) {
+    const json devices = json::parse(snapshot);
+    bool found = false;
+    for (const auto &device : devices) {
+      if (!device.contains("sensors")) {
+        continue;
+      }
+      for (const auto &sensor : device["sensors"]) {
+        if (sensor["type"].get<int>() != static_cast<int>(SensorType::ENERGY)) {
+          continue;
+        }
+        found = true;
+        if (sensor["readings"]["times"].get<std::size_t>() != times) {
+          return false;
+        }
+      }
+    }
+    return found;
   }
 
   static bool snapshotHasSensorTimes(const std::string &snapshot, std::size_t minTimes) {
@@ -156,4 +204,18 @@ TEST_F(RunnerResetTest, ResetPreservesDeviceList) {
   ASSERT_EQ(devices.size(), 1u);
   EXPECT_EQ(devices[0]["name"], "testchip");
   EXPECT_TRUE(devices[0].contains("sensors"));
+}
+
+TEST_F(RunnerResetTest, ResetClearsEnergySensorBaseline) {
+  createFakeHwmonWithEnergy();
+  startRunner();
+
+  // Loop 1: energy baseline. Loop 2+: energy sample with static counter delta.
+  ASSERT_TRUE(
+      waitForSnapshot([](const std::string &s) { return snapshotHasEnergySensorTimes(s, 1); }));
+
+  state.resetFlag.store(true, std::memory_order_relaxed);
+  // EnergySensor re-establishes baseline on the post-reset read, so times drops to 0.
+  ASSERT_TRUE(
+      waitForSnapshot([](const std::string &s) { return allEnergySensorTimesAre(s, 0); }));
 }
