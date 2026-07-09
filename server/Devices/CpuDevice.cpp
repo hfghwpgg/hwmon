@@ -19,14 +19,15 @@
 
 namespace fs = std::filesystem;
 
-namespace {
-const fs::path CPUFREQ_PATH = "/sys/devices/system/cpu/cpufreq/";
-const fs::path CPUINFO_PATH = "/proc/cpuinfo";
-const fs::path CPUUTIL_PATH = "/proc/stat";
-} // namespace
-
 CpuDevice::CpuDevice(std::set<fs::path> &hwmonPaths) :
+    CpuDevice(hwmonPaths, "/sys/devices/system/cpu/cpufreq/", "/proc/cpuinfo", "/proc/stat") {}
+
+CpuDevice::CpuDevice(std::set<std::filesystem::path> &hwmonPaths, fs::path CPUFREQ_PATH,
+                     fs::path CPUINFO_PATH, fs::path CPUUTIL_PATH) :
     Device("cpu", DeviceType::CPU),
+    CPUFREQ_PATH(CPUFREQ_PATH),
+    CPUINFO_PATH(CPUINFO_PATH),
+    CPUUTIL_PATH(CPUUTIL_PATH),
     hwmonPaths(hwmonPaths) {}
 
 CpuDevice::~CpuDevice() {
@@ -44,6 +45,15 @@ void CpuDevice::initialize() {
 void CpuDevice::read() {
   readUtilization();
   Device::read();
+}
+
+void CpuDevice::resetReadings() {
+  if (utilSensors.empty())
+    return;
+  for (auto &entry : utilSensors) {
+    entry.second.utilOld.hasRead = false;
+  }
+  Device::resetReadings();
 }
 
 void CpuDevice::getTemperature() {
@@ -65,10 +75,10 @@ void CpuDevice::getTemperature() {
         continue;
 
       const auto label = helpers::readFileFirstLine(file.path());
-      if (label.starts_with("Package id" ||
-                            label.starts_with("Tdie" || label.starts_with("SoC Temperature")))) {
+      if (label.starts_with("Package id") || label.starts_with("Tdie") ||
+          label.starts_with("SoC Temperature")) {
         cpuTemp = dir;
-      } else if (label.starts_with("Core") or label.starts_with("Tccd")) {
+      } else if (label.starts_with("Core") || label.starts_with("Tccd")) {
         coretempDriver = dir;
       }
     }

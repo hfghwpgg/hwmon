@@ -10,6 +10,8 @@ class EnergySensor : public Sensor {
 public:
   EnergySensor(std::unique_ptr<std::istream> file, std::string name, SensorType type);
 
+  void resetReadings() override;
+
 private:
   long double prepareValue() override;
 

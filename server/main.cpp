@@ -23,7 +23,8 @@ int main() {
 #ifdef DEBUG
   spdlog::set_level(spdlog::level::debug);
 #endif
-  const std::string path = "/tmp/hwmon.sock";
+  const std::string sockPath = "/tmp/hwmon.sock";
+  const std::string hwmonPath = "/sys/class/hwmon";
   constexpr unsigned int initialIntervalMs = 1000;
   constexpr int backlog = 10;
 
@@ -33,8 +34,10 @@ int main() {
   std::signal(SIGINT, HandleSignal);
   std::signal(SIGTERM, HandleSignal);
 
-  Runner runner{state};
-  UDSServer server{path, backlog, state};
+  Runner runner{state, hwmonPath, true};
+  runner.setup();
+
+  UDSServer server{sockPath, backlog, state};
 
   std::jthread runnerThread{[&runner] { runner.run(); }};
 

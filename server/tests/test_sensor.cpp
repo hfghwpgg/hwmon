@@ -7,7 +7,6 @@
 #include <fstream>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <stdexcept>
 #include <string>
 #include <thread>
 #include <unistd.h>

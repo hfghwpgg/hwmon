@@ -23,16 +23,21 @@ struct utilSensorData { // cpu time
 class CpuDevice : public Device {
 public:
   CpuDevice(std::set<std::filesystem::path> &hwmonPaths);
+  CpuDevice(std::set<std::filesystem::path> &hwmonPaths, std::filesystem::path CPUFREQ_PATH,
+            std::filesystem::path CPUINFO_PATH, std::filesystem::path CPUUTIL_PATH);
   ~CpuDevice();
 
   void initialize() override;
+  void read() override;
+  void resetReadings() override;
 
 private:
+  const std::filesystem::path CPUFREQ_PATH;
+  const std::filesystem::path CPUINFO_PATH;
+  const std::filesystem::path CPUUTIL_PATH;
   std::set<std::filesystem::path> &hwmonPaths;
   std::ifstream CPUUTIL_FD;
   std::unordered_map<std::string, utilSensorData> utilSensors;
-
-  void read() override;
 
   // temp
   void getTemperature();

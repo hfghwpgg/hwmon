@@ -18,7 +18,7 @@ public:
 
   void updateValue();
   SensorReading getReadings();
-  void resetReadings();
+  virtual void resetReadings();
   nlohmann::json serialize();
 
 protected:

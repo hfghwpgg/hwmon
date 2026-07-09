@@ -22,10 +22,11 @@
 namespace fs = std::filesystem;
 using nlohmann::json;
 
-Runner::Runner(SharedState &state) :
+Runner::Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpecializedDevices) :
+    doSpecializedDevices(doSpecializedDevices),
+    hwmonPath(hwmonPath),
     state(state) {
   devices.reserve(10);
-  setup();
 };
 #ifdef DEBUG
 Runner::~Runner() {
@@ -35,22 +36,22 @@ Runner::~Runner() {
 
 /* */
 void Runner::setup() {
-  const fs::path Path = "/sys/class/hwmon";
-  if (!fs::exists(Path) || access(Path.c_str(), R_OK) == -1) {
+  if (!fs::exists(hwmonPath) || access(hwmonPath.c_str(), R_OK) == -1) {
     spdlog::critical("no access to hwmon interface, aborting");
     throw std::runtime_error("no access to hwmon interface");
   }
 
   std::set<fs::path> hwmonPaths;
-  for (const auto &entry : fs::directory_iterator(Path)) {
+  for (const auto &entry : fs::directory_iterator(hwmonPath)) {
     hwmonPaths.insert(fs::canonical(entry.path()));
   }
 
   spdlog::debug("hwmon length: {}", hwmonPaths.size());
-
-  auto cpu = std::make_unique<CpuDevice>(hwmonPaths);
-  cpu->initialize();
-  devices.push_back(std::move(cpu));
+  if (doSpecializedDevices) {
+    auto cpu = std::make_unique<CpuDevice>(hwmonPaths);
+    cpu->initialize();
+    devices.push_back(std::move(cpu));
+  }
 
   spdlog::debug("hwmon length: {}", hwmonPaths.size());
 
