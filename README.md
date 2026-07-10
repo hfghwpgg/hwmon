@@ -37,8 +37,8 @@ cd hwmon
 ```bash
 ./build_server.sh debug
 ```
-> running this script without any flags will display help message
-> static build will download and compile necessary libraries
+> running this script without any flags will display help message  
+> static build will download and compile necessary libraries  
 > [supports only debug/release, without tests]
 
 4. the compiled binary will be located in the `build` directory
@@ -89,7 +89,7 @@ TODO:
 
 - server
   - better error handling (dont know which error to abort on, and which just print out)
-  - better device name deducing
+  - better device name deducing [kinda done?]
   - gpu support
   - ram usage monitoring
   - cmdline arguments
