@@ -9,7 +9,6 @@ Tool for monitoring temperature, voltages and more in real time.
 - Linux (tested on Arch Linux)
 - g++ or clang++ with c++23 support (tested with g++ version 16.1.0)
   - Libraries:
-    - `Threads` library
     - `nlohmann/json` library
     - `spdlog` library
     - `include-what-you-use` tool (optional)
@@ -18,8 +17,6 @@ Tool for monitoring temperature, voltages and more in real time.
 - Make (tested with version 4.4.1)
 
 ## Server compilation
-
-### Compilation
 
 Recommended way of compiling server is using provided `build_server.sh` shell script
 
@@ -38,8 +35,11 @@ cd hwmon
 3. run provided shell script to compile the project
 
 ```bash
-./build_server.sh
+./build_server.sh debug
 ```
+> running this script without any flags will display help message
+> static build will download and compile necessary libraries
+> [supports only debug/release, without tests]
 
 4. the compiled binary will be located in the `build` directory
 

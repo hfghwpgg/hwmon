@@ -15,6 +15,8 @@ Subcommands:
   help     Show this message (default)
   debug    Configure and build with CMAKE_BUILD_TYPE=Debug
   release  Configure and build with CMAKE_BUILD_TYPE=Release
+           add 'static' word at the end to make a static build
+           supports only debug/release builds, without tests
   test     Configure and build with unit tests enabled, then run them
   iwyu     Run include-what-you-use in debug mode and fix includes
            Build from iwyu won't be saved.
@@ -33,15 +35,20 @@ ensure_build_dir() {
 
 build_with_type() {
   local build_type="$1"
-  local is_iwyu="${2:-false}"
+  local extra="${2:-false}"
   local -a cmake_extra=()
-  if [[ "$is_iwyu" == true ]]; then
+  if [[ "$extra" == iwyu ]]; then
     cmake_extra+=(-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=include-what-you-use)
     rm -rf "$BUILD"
   fi
+
+  if [[ "$extra" == static ]]; then
+    cmake_extra+=(-DBUILD_STATIC=ON)
+  fi
+  # cmake_extra+=(-DHWMON_BUILD_TESTS=OFF)
   ensure_build_dir
   cmake -S "$SERVER" -B "$BUILD" -DCMAKE_BUILD_TYPE="$build_type" "${cmake_extra[@]}"
-  if [[ "$is_iwyu" == true ]]; then
+  if [[ "$extra" == iwyu ]]; then
     cmake --build "$BUILD" --parallel "$(nproc 2>/dev/null || echo 1)" > iwyu.log 2>&1
     iwyu-fix-includes < iwyu.log
     rm -rf "$BUILD"
@@ -58,16 +65,17 @@ run_tests() {
 }
 
 cmd="${1:-help}"
+static_flag="${2:-false}"
 
 case "$cmd" in
   help)
     usage
     ;;
   debug)
-    build_with_type Debug
+    build_with_type Debug "$static_flag"
     ;;
   release)
-    build_with_type Release
+    build_with_type Release "$static_flag"
     ;;
   test)
     run_tests
@@ -76,7 +84,7 @@ case "$cmd" in
     rm -rf "$BUILD"
     ;;
   iwyu)
-    build_with_type Debug true
+    build_with_type Debug iwyu
     ;;
   *)
     echo "Unknown command: $cmd" >&2

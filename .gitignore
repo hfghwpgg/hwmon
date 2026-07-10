@@ -2,10 +2,12 @@
 .cursor
 .zed
 .cache
-*.bak
 build
+build_musl
+build_alpine
 commit.txt
 TODO
 log.txt
 output.json
+*.bak
 *.log

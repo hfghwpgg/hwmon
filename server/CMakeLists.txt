@@ -9,9 +9,34 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
+option(BUILD_STATIC "Build the server statically using musl/static libs" OFF)
+
+if(BUILD_STATIC)
+  set(CMAKE_EXE_LINKER_FLAGS "-static")
+  include(FetchContent)
+  # spdlog
+  FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG        v1.17.0
+    )
+  set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
+  set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+  # nlohmann_json
+  FetchContent_Declare(
+        nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG        v3.12.0
+    )
+
+  FetchContent_MakeAvailable(spdlog)
+  FetchContent_MakeAvailable(nlohmann_json)
+else()
+  find_package(spdlog REQUIRED)
+  find_package(nlohmann_json REQUIRED)
+endif()
+
 find_package(Threads REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(spdlog REQUIRED)
 
 add_library(hwmon_opts INTERFACE)
 target_compile_options(hwmon_opts INTERFACE

@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
-#include <nlohmann/json.hpp>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstring>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <thread>
+#include <unistd.h>
 
 #include "SharedState.hpp"
 #include "UDSServer.hpp"
