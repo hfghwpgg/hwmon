@@ -10,6 +10,9 @@ TEST(GetDivider, KnownTypesHaveExpectedDividers) {
   EXPECT_EQ(getDivider(SensorType::POWER), 1000000);
   EXPECT_EQ(getDivider(SensorType::FAN_SPEED), 1);
   EXPECT_EQ(getDivider(SensorType::ENERGY), 1);
+  EXPECT_EQ(getDivider(SensorType::UTILIZATION), 1);
+  EXPECT_EQ(getDivider(SensorType::MEMORY), 1);
+  EXPECT_EQ(getDivider(SensorType::THROUGHPUT), 1);
 }
 
 TEST(GetDivider, UnknownFallsBackToOne) {

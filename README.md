@@ -85,12 +85,19 @@ make
 ./Hwmon
 ```
 
+Special thanks:
+ - [btop](https://github.com/aristocratos/btop/) project
+    - fully skided gpu reading
+
+- [Hwmon-python](https://github.com/guicalare/Hwmon-python)
+    - some sysfs paths
+
 TODO:
 
 - server
   - better error handling (dont know which error to abort on, and which just print out)
   - better device name deducing [kinda done?]
-  - gpu support
+  - gpu support [done, needs more testing now]
   - ram usage monitoring
   - cmdline arguments
   - more testing, preferably on other pc's

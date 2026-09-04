@@ -15,16 +15,22 @@
 #include <vector>
 
 #include "Device.hpp"
+#include "Devices/AmdGpuDevice.hpp"
 #include "Devices/CpuDevice.hpp"
 #include "Devices/GeneralDevice.hpp"
+#include "Devices/GpuDetector.hpp"
+#include "Devices/IntelGpuDevice.hpp"
+#include "Devices/NvidiaGpuDevice.hpp"
 #include "SharedState.hpp"
 
 namespace fs = std::filesystem;
 using nlohmann::json;
 
-Runner::Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpecializedDevices) :
+Runner::Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpecializedDevices,
+               std::filesystem::path drmPath) :
     doSpecializedDevices(doSpecializedDevices),
     hwmonPath(hwmonPath),
+    drmPath(drmPath),
     state(state) {
   devices.reserve(10);
 };
@@ -51,6 +57,8 @@ void Runner::setup() {
     auto cpu = std::make_unique<CpuDevice>(hwmonPaths);
     cpu->initialize();
     devices.push_back(std::move(cpu));
+
+    setupGpuDevices(hwmonPaths);
   }
 
   spdlog::debug("hwmon length: {}", hwmonPaths.size());
@@ -63,6 +71,39 @@ void Runner::setup() {
   }
 }
 /* */
+
+// One device per physical card, created only for GPUs that are actually
+// present. A card that fails to initialize is skipped rather than aborting
+// startup, so a single broken GPU can't take the whole server down.
+void Runner::setupGpuDevices(std::set<fs::path> &hwmonPaths) {
+  bool intelPmuClaimed = false;
+
+  for (const auto &card : GpuDetector::detect(drmPath)) {
+    try {
+      std::unique_ptr<Device> gpu;
+      switch (card.vendorId) {
+      case PCI_VENDOR_AMD:
+        gpu = std::make_unique<AmdGpuDevice>(card, hwmonPaths);
+        break;
+      case PCI_VENDOR_NVIDIA:
+        gpu = std::make_unique<NvidiaGpuDevice>(card, hwmonPaths);
+        break;
+      case PCI_VENDOR_INTEL:
+        // the i915 perf PMU is process-wide, so only the first Intel card gets it
+        gpu = std::make_unique<IntelGpuDevice>(card, hwmonPaths, !intelPmuClaimed);
+        intelPmuClaimed = true;
+        break;
+      default:
+        continue;
+      }
+
+      gpu->initialize();
+      devices.push_back(std::move(gpu));
+    } catch (const std::exception &e) {
+      spdlog::error("failed to initialize gpu {}: {}", card.cardPath.string(), e.what());
+    }
+  }
+}
 
 void Runner::run() {
   while (state.running.load(std::memory_order_relaxed)) {

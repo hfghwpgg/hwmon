@@ -11,6 +11,8 @@ enum class SensorType {
   CURRENT,
   ENERGY,
   UTILIZATION,
+  MEMORY,
+  THROUGHPUT,
   UNKNOWN,
 };
 
@@ -31,6 +33,10 @@ constexpr unsigned int getDivider(SensorType type) {
   case SensorType::ENERGY:
     return 1;
   case SensorType::UTILIZATION:
+    return 1;
+  case SensorType::MEMORY: // bytes
+    return 1;
+  case SensorType::THROUGHPUT: // bytes per second
     return 1;
   default:
     return 1;
