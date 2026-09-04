@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Sensor.hpp"
+#include "../Sensor.hpp"
 
 struct SharedHwmonParser {
   SharedHwmonParser() = default;

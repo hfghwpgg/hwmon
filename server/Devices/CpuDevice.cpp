@@ -114,7 +114,7 @@ void CpuDevice::getCoreFrequency() {
 }
 
 std::string CpuDevice::getName() {
-  std::string name = "cpumodel";
+  std::string name = "cpumodel"; // placeholder
   if (!fs::exists(CPUINFO_PATH) || access(CPUINFO_PATH.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible; setting general name for cpu", CPUINFO_PATH.string());
     return name;
@@ -217,7 +217,8 @@ void CpuDevice::readUtilization() {
         auto &coreStringStream = utilEntry.dataStream;
         coreStringStream->str("");
         coreStringStream->clear();
-        *coreStringStream << 100 * (calc_totalTime - calc_idleTime) / (double)calc_totalTime;
+        *coreStringStream << 100 * (calc_totalTime - calc_idleTime) /
+                                 static_cast<long double>(calc_totalTime);
       } else {
         utilEntry.utilOld.totalTime = totalTime;
         utilEntry.utilOld.idleTime = idleTime;

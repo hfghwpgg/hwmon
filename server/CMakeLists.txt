@@ -41,8 +41,8 @@ find_package(Threads REQUIRED)
 add_library(hwmon_opts INTERFACE)
 target_compile_options(hwmon_opts INTERFACE
   -Wall -Wextra -Wpedantic
-  "$<$<CONFIG:Debug>:-O0;-ggdb>"
-  "$<$<CONFIG:Release>:-O3;-flto;-march=native>"
+  "$<$<CONFIG:Debug>:-Og;-ggdb>"
+  "$<$<CONFIG:Release>:-Os;-flto;-march=native>"
 )
 target_compile_definitions(hwmon_opts INTERFACE
   "$<$<CONFIG:Release>:NDEBUG>"

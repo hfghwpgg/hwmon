@@ -42,5 +42,5 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
     sock.connect("/tmp/hwmon.sock")
 
     get_data(sock)
-    set_interval(sock, 1000)
+    set_interval(sock, 50)
     # reset(sock)
