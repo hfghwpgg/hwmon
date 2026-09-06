@@ -17,10 +17,10 @@
 #include "Device.hpp"
 #include "Devices/AmdGpuDevice.hpp"
 #include "Devices/CpuDevice.hpp"
-#include "Devices/GeneralDevice.hpp"
 #include "Devices/GpuDetector.hpp"
 #include "Devices/IntelGpuDevice.hpp"
 #include "Devices/NvidiaGpuDevice.hpp"
+#include "Devices/SysfsDevice.hpp"
 #include "SharedState.hpp"
 
 namespace fs = std::filesystem;
@@ -65,7 +65,7 @@ void Runner::setup() {
 
   // rest of hwmon devices
   for (const auto &entry : hwmonPaths) {
-    auto dev = std::make_unique<GeneralDevice>(entry.filename(), DeviceType::UNKNOWN, entry);
+    auto dev = std::make_unique<SysfsDevice>(entry.filename(), DeviceType::UNKNOWN, entry);
     dev->initialize();
     devices.push_back(std::move(dev));
   }

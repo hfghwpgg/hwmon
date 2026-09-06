@@ -12,7 +12,7 @@ enum class SensorType;
 class Sensor {
 public:
   Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type,
-         unsigned int divider);
+         unsigned int divider, bool aggregateData = true);
   Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type);
   virtual ~Sensor();
 
@@ -21,9 +21,13 @@ public:
   virtual void resetReadings();
   nlohmann::json serialize();
 
+  std::string getName();
+  SensorType getType();
+
 protected:
   virtual long double prepareValue();
   std::string readRawSensorString();
+  bool aggregateData;
 
   std::shared_ptr<std::istream> dataStream;
   std::string name;

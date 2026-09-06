@@ -7,14 +7,14 @@
 
 #include "../Device.hpp"
 #include "../helpers.hpp"
-#include "GeneralDevice.hpp"
 #include "SharedHwmonParser.hpp"
+#include "SysfsDevice.hpp"
 
 enum class DeviceType;
 
 using std::string;
 
-GeneralDevice::GeneralDevice(string name, DeviceType type, fs::path path) :
+SysfsDevice::SysfsDevice(string name, DeviceType type, fs::path path) :
     Device(name, type),
     path(path) {
   spdlog::debug("CURRENT GENERAL DEVICE: {} <{}>", path.string(), name);
@@ -25,12 +25,12 @@ GeneralDevice::GeneralDevice(string name, DeviceType type, fs::path path) :
 }
 
 #ifdef DEBUG
-GeneralDevice::~GeneralDevice() {
+SysfsDevice::~SysfsDevice() {
   spdlog::debug("GeneralDevice destroyed: {}", name);
 }
 #endif
 
-void GeneralDevice::initialize() {
+void SysfsDevice::initialize() {
   getName();
   const auto available_sensors = SharedHwmonParser::parseHwmonDirectory(path);
   SharedHwmonParser::createSensors(path, available_sensors, sensors);
@@ -38,7 +38,7 @@ void GeneralDevice::initialize() {
 
 // if hwmon contains name field, we use it
 // as device name
-void GeneralDevice::getName() {
+void SysfsDevice::getName() {
   const auto namePath = path / "name";
   if (fs::exists(namePath) && access(namePath.c_str(), R_OK) != -1) {
     name = helpers::readFileFirstLine(namePath);

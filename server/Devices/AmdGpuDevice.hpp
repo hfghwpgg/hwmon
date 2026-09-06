@@ -52,6 +52,6 @@ private:
   // readings ROCm SMI doesn't provide (fan speed, voltage) are added
   void addHwmonSensors(bool onlyUncoveredMetrics);
   void addSysfsSensor(const std::filesystem::path &path, const std::string &sensorName,
-                      SensorType type, unsigned int divider);
+                      SensorType type, unsigned int divider, bool aggregateData = true);
   std::string sysfsName() const;
 };

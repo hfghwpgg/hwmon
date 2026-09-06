@@ -105,7 +105,7 @@ bool NvidiaGpuDevice::setupNvml() {
 
   nvmlMemory_t memory{};
   if (nvml->nvmlDeviceGetMemoryInfo(handle, &memory) == NVML_SUCCESS) {
-    nvmlSensors.vramTotal = addValueSensor(sensors, "vram_total", SensorType::MEMORY);
+    nvmlSensors.vramTotal = addValueSensor(sensors, "vram_total", SensorType::MEMORY, false);
     nvmlSensors.vramUsed = addValueSensor(sensors, "vram_used", SensorType::MEMORY);
   }
 

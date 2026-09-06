@@ -3,11 +3,12 @@
 #include <fstream>
 #include <memory>
 #include <set>
-#include <sstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "../Device.hpp"
+#include "../ValueSensor.hpp"
 
 struct lastReading { // cpu time
   unsigned long long totalTime;
@@ -16,7 +17,7 @@ struct lastReading { // cpu time
 };
 
 struct utilSensorData { // cpu time
-  std::shared_ptr<std::stringstream> dataStream;
+  ValueSensor *sensor;
   lastReading utilOld;
 };
 
@@ -32,12 +33,14 @@ public:
   void resetReadings() override;
 
 private:
+  std::unordered_map<std::string, utilSensorData> utilSensors;
+
   const std::filesystem::path CPUFREQ_PATH;
   const std::filesystem::path CPUINFO_PATH;
   const std::filesystem::path CPUUTIL_PATH;
+
   std::set<std::filesystem::path> &hwmonPaths;
   std::ifstream CPUUTIL_FD;
-  std::unordered_map<std::string, utilSensorData> utilSensors;
 
   // temp
   void getTemperature();

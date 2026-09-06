@@ -162,7 +162,7 @@ TEST_F(CpuDeviceTest, UtilizationProducesSampleAfterSecondRead) {
                       "cpu0 100 0 0 100 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "cpu");
+  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "util_cpu");
   ASSERT_FALSE(cpu.empty());
   EXPECT_EQ(cpu["type"].get<int>(), static_cast<int>(SensorType::UTILIZATION));
   EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 1u);
@@ -179,7 +179,7 @@ TEST_F(CpuDeviceTest, CreatesFrequencySensorsFromCpufreq) {
   device.initialize();
   device.read();
 
-  const nlohmann::json freq = findSensor(device.serialize()["sensors"], "cpu0");
+  const nlohmann::json freq = findSensor(device.serialize()["sensors"], "clk_cpu0");
   ASSERT_FALSE(freq.empty());
   EXPECT_EQ(freq["type"].get<int>(), static_cast<int>(SensorType::FREQUENCY));
   EXPECT_FLOAT_EQ(freq["readings"]["value"].get<float>(), 2400.0f);
@@ -197,11 +197,11 @@ TEST_F(CpuDeviceTest, ResetReadingsClearsUtilizationAggregates) {
                       "cpu0 100 0 0 100 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpuBefore = findSensor(device.serialize()["sensors"], "cpu");
+  const nlohmann::json cpuBefore = findSensor(device.serialize()["sensors"], "util_cpu");
   ASSERT_EQ(cpuBefore["readings"]["times"].get<std::size_t>(), 1u);
 
   device.resetReadings();
-  const nlohmann::json cpuAfterReset = findSensor(device.serialize()["sensors"], "cpu");
+  const nlohmann::json cpuAfterReset = findSensor(device.serialize()["sensors"], "util_cpu");
   EXPECT_EQ(cpuAfterReset["readings"]["times"].get<std::size_t>(), 0u);
 }
 
@@ -217,7 +217,7 @@ TEST_F(CpuDeviceTest, ResetReadingsForcesNewUtilizationBaseline) {
                       "cpu0 300 0 0 200 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpuBeforeReset = findSensor(device.serialize()["sensors"], "cpu");
+  const nlohmann::json cpuBeforeReset = findSensor(device.serialize()["sensors"], "util_cpu");
   ASSERT_EQ(cpuBeforeReset["readings"]["times"].get<std::size_t>(), 1u);
 
   device.resetReadings();
@@ -227,14 +227,14 @@ TEST_F(CpuDeviceTest, ResetReadingsForcesNewUtilizationBaseline) {
                       "cpu0 600 0 0 400 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpuAfterBaseline = findSensor(device.serialize()["sensors"], "cpu");
+  const nlohmann::json cpuAfterBaseline = findSensor(device.serialize()["sensors"], "util_cpu");
   EXPECT_EQ(cpuAfterBaseline["readings"]["times"].get<std::size_t>(), 0u);
 
   writeFile(statPath, "cpu 700 0 0 500 0 0 0 0 0 0\n"
                       "cpu0 700 0 0 500 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "cpu");
+  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "util_cpu");
   EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 1u);
   EXPECT_FLOAT_EQ(cpu["readings"]["value"].get<float>(), 50.0f);
 }

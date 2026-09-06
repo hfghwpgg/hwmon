@@ -7,14 +7,14 @@
 #include <string>
 #include <unistd.h>
 
-#include "Devices/GeneralDevice.hpp"
+#include "Devices/SysfsDevice.hpp"
 #include "SensorType.hpp"
 
 namespace fs = std::filesystem;
 
 namespace {
 
-class GeneralDeviceTest : public ::testing::Test {
+class SysfsDeviceTest : public ::testing::Test {
 protected:
   void SetUp() override {
     static std::atomic<unsigned> counter{0};
@@ -47,8 +47,8 @@ protected:
 
 } // namespace
 
-TEST_F(GeneralDeviceTest, EmptyDeviceSerializesWithNoSensors) {
-  GeneralDevice device{"empty", DeviceType::CPU, dir};
+TEST_F(SysfsDeviceTest, EmptyDeviceSerializesWithNoSensors) {
+  SysfsDevice device{"empty", DeviceType::CPU, dir};
   device.read();
   const nlohmann::json j = device.serialize();
 
@@ -57,11 +57,11 @@ TEST_F(GeneralDeviceTest, EmptyDeviceSerializesWithNoSensors) {
   EXPECT_FALSE(j.contains("sensors"));
 }
 
-TEST_F(GeneralDeviceTest, ReadsNameFromHwmonNameFile) {
+TEST_F(SysfsDeviceTest, ReadsNameFromHwmonNameFile) {
   writeFile("name", "mychip");
   writeFile("temp1_input", "42000");
 
-  GeneralDevice device{"fallback", DeviceType::UNKNOWN, dir};
+  SysfsDevice device{"fallback", DeviceType::UNKNOWN, dir};
   device.initialize();
   device.read();
   const nlohmann::json j = device.serialize();
@@ -71,10 +71,10 @@ TEST_F(GeneralDeviceTest, ReadsNameFromHwmonNameFile) {
   EXPECT_FALSE(findSensor(j["sensors"], "temp1").empty());
 }
 
-TEST_F(GeneralDeviceTest, InitializeDiscoversSensorsFromDirectory) {
+TEST_F(SysfsDeviceTest, InitializeDiscoversSensorsFromDirectory) {
   writeFile("temp1_input", "30000");
 
-  GeneralDevice device{"hwmon0", DeviceType::UNKNOWN, dir};
+  SysfsDevice device{"hwmon0", DeviceType::UNKNOWN, dir};
   device.initialize();
   device.read();
   const nlohmann::json j = device.serialize();

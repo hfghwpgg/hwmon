@@ -15,6 +15,7 @@
 #include "../SensorType.hpp"
 #include "CpuDevice.hpp"
 #include "SharedHwmonParser.hpp"
+#include "ValueSensor.hpp"
 #include "helpers.hpp"
 
 namespace fs = std::filesystem;
@@ -24,7 +25,7 @@ CpuDevice::CpuDevice(std::set<fs::path> &hwmonPaths) :
 
 CpuDevice::CpuDevice(std::set<std::filesystem::path> &hwmonPaths, fs::path CPUFREQ_PATH,
                      fs::path CPUINFO_PATH, fs::path CPUUTIL_PATH) :
-    Device("cpu", DeviceType::CPU),
+    Device("SAMPLE CPU NAME", DeviceType::CPU),
     CPUFREQ_PATH(CPUFREQ_PATH),
     CPUINFO_PATH(CPUINFO_PATH),
     CPUUTIL_PATH(CPUUTIL_PATH),
@@ -43,15 +44,18 @@ void CpuDevice::initialize() {
 }
 
 void CpuDevice::read() {
+
   readUtilization();
   Device::read();
 }
 
 void CpuDevice::resetReadings() {
   for (auto &entry : utilSensors) {
-    entry.second.utilOld.hasRead = false;
-    entry.second.dataStream->str("");
-    entry.second.dataStream->clear();
+    auto &e = entry.second;
+    e.utilOld.hasRead = false;
+    e.utilOld.totalTime = 0;
+    e.utilOld.idleTime = 0;
+    // e.utilSensor->resetReadings();
   }
   Device::resetReadings();
 }
@@ -109,7 +113,7 @@ void CpuDevice::getCoreFrequency() {
     sensors.emplace_back(std::make_unique<Sensor>(
         // we know that file starts with 'policy', and thats 6 letters.
         // we only want core number, so we substr the beginning
-        std::move(fd), "cpu" + filename.substr(6), SensorType::FREQUENCY, 1000));
+        std::move(fd), "clk_cpu" + filename.substr(6), SensorType::FREQUENCY, 1000));
   }
 }
 
@@ -140,7 +144,7 @@ std::string CpuDevice::getName() {
 }
 
 // this is just creating right amount of
-// stringstreams for cpu + each core
+// valueSensors for cpu + each core
 void CpuDevice::initUtilization() {
   if (!fs::exists(CPUUTIL_PATH) || access(CPUUTIL_PATH.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible", CPUUTIL_PATH.string());
@@ -157,17 +161,16 @@ void CpuDevice::initUtilization() {
     std::stringstream ss(line);
     std::string cpuCoreNum;
     ss >> cpuCoreNum; // first column is name
-    utilSensors.emplace(cpuCoreNum,
-                        utilSensorData{std::make_shared<std::stringstream>(), {0, 0, false}});
-    sensors.emplace_back(std::make_unique<Sensor>(utilSensors.at(cpuCoreNum).dataStream, cpuCoreNum,
-                                                  SensorType::UTILIZATION));
+    utilSensors.emplace(cpuCoreNum, utilSensorData{addValueSensor(sensors, "util_" + cpuCoreNum,
+                                                                  SensorType::UTILIZATION),
+                                                   {0, 0, false}});
   }
 }
 
 // actually reading stuff
 void CpuDevice::readUtilization() {
   if (utilSensors.size() == 0) {
-    spdlog::critical("no cpu utilization detected");
+    spdlog::critical("no cpu utilization sensors detected");
     return;
   }
   if (!CPUUTIL_FD.is_open()) {
@@ -214,11 +217,15 @@ void CpuDevice::readUtilization() {
         utilEntry.utilOld.totalTime = totalTime;
         utilEntry.utilOld.idleTime = idleTime;
 
-        auto &coreStringStream = utilEntry.dataStream;
-        coreStringStream->str("");
-        coreStringStream->clear();
-        *coreStringStream << 100 * (calc_totalTime - calc_idleTime) /
-                                 static_cast<long double>(calc_totalTime);
+        // auto &coreStringStream = utilEntry.dataStream;
+        // coreStringStream->str("");
+        // coreStringStream->clear();
+        // *coreStringStream << 100 * (calc_totalTime - calc_idleTime) /
+        //                          static_cast<long double>(calc_totalTime);
+
+        const long double value =
+            100 * (calc_totalTime - calc_idleTime) / static_cast<long double>(calc_totalTime);
+        utilEntry.sensor->setValue(value);
       } else {
         utilEntry.utilOld.totalTime = totalTime;
         utilEntry.utilOld.idleTime = idleTime;

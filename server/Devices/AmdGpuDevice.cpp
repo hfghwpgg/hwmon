@@ -100,7 +100,7 @@ bool AmdGpuDevice::setupRsmi() {
   uint64_t vram = 0;
   if (rsmi->rsmi_dev_memory_total_get(rsmiIndex, RSMI_MEM_TYPE_VRAM, &vram) ==
       RSMI_STATUS_SUCCESS) {
-    rsmiSensors.vramTotal = addValueSensor(sensors, "vram_total", SensorType::MEMORY);
+    rsmiSensors.vramTotal = addValueSensor(sensors, "vram_total", SensorType::MEMORY, false);
   }
   if (rsmi->rsmi_dev_memory_usage_get(rsmiIndex, RSMI_MEM_TYPE_VRAM, &vram) ==
       RSMI_STATUS_SUCCESS) {
@@ -188,7 +188,8 @@ void AmdGpuDevice::readRsmi() {
 void AmdGpuDevice::setupSysfs() {
   addSysfsSensor(card.devicePath / "gpu_busy_percent", "gpu_busy", SensorType::UTILIZATION, 1);
   addSysfsSensor(card.devicePath / "mem_busy_percent", "mem_busy", SensorType::UTILIZATION, 1);
-  addSysfsSensor(card.devicePath / "mem_info_vram_total", "vram_total", SensorType::MEMORY, 1);
+  addSysfsSensor(card.devicePath / "mem_info_vram_total", "vram_total", SensorType::MEMORY, 1,
+                 false);
   addSysfsSensor(card.devicePath / "mem_info_vram_used", "vram_used", SensorType::MEMORY, 1);
 
   if (sensors.empty() && card.hwmonPath.empty()) {
@@ -216,7 +217,7 @@ void AmdGpuDevice::addHwmonSensors(bool onlyUncoveredMetrics) {
 }
 
 void AmdGpuDevice::addSysfsSensor(const fs::path &path, const std::string &sensorName,
-                                  SensorType type, unsigned int divider) {
+                                  SensorType type, unsigned int divider, bool aggregateData) {
   if (!fs::exists(path))
     return;
 
@@ -225,7 +226,8 @@ void AmdGpuDevice::addSysfsSensor(const fs::path &path, const std::string &senso
     spdlog::warn("unable to open {}", path.string());
     return;
   }
-  sensors.emplace_back(std::make_unique<Sensor>(std::move(stream), sensorName, type, divider));
+  sensors.emplace_back(
+      std::make_unique<Sensor>(std::move(stream), sensorName, type, divider, aggregateData));
 }
 
 std::string AmdGpuDevice::sysfsName() const {

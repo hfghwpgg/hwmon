@@ -59,7 +59,7 @@ add_library(HwmonCore STATIC
     "ValueSensor.cpp"
     "Device.cpp"
     "Devices/SharedHwmonParser.cpp"
-    "Devices/GeneralDevice.cpp"
+    "Devices/SysfsDevice.cpp"
     "Devices/CpuDevice.cpp"
     "Devices/GpuDetector.cpp"
     "Libraries/NvmlLibrary.cpp"

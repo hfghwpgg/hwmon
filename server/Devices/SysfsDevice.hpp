@@ -7,12 +7,12 @@
 
 namespace fs = std::filesystem;
 
-class GeneralDevice : public Device {
+class SysfsDevice : public Device {
 public:
-  GeneralDevice(std::string name, DeviceType type, fs::path path);
+  SysfsDevice(std::string name, DeviceType type, fs::path path);
 
 #ifdef DEBUG
-  ~GeneralDevice();
+  ~SysfsDevice();
 #endif
 
   void initialize() override;

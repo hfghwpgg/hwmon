@@ -11,7 +11,8 @@
 #include "SensorType.hpp"
 
 Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType type,
-               unsigned int divider) :
+               unsigned int divider, bool aggregateData) :
+    aggregateData(aggregateData),
     dataStream(file),
     name(name),
     type(type),
@@ -27,6 +28,13 @@ Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType 
 
 Sensor::~Sensor() {
   spdlog::debug("sensor destroyed: {}", name);
+}
+
+std::string Sensor::getName() {
+  return name;
+}
+SensorType Sensor::getType() {
+  return type;
 }
 
 std::string Sensor::readRawSensorString() {
@@ -60,8 +68,11 @@ void Sensor::updateValue() {
     spdlog::debug("{}: value of recieved data is NaN", name);
     return;
   }
+
   readings.value = value;
-  readings.sum += value;
+  if (aggregateData) {
+    readings.sum += value;
+  }
   readings.times++;
 
   if (readings.min_value > value || std::isnan(readings.min_value)) {
