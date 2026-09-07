@@ -39,7 +39,7 @@ def reset(sock):
 
 
 with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
-    sock.connect("/tmp/hwmon.sock")
+    sock.connect("/tmp/hwmon/hwmon.sock")
 
     get_data(sock)
     # set_interval(sock, 50)

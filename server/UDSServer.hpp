@@ -41,7 +41,7 @@ private:
 // snapshot and accepts control commands. One jthread per client.
 class UDSServer {
 public:
-  UDSServer(std::string udsPath, int backlog, SharedState &state);
+  UDSServer(std::string udsFolder, std::string udsPath, int backlog, SharedState &state);
   ~UDSServer();
 
   UDSServer(const UDSServer &) = delete;
@@ -63,6 +63,7 @@ private:
   std::string ProcessRequest(std::string_view request);
   void ReapFinishedClients();
 
+  const std::string udsFolder;
   const std::string udsPath;
   const int backlog;
   SharedState &state;

@@ -2,11 +2,14 @@
 #include <csignal>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <sys/stat.h>
 #include <thread>
+#include <unistd.h>
 
 #include "Runner.hpp"
 #include "SharedState.hpp"
 #include "UDSServer.hpp"
+#include "dropPrivileges.hpp"
 
 namespace {
 std::atomic<bool> *gRunning = nullptr;
@@ -23,7 +26,8 @@ int main() {
 #ifdef DEBUG
   spdlog::set_level(spdlog::level::debug);
 #endif
-  const std::string sockPath = "/tmp/hwmon.sock";
+  const std::string sockFolder = "/tmp/hwmon";
+  const std::string sockPath = sockFolder + "/hwmon.sock";
   const std::string hwmonPath = "/sys/class/hwmon";
   constexpr unsigned int initialIntervalMs = 1000;
   constexpr int backlog = 10;
@@ -36,8 +40,9 @@ int main() {
 
   Runner runner{state, hwmonPath, true};
   runner.setup();
+  dropPrivileges::dropPrivileges();
 
-  UDSServer server{sockPath, backlog, state};
+  UDSServer server{sockFolder, sockPath, backlog, state};
 
   std::jthread runnerThread{[&runner] { runner.run(); }};
 

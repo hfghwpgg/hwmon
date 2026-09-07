@@ -51,7 +51,8 @@ void FdGuard::reset() noexcept {
 // ---------------------------------------------------------------------------
 // UDSServer
 // ---------------------------------------------------------------------------
-UDSServer::UDSServer(std::string udsPath, int backlog, SharedState &state) :
+UDSServer::UDSServer(std::string udsFolder, std::string udsPath, int backlog, SharedState &state) :
+    udsFolder(std::move(udsFolder)),
     udsPath(std::move(udsPath)),
     backlog(backlog),
     state(state) {}
@@ -64,6 +65,7 @@ UDSServer::~UDSServer() {
   clients.clear();
   listenFd = FdGuard{};
   ::unlink(udsPath.c_str());
+  ::rmdir(udsFolder.c_str());
 }
 
 bool UDSServer::setup() {
@@ -83,6 +85,9 @@ bool UDSServer::setup() {
 
   // Remove a stale socket file from a previous run before binding.
   ::unlink(udsPath.c_str());
+  ::rmdir(udsFolder.c_str());
+  // Create socket folder with correct privileges
+  ::mkdir(udsFolder.c_str(), 0700);
 
   if (::bind(fd.get(), reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) != 0) {
     spdlog::error("ERROR: couldn't bind socket: {}", std::strerror(errno));
