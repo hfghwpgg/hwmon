@@ -36,6 +36,7 @@ else()
   find_package(nlohmann_json REQUIRED)
 endif()
 
+find_package(argparse REQUIRED)
 find_package(Threads REQUIRED)
 
 add_library(hwmon_opts INTERFACE)
@@ -52,7 +53,9 @@ target_compile_definitions(hwmon_opts INTERFACE
 add_subdirectory(Libraries/intel_gpu_top)
 
 add_library(HwmonCore STATIC
-    "helpers.hpp"
+    "helpers.cpp"
+    "configManager.cpp"
+    "dropPrivileges.cpp"
     "SensorReading.cpp"
     "Sensor.cpp"
     "EnergySensor.cpp"

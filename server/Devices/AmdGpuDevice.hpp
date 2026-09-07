@@ -24,7 +24,9 @@ private:
   // ROCm SMI reports everything through library calls, so each metric gets a
   // ValueSensor; a null pointer means the card doesn't support that metric
   struct RsmiSensors {
-    ValueSensor *temp = nullptr;
+    ValueSensor *temp_edge = nullptr;
+    ValueSensor *temp_junction = nullptr;
+    ValueSensor *temp_vram = nullptr;
     ValueSensor *gpuBusy = nullptr;
     ValueSensor *memBusy = nullptr;
     ValueSensor *sclk = nullptr;

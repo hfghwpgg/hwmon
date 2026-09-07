@@ -74,7 +74,17 @@ bool AmdGpuDevice::setupRsmi() {
   int64_t temp = 0;
   if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_EDGE, RSMI_TEMP_CURRENT, &temp) ==
       RSMI_STATUS_SUCCESS) {
-    rsmiSensors.temp = addValueSensor(sensors, "edge", SensorType::TEMPERATURE);
+    rsmiSensors.temp_edge = addValueSensor(sensors, "edge", SensorType::TEMPERATURE);
+  }
+
+  if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_JUNCTION, RSMI_TEMP_CURRENT,
+                                     &temp) == RSMI_STATUS_SUCCESS) {
+    rsmiSensors.temp_junction = addValueSensor(sensors, "junction", SensorType::TEMPERATURE);
+  }
+
+  if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_MEMORY, RSMI_TEMP_CURRENT, &temp) ==
+      RSMI_STATUS_SUCCESS) {
+    rsmiSensors.temp_vram = addValueSensor(sensors, "mem", SensorType::TEMPERATURE);
   }
 
   uint32_t utilization = 0;
@@ -122,11 +132,25 @@ void AmdGpuDevice::readRsmi() {
   if (rsmi == nullptr)
     return;
 
-  if (rsmiSensors.temp != nullptr) {
+  if (rsmiSensors.temp_edge != nullptr) {
     int64_t temp = 0;
     if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_EDGE, RSMI_TEMP_CURRENT, &temp) ==
         RSMI_STATUS_SUCCESS)
-      rsmiSensors.temp->setValue(static_cast<long double>(temp) / 1'000); // millidegrees
+      rsmiSensors.temp_edge->setValue(static_cast<long double>(temp) / 1'000); // millidegrees
+  }
+
+  if (rsmiSensors.temp_junction != nullptr) {
+    int64_t temp = 0;
+    if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_JUNCTION, RSMI_TEMP_CURRENT,
+                                       &temp) == RSMI_STATUS_SUCCESS)
+      rsmiSensors.temp_junction->setValue(static_cast<long double>(temp) / 1'000); // millidegrees
+  }
+
+  if (rsmiSensors.temp_vram != nullptr) {
+    int64_t temp = 0;
+    if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_MEMORY, RSMI_TEMP_CURRENT,
+                                       &temp) == RSMI_STATUS_SUCCESS)
+      rsmiSensors.temp_vram->setValue(static_cast<long double>(temp) / 1'000); // millidegrees
   }
 
   if (rsmiSensors.gpuBusy != nullptr) {

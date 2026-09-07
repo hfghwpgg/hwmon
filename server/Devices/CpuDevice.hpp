@@ -1,11 +1,9 @@
 #pragma once
 #include <filesystem>
 #include <fstream>
-#include <memory>
 #include <set>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 #include "../Device.hpp"
 #include "../ValueSensor.hpp"

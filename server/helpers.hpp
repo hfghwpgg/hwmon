@@ -1,66 +1,16 @@
 #pragma once
-#include <algorithm>
-#include <cmath>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <sys/stat.h>
-#include <vector>
-
 #include "SensorType.hpp"
+#include <filesystem>
+#include <string>
 
 namespace helpers {
-static inline float roundFloat(float x, int num_decimal_precision_digits) {
-  float power_of_10 = std::pow(10, num_decimal_precision_digits);
-  return std::round(x * power_of_10) / power_of_10;
-}
+float roundFloat(float x, int num_decimal_precision_digits);
+std::string trim(std::string &str);
 
-static inline std::string trim(std::string &str) {
-  str.erase(str.find_last_not_of(' ') + 1); // Suffixing spaces
-  str.erase(0, str.find_first_not_of(' ')); // Prefixing spaces
-  return str;
-}
-
-template <typename T> static inline bool isInVector(const std::vector<T> &vec, const T &thing) {
-  return (std::find(vec.begin(), vec.end(), thing) != vec.end());
-}
-
-static inline SensorType deduceSensorType(std::string sensorName) {
-  auto lastDigit = sensorName.find_first_of("0123456789");
-
-  std::string_view prefix;
-  if (lastDigit != std::string::npos) {
-    prefix = std::string_view(sensorName).substr(0, lastDigit);
-  } else {
-    prefix = sensorName;
-  }
-  auto it = sensorConfigMap.find(prefix);
-  if (it != sensorConfigMap.end()) {
-    return it->second;
-  }
-  // fallback
-  return SensorType::UNKNOWN;
-}
+SensorType deduceSensorType(std::string sensorName);
 
 enum class pathTypeEnum { FILE, DIRECTORY, INVALID };
+pathTypeEnum pathType(const std::filesystem::path &path);
 
-static inline pathTypeEnum pathType(const std::filesystem::path &path) {
-  struct stat sb; // struct for metadata
-  if (stat(path.c_str(), &sb) == 0) {
-    // S_IFDIR = 1 => directory
-    return (sb.st_mode & S_IFDIR) ? pathTypeEnum::DIRECTORY : pathTypeEnum::FILE;
-  }
-  return pathTypeEnum::INVALID;
-}
-
-const inline std::string readFileFirstLine(std::filesystem::path pathToFile) {
-  std::string content;
-  std::ifstream f{pathToFile};
-  f.clear();
-  f.seekg(0);
-  std::getline(f, content);
-  f.close();
-  return content;
-}
+std::string readFileFirstLine(std::filesystem::path pathToFile);
 } // namespace helpers

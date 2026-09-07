@@ -1,4 +1,6 @@
 #include <filesystem>
+#include <fstream>
+#include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_map>

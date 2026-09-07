@@ -17,26 +17,6 @@ TEST(RoundFloat, RoundsHalfAwayFromZero) {
   EXPECT_NEAR(helpers::roundFloat(-2.5f, 0), -3.0f, 1e-4f);
 }
 
-TEST(IsInVector, FindsExistingElements) {
-  const std::vector<int> nums{1, 2, 3, 42};
-  EXPECT_TRUE(helpers::isInVector(nums, 1));
-  EXPECT_TRUE(helpers::isInVector(nums, 42));
-}
-
-TEST(IsInVector, ReturnsFalseForMissingElements) {
-  const std::vector<int> nums{1, 2, 3};
-  EXPECT_FALSE(helpers::isInVector(nums, 99));
-
-  const std::vector<int> empty{};
-  EXPECT_FALSE(helpers::isInVector(empty, 1));
-}
-
-TEST(IsInVector, WorksWithStrings) {
-  const std::vector<std::string> words{"input", "label"};
-  EXPECT_TRUE(helpers::isInVector<std::string>(words, "label"));
-  EXPECT_FALSE(helpers::isInVector<std::string>(words, "average"));
-}
-
 TEST(trim, ClearsTrailingSpaces) {
   std::string word1 = "     asd           ";
   std::string word2 = "          fsa";

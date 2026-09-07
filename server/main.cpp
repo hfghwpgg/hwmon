@@ -1,5 +1,7 @@
+#include <argparse/argparse.hpp>
 #include <atomic>
 #include <csignal>
+#include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <sys/stat.h>
@@ -9,6 +11,7 @@
 #include "Runner.hpp"
 #include "SharedState.hpp"
 #include "UDSServer.hpp"
+#include "configManager.hpp"
 #include "dropPrivileges.hpp"
 
 namespace {
@@ -22,27 +25,23 @@ void HandleSignal(int sig) {
 }
 } // namespace
 
-int main() {
-#ifdef DEBUG
-  spdlog::set_level(spdlog::level::debug);
-#endif
-  const std::string sockFolder = "/tmp/hwmon";
-  const std::string sockPath = sockFolder + "/hwmon.sock";
-  const std::string hwmonPath = "/sys/class/hwmon";
-  constexpr unsigned int initialIntervalMs = 1000;
-  constexpr int backlog = 10;
+int main(int argc, char *argv[]) {
+  Config config = configManager(argc, argv);
+  if (config.debug) {
+    spdlog::set_level(spdlog::level::debug);
+  }
 
-  SharedState state{initialIntervalMs};
+  SharedState state{config.initialIntervalMs};
 
   gRunning = &state.running;
   std::signal(SIGINT, HandleSignal);
   std::signal(SIGTERM, HandleSignal);
 
-  Runner runner{state, hwmonPath, true};
+  Runner runner{state, config.hwmonPath, true};
   runner.setup();
-  dropPrivileges::dropPrivileges();
+  dropPrivileges();
 
-  UDSServer server{sockFolder, sockPath, backlog, state};
+  UDSServer server{config.sockFolder, config.sockPath, config.backlog, state};
 
   std::jthread runnerThread{[&runner] { runner.run(); }};
 
