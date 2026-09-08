@@ -11,6 +11,7 @@ Tool for monitoring temperature, voltages and more in real time.
   - Libraries:
     - `nlohmann/json` library
     - `spdlog` library
+    - `p-ranav/argparse` library 
     - `include-what-you-use` tool (optional)
     - `GTest` testing framework (optional)
 - CMake (tested with version 4.3.2)
@@ -39,7 +40,7 @@ cd hwmon
 ```
 > running this script without any flags will display help message  
 > static build will download and compile necessary libraries  
-> [supports only debug/release, without tests]
+> [supports only debug/release, without tests, no amdsmi/nvml support]
 
 4. the compiled binary will be located in the `build` directory
 

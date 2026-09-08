@@ -28,11 +28,10 @@ class UDSServerTest : public ::testing::Test {
 protected:
   void SetUp() override {
     static std::atomic<unsigned> counter{0};
-    folder = "/tmp/hwmon_tests";
-    path = folder + "/hwmon_uds_test_" + std::to_string(::getpid()) + "_" +
+    path = "/tmp/hwmon_tests/hwmon_uds_test_" + std::to_string(::getpid()) + "_" +
            std::to_string(counter.fetch_add(1)) + ".sock";
 
-    server.emplace(folder, path, 10, state);
+    server.emplace(path, 10, state);
     runThread = std::jthread([this] { server->run(); });
     ASSERT_TRUE(waitForServer()) << "server did not start listening in time";
   }
@@ -104,7 +103,6 @@ protected:
   }
 
   SharedState state{1000};
-  std::string folder;
   std::string path;
   std::optional<UDSServer> server;
   std::jthread runThread;

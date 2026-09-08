@@ -14,12 +14,12 @@ Device::Device(std::string name, DeviceType type) :
     type(type),
     sensors() {
   sensors.reserve(10);
-  spdlog::debug("CURRENT DEVICE: <{}>", name);
+  spdlog::trace("CURRENT DEVICE: <{}>", name);
 }
 
 #ifdef DEBUG
 Device::~Device() {
-  spdlog::debug("Device destroyed: {}", name);
+  spdlog::trace("Device destroyed: {}", name);
 }
 #endif
 

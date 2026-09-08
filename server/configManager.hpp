@@ -1,12 +1,12 @@
 #pragma once
-#include <string>
+#include <filesystem>
 
 struct Config {
-  bool debug;
-  std::string sockFolder;
-  std::string sockPath;
-  std::string hwmonPath;
+  unsigned int debuglevel;
+  std::filesystem::path sockPath;
+  std::filesystem::path hwmonPath;
   unsigned int initialIntervalMs;
   int backlog;
+  bool refreshSocket;
 };
 Config configManager(int argc, char *argv[]);

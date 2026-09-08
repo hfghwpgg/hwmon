@@ -36,7 +36,7 @@ Runner::Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpeci
 };
 #ifdef DEBUG
 Runner::~Runner() {
-  spdlog::debug("runner destroyed");
+  spdlog::trace("runner destroyed");
 }
 #endif
 
@@ -52,7 +52,7 @@ void Runner::setup() {
     hwmonPaths.insert(fs::canonical(entry.path()));
   }
 
-  spdlog::debug("hwmon length: {}", hwmonPaths.size());
+  spdlog::trace("hwmon length: {}", hwmonPaths.size());
   if (doSpecializedDevices) {
     auto cpu = std::make_unique<CpuDevice>(hwmonPaths);
     cpu->initialize();
@@ -61,7 +61,7 @@ void Runner::setup() {
     setupGpuDevices(hwmonPaths);
   }
 
-  spdlog::debug("hwmon length: {}", hwmonPaths.size());
+  spdlog::trace("hwmon length: {}", hwmonPaths.size());
 
   // rest of hwmon devices
   for (const auto &entry : hwmonPaths) {

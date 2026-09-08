@@ -4,10 +4,12 @@
 #include <atomic>
 #include <cerrno>
 #include <cstring>
+#include <filesystem>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <poll.h>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <sys/socket.h>
@@ -51,8 +53,7 @@ void FdGuard::reset() noexcept {
 // ---------------------------------------------------------------------------
 // UDSServer
 // ---------------------------------------------------------------------------
-UDSServer::UDSServer(std::string udsFolder, std::string udsPath, int backlog, SharedState &state) :
-    udsFolder(std::move(udsFolder)),
+UDSServer::UDSServer(std::filesystem::path udsPath, int backlog, SharedState &state) :
     udsPath(std::move(udsPath)),
     backlog(backlog),
     state(state) {}
@@ -65,37 +66,45 @@ UDSServer::~UDSServer() {
   clients.clear();
   listenFd = FdGuard{};
   ::unlink(udsPath.c_str());
-  ::rmdir(udsFolder.c_str());
+  ::rmdir(udsPath.parent_path().c_str());
 }
 
 bool UDSServer::setup() {
   FdGuard fd{::socket(AF_UNIX, SOCK_STREAM, 0)};
   if (!fd.valid()) {
-    spdlog::error("ERROR: couldn't open socket: {}", std::strerror(errno));
+    spdlog::error("couldn't open socket: {}", std::strerror(errno));
     return false;
   }
 
   sockaddr_un addr{};
   addr.sun_family = AF_UNIX;
-  if (udsPath.size() >= sizeof(addr.sun_path)) {
-    spdlog::error("ERROR: socket path too long: {}", udsPath);
+  if (udsPath.string().size() >= sizeof(addr.sun_path)) {
+    spdlog::error("socket path too long: {}", udsPath.string());
     return false;
   }
-  std::memcpy(addr.sun_path, udsPath.c_str(), udsPath.size() + 1);
+  std::memcpy(addr.sun_path, udsPath.c_str(), udsPath.string().size() + 1);
 
-  // Remove a stale socket file from a previous run before binding.
-  ::unlink(udsPath.c_str());
-  ::rmdir(udsFolder.c_str());
+  // // Remove a stale socket file from a previous run before binding.
+  // ::unlink(udsPath.c_str());
+  // ::rmdir(udsPath.parent_path().c_str());
+
+  if (std::filesystem::exists(udsPath)) {
+    spdlog::error("socket already exists, exiting...");
+    spdlog::info("it probably means that that other instance is running in the background");
+    spdlog::info("or that you pointed socket at a regular file");
+    spdlog::info("run server with --refreshsocket to remove it");
+    throw std::runtime_error("couldn't create socket - file already exists");
+  }
   // Create socket folder with correct privileges
-  ::mkdir(udsFolder.c_str(), 0700);
+  ::mkdir(udsPath.parent_path().c_str(), 0700);
 
   if (::bind(fd.get(), reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) != 0) {
-    spdlog::error("ERROR: couldn't bind socket: {}", std::strerror(errno));
+    spdlog::error("couldn't bind socket: {}", std::strerror(errno));
     return false;
   }
 
   if (::listen(fd.get(), backlog) != 0) {
-    spdlog::error("ERROR: listen failed: {}", std::strerror(errno));
+    spdlog::error("listen failed: {}", std::strerror(errno));
     return false;
   }
 
@@ -109,7 +118,7 @@ void UDSServer::run() {
     return;
   }
 
-  spdlog::info("UDS server listening on {}", udsPath);
+  spdlog::info("UDS server listening on {}", udsPath.string());
 
   while (state.running.load(std::memory_order_relaxed)) {
     pollfd pfd{.fd = listenFd.get(), .events = POLLIN, .revents = 0};
@@ -120,7 +129,7 @@ void UDSServer::run() {
       if (errno == EINTR) {
         continue;
       }
-      spdlog::error("ERROR: poll failed: {}", std::strerror(errno));
+      spdlog::error("poll failed: {}", std::strerror(errno));
       break;
     }
     if (ready == 0) {
@@ -134,7 +143,7 @@ void UDSServer::run() {
         if (errno == EINTR) {
           continue;
         }
-        spdlog::error("ERROR: accept failed: {}", std::strerror(errno));
+        spdlog::error("accept failed: {}", std::strerror(errno));
         continue;
       }
 

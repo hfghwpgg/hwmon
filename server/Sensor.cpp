@@ -18,16 +18,14 @@ Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType 
     type(type),
     divider(divider),
     readings{NAN, NAN, NAN, 0, 0} {
-#ifdef DEBUG
-  spdlog::debug("sensor init; its name: {}", name);
-#endif
+  spdlog::trace("sensor init; its name: {}", name);
 }
 
 Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType type) :
     Sensor(file, name, type, getDivider(type)) {}
 
 Sensor::~Sensor() {
-  spdlog::debug("sensor destroyed: {}", name);
+  spdlog::trace("sensor destroyed: {}", name);
 }
 
 std::string Sensor::getName() {
@@ -65,7 +63,7 @@ double long Sensor::prepareValue() {
 void Sensor::updateValue() {
   double value = prepareValue();
   if (std::isnan(value)) {
-    spdlog::debug("{}: value of recieved data is NaN", name);
+    spdlog::trace("{}: value of recieved data is NaN", name);
     return;
   }
 

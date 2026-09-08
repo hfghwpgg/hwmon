@@ -3,7 +3,6 @@
 #include <csignal>
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
-#include <string>
 #include <sys/stat.h>
 #include <thread>
 #include <unistd.h>
@@ -27,8 +26,21 @@ void HandleSignal(int sig) {
 
 int main(int argc, char *argv[]) {
   Config config = configManager(argc, argv);
-  if (config.debug) {
+
+  switch (config.debuglevel) {
+  case 2:
+    spdlog::set_level(spdlog::level::trace);
+    break;
+  case 1:
     spdlog::set_level(spdlog::level::debug);
+    break;
+  default:
+    break;
+  }
+
+  if (config.refreshSocket) {
+    unlink(config.sockPath.c_str());
+    rmdir(config.sockPath.parent_path().c_str());
   }
 
   SharedState state{config.initialIntervalMs};
@@ -41,12 +53,12 @@ int main(int argc, char *argv[]) {
   runner.setup();
   dropPrivileges();
 
-  UDSServer server{config.sockFolder, config.sockPath, config.backlog, state};
+  UDSServer server{config.sockPath, config.backlog, state};
 
   std::jthread runnerThread{[&runner] { runner.run(); }};
 
   // Blocks on the accept loop until the shutdown flag is set.
   server.run();
-  spdlog::info("program ended gracefully");
+  spdlog::debug("program ended gracefully");
   return 0;
 }

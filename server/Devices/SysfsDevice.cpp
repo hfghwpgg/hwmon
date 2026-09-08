@@ -17,7 +17,7 @@ using std::string;
 SysfsDevice::SysfsDevice(string name, DeviceType type, fs::path path) :
     Device(name, type),
     path(path) {
-  spdlog::debug("CURRENT GENERAL DEVICE: {} <{}>", path.string(), name);
+  spdlog::trace("CURRENT GENERAL DEVICE: {} <{}>", path.string(), name);
   if (helpers::pathType(path) != helpers::pathTypeEnum::DIRECTORY) {
     spdlog::critical("invalid path for device {}: {}", name, path.string());
     throw std::runtime_error("invalid path, check logs");
@@ -26,7 +26,7 @@ SysfsDevice::SysfsDevice(string name, DeviceType type, fs::path path) :
 
 #ifdef DEBUG
 SysfsDevice::~SysfsDevice() {
-  spdlog::debug("GeneralDevice destroyed: {}", name);
+  spdlog::trace("GeneralDevice destroyed: {}", name);
 }
 #endif
 

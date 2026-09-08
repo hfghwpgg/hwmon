@@ -18,7 +18,7 @@ SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
   std::unordered_map<std::string, std::vector<std::string>> available_sensors;
   for (const auto &entry : fs::directory_iterator(path)) {
     if (!entry.is_regular_file()) {
-      spdlog::debug("{} is not a regular file", entry.path().string());
+      spdlog::trace("{} is not a regular file", entry.path().string());
       continue;
     }
     // stem returns filename
@@ -31,7 +31,7 @@ SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
     // underscores (ex: pwm sensors dont)
     size_t underscorePos = filename.find('_');
     if (underscorePos == std::string::npos) {
-      spdlog::debug("{} does not contain an underscore", filename);
+      spdlog::trace("{} does not contain an underscore", filename);
       continue;
     }
 
