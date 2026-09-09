@@ -133,7 +133,14 @@ void MainWindow::applyTheme() {
                  "QLabel { color: #ececec; background: transparent; }"
                  "QMenu { background: #1e1e1e; color: #ececec; border: 1px solid #3a3a3a; }"
                  "QMenu::item:selected { background: #2d3d4e; }"
-                 "QSpinBox, QRadioButton { color: #ececec; background: transparent; }")
+                 "QSpinBox { color: #ececec; background: #333333; }"
+                 "QRadioButton { color: #ececec; background: transparent; spacing: 8px; }"
+                 "QRadioButton::indicator { width: 16px; height: 16px; border-radius: 9px;"
+                 " border: 2px solid #8a8a8a; background: #1a1a1a; }"
+                 "QRadioButton::indicator:hover { border-color: #6cb6ff; }"
+                 "QRadioButton::indicator:checked { border: 2px solid #6cb6ff;"
+                 " background: qradialgradient(cx:0.5, cy:0.5, radius:0.55, fx:0.5, fy:0.5,"
+                 " stop:0 #6cb6ff, stop:0.42 #6cb6ff, stop:0.5 #1a1a1a, stop:1 #1a1a1a); }")
            : QStringLiteral(
                  "QMainWindow { background: #f4f4f4; color: #1a1a1a; }"
                  "QDialog { background: #ffffff; color: #1a1a1a; }"
@@ -150,7 +157,14 @@ void MainWindow::applyTheme() {
                  "QLabel { color: #1a1a1a; background: transparent; }"
                  "QMenu { background: #ffffff; color: #1a1a1a; border: 1px solid #cfcfcf; }"
                  "QMenu::item:selected { background: #d7e4f2; }"
-                 "QSpinBox, QRadioButton { color: #1a1a1a; background: transparent; }");
+                 "QSpinBox { color: #1a1a1a; background: #ffffff; }"
+                 "QRadioButton { color: #1a1a1a; background: transparent; spacing: 8px; }"
+                 "QRadioButton::indicator { width: 16px; height: 16px; border-radius: 9px;"
+                 " border: 2px solid #6a6a6a; background: #ffffff; }"
+                 "QRadioButton::indicator:hover { border-color: #1565c0; }"
+                 "QRadioButton::indicator:checked { border: 2px solid #1565c0;"
+                 " background: qradialgradient(cx:0.5, cy:0.5, radius:0.55, fx:0.5, fy:0.5,"
+                 " stop:0 #1565c0, stop:0.42 #1565c0, stop:0.5 #ffffff, stop:1 #ffffff); }");
   setStyleSheet(qss);
   if (m_footer != nullptr) {
     m_footer->setStyleSheet(dark ? QStringLiteral("background: #202020;")
@@ -243,12 +257,16 @@ void MainWindow::openSettings() {
   auto *hint = new QLabel(QStringLiteral("Minimum 50 ms. The same interval is sent to the server."),
                           &dialog);
   hint->setWordWrap(true);
-  hint->setStyleSheet(
-      m_backend.darkMode()
-          ? QStringLiteral("QLabel { background: #3a3a3a; color: #d0d0d0; padding: 8px;"
-                           " border-radius: 4px; }")
-          : QStringLiteral("QLabel { background: #f3f3f3; color: #555555; padding: 8px;"
-                           " border-radius: 4px; }"));
+  hint->setAutoFillBackground(true);
+  auto applyHintStyle = [this, hint] {
+    hint->setStyleSheet(
+        m_backend.darkMode()
+            ? QStringLiteral("QLabel { background: #3a3a3a; color: #d0d0d0; padding: 8px;"
+                             " border-radius: 4px; }")
+            : QStringLiteral("QLabel { background: #f3f3f3; color: #555555; padding: 8px;"
+                             " border-radius: 4px; }"));
+  };
+  applyHintStyle();
   layout->addWidget(hint);
 
   auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
@@ -258,6 +276,7 @@ void MainWindow::openSettings() {
 
   connect(darkRadio, &QRadioButton::clicked, this, [this] { m_backend.setDarkMode(true); });
   connect(lightRadio, &QRadioButton::clicked, this, [this] { m_backend.setDarkMode(false); });
+  connect(&m_backend, &ClientBackend::darkModeChanged, &dialog, applyHintStyle);
   connect(interval, &QSpinBox::valueChanged, this,
           [this](int value) { m_backend.setIntervalMs(value); });
 

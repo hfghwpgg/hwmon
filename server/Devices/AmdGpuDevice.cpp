@@ -9,7 +9,6 @@
 #include <nlohmann/json.hpp>
 #include <set>
 #include <spdlog/spdlog.h>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
