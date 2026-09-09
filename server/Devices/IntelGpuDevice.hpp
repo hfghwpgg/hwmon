@@ -21,11 +21,17 @@ public:
 
   void initialize() override;
   void read() override;
+  void resetReadings() override;
+  nlohmann::json serialize() override;
 
 private:
   const GpuCardInfo card;
   std::set<std::filesystem::path> &hwmonPaths;
   const bool allowPmu;
+
+  // since intel exposes so little info, I wont bother with
+  // many vectors for info
+  std::vector<std::unique_ptr<Sensor>> sensors;
 
   struct engines *pmuEngines = nullptr;
   ValueSensor *gpuUtil = nullptr;

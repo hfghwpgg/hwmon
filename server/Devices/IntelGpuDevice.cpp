@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <format>
+#include <nlohmann/json.hpp>
 #include <set>
 #include <spdlog/spdlog.h>
 #include <string>
@@ -76,7 +77,25 @@ void IntelGpuDevice::initialize() {
 
 void IntelGpuDevice::read() {
   readPmu();
-  Device::read();
+  for (const auto &sensor : sensors) {
+    sensor->updateValue();
+  }
+}
+
+void IntelGpuDevice::resetReadings() {
+  for (const auto &sensor : sensors) {
+    sensor->resetReadings();
+  }
+}
+
+nlohmann::json IntelGpuDevice::serialize() {
+  nlohmann::json j;
+  j["name"] = name;
+  j["type"] = type;
+  for (auto &sensor : sensors) {
+    j["sensors"] += sensor->serialize();
+  }
+  return j;
 }
 
 // The i915 PMU is read through perf counters, which needs either root or a

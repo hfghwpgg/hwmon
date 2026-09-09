@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <chrono>
-#include <ctime>
 #include <filesystem>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -116,6 +115,7 @@ void Runner::run() {
   auto timestamp = getUnixTimestamp();
   while (state.running.load(std::memory_order_relaxed)) {
     if (state.resetFlag.load(std::memory_order_relaxed)) {
+      spdlog::debug("reset initiated");
       resetReadings();
       timestamp = getUnixTimestamp();
       state.resetFlag.store(false, std::memory_order_relaxed);

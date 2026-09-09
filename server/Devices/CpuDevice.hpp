@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "../Device.hpp"
 #include "../ValueSensor.hpp"
@@ -29,9 +30,10 @@ public:
   void initialize() override;
   void read() override;
   void resetReadings() override;
+  nlohmann::json serialize() override;
 
 private:
-  std::unordered_map<std::string, utilSensorData> utilSensors;
+  std::unordered_map<std::string, utilSensorData> utilSensorsPrivate;
 
   const std::filesystem::path CPUFREQ_PATH;
   const std::filesystem::path CPUINFO_PATH;
@@ -40,16 +42,14 @@ private:
   std::set<std::filesystem::path> &hwmonPaths;
   std::ifstream CPUUTIL_FD;
 
-  // temp
+  std::vector<std::unique_ptr<Sensor>> tempSensors;
+  std::vector<std::unique_ptr<Sensor>> clockSensors;
+  std::vector<std::unique_ptr<Sensor>> utilizationSensors;
+
   void getTemperature();
-
-  // clocks
   void getCoreFrequency();
-
-  // cpu name
   std::string getName();
 
-  // utilization
   void initUtilization();
   void readUtilization();
 

@@ -68,10 +68,14 @@ void Sensor::updateValue() {
   }
 
   readings.value = value;
-  if (aggregateData) {
+  readings.times++;
+
+  if (!aggregateData) {
+    readings.sum = value;
+    readings.times = 1;
+  } else {
     readings.sum += value;
   }
-  readings.times++;
 
   if (readings.min_value > value || std::isnan(readings.min_value)) {
     readings.min_value = value;

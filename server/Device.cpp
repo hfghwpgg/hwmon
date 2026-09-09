@@ -1,46 +1,12 @@
 #include "Device.hpp"
 
-#include <memory>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <stddef.h>
 #include <string>
-#include <vector>
-
-#include "Sensor.hpp"
 
 Device::Device(std::string name, DeviceType type) :
     name(name),
-    type(type),
-    sensors() {
-  sensors.reserve(10);
-  spdlog::trace("CURRENT DEVICE: <{}>", name);
-}
+    type(type) {}
 
-#ifdef DEBUG
-Device::~Device() {
-  spdlog::trace("Device destroyed: {}", name);
-}
-#endif
-
-void Device::read() {
-  for (const auto &sensor : sensors) {
-    sensor->updateValue();
-  }
-}
-
-void Device::resetReadings() {
-  for (const auto &sensor : sensors) {
-    sensor->resetReadings();
-  }
-}
-
-nlohmann::json Device::serialize() {
-  nlohmann::json j;
-  j["name"] = name;
-  j["type"] = type;
-  for (auto &sensor : sensors) {
-    j["sensors"] += sensor->serialize();
-  }
-  return j;
-}
+Device::~Device() = default;

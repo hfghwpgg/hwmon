@@ -19,6 +19,8 @@ public:
 
   void initialize() override;
   void read() override;
+  void resetReadings() override;
+  nlohmann::json serialize() override;
 
 private:
   // NVML reports everything through library calls, so each metric gets a
@@ -37,6 +39,12 @@ private:
     ValueSensor *encoderUtil = nullptr;
     ValueSensor *decoderUtil = nullptr;
   };
+
+  std::vector<std::unique_ptr<Sensor>> tempSensors;
+  std::vector<std::unique_ptr<Sensor>> utilizationSensors;
+  std::vector<std::unique_ptr<Sensor>> memSensors;
+  std::vector<std::unique_ptr<Sensor>> pcieTxRx;
+  std::vector<std::unique_ptr<Sensor>> sysfsFallback;
 
   const GpuCardInfo card;
   std::set<std::filesystem::path> &hwmonPaths;

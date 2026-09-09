@@ -1,27 +1,20 @@
 #pragma once
-#include <memory>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
-#include <vector>
 
 #include "DeviceType.hpp"
-#include "Sensor.hpp"
 
 class Device {
 public:
   Device(std::string name, DeviceType type);
-
-#ifdef DEBUG
   virtual ~Device();
-#endif
 
   virtual void initialize() = 0;
-  virtual void read();
-  virtual nlohmann::json serialize();
-  virtual void resetReadings();
+  virtual void read() = 0;
+  virtual nlohmann::json serialize() = 0;
+  virtual void resetReadings() = 0;
 
 protected:
   std::string name;
   DeviceType type;
-  std::vector<std::unique_ptr<Sensor>> sensors;
 };

@@ -2,6 +2,8 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <set>
 #include <spdlog/spdlog.h>
 #include <sstream>
@@ -14,6 +16,7 @@
 #include "../Sensor.hpp"
 #include "../SensorType.hpp"
 #include "CpuDevice.hpp"
+#include "DeviceType.hpp"
 #include "SharedHwmonParser.hpp"
 #include "ValueSensor.hpp"
 #include "helpers.hpp"
@@ -44,20 +47,51 @@ void CpuDevice::initialize() {
 }
 
 void CpuDevice::read() {
-
   readUtilization();
-  Device::read();
+  for (const auto &sensor : tempSensors) {
+    sensor->updateValue();
+  }
+  for (const auto &sensor : utilizationSensors) {
+    sensor->updateValue();
+  }
+  for (const auto &sensor : clockSensors) {
+    sensor->updateValue();
+  }
 }
 
 void CpuDevice::resetReadings() {
-  for (auto &entry : utilSensors) {
+  for (auto &entry : utilSensorsPrivate) {
     auto &e = entry.second;
     e.utilOld.hasRead = false;
     e.utilOld.totalTime = 0;
     e.utilOld.idleTime = 0;
     // e.utilSensor->resetReadings();
   }
-  Device::resetReadings();
+  for (const auto &sensor : tempSensors) {
+    sensor->resetReadings();
+  }
+  for (const auto &sensor : utilizationSensors) {
+    sensor->resetReadings();
+  }
+  for (const auto &sensor : clockSensors) {
+    sensor->resetReadings();
+  }
+}
+
+nlohmann::json CpuDevice::serialize() {
+  nlohmann::json j;
+  j["name"] = name;
+  j["type"] = DeviceType::CPU;
+  for (const auto &sensor : tempSensors) {
+    j["sensors"]["Temperature sensors"] += sensor->serialize();
+  }
+  for (const auto &sensor : clockSensors) {
+    j["sensors"]["Core frequency"] += sensor->serialize();
+  }
+  for (const auto &sensor : utilizationSensors) {
+    j["sensors"]["Utilization"] += sensor->serialize();
+  }
+  return j;
 }
 
 void CpuDevice::getTemperature() {
@@ -93,7 +127,7 @@ void CpuDevice::getTemperature() {
       continue;
 
     const auto available_sensors = SharedHwmonParser::parseHwmonDirectory(dir);
-    SharedHwmonParser::createSensors(dir, available_sensors, sensors);
+    SharedHwmonParser::createSensors(dir, available_sensors, tempSensors);
     hwmonPaths.erase(dir);
   }
 }
@@ -110,10 +144,12 @@ void CpuDevice::getCoreFrequency() {
       continue;
 
     auto fd = std::make_unique<std::ifstream>(policy.path() / "scaling_cur_freq");
-    sensors.emplace_back(std::make_unique<Sensor>(
-        // we know that file starts with 'policy', and thats 6 letters.
-        // we only want core number, so we substr the beginning
-        std::move(fd), "clk_cpu" + filename.substr(6), SensorType::FREQUENCY, 1000));
+    // we know that file starts with 'policy', and thats 6 letters.
+    // we only want core number, so we substr the beginning
+    const std::string suffix = filename.substr(6);
+    const std::string label = suffix.length() > 0 ? "CPU core " + suffix : "CPU";
+    clockSensors.emplace_back(
+        std::make_unique<Sensor>(std::move(fd), label, SensorType::FREQUENCY, 1000));
   }
 }
 
@@ -161,15 +197,18 @@ void CpuDevice::initUtilization() {
     std::stringstream ss(line);
     std::string cpuCoreNum;
     ss >> cpuCoreNum; // first column is name
-    utilSensors.emplace(cpuCoreNum, utilSensorData{addValueSensor(sensors, "util_" + cpuCoreNum,
-                                                                  SensorType::UTILIZATION),
-                                                   {0, 0, false}});
+    // remove cpu beginning
+    const std::string suffix = cpuCoreNum.substr(3);
+    const std::string label = suffix.length() > 0 ? "CPU core " + suffix : "CPU";
+    utilSensorsPrivate.emplace(cpuCoreNum, utilSensorData{addValueSensor(utilizationSensors, label,
+                                                                         SensorType::UTILIZATION),
+                                                          {0, 0, false}});
   }
 }
 
 // actually reading stuff
 void CpuDevice::readUtilization() {
-  if (utilSensors.size() == 0) {
+  if (utilSensorsPrivate.size() == 0) {
     spdlog::critical("no cpu utilization sensors detected");
     return;
   }
@@ -210,11 +249,11 @@ void CpuDevice::readUtilization() {
         column++;
       }
 
-      if (!utilSensors.contains(cpuCoreNum)) {
+      if (!utilSensorsPrivate.contains(cpuCoreNum)) {
         spdlog::critical("somehow, cpu core is not present in the cpuUtil map. aborting");
         throw std::runtime_error("cpuCoreNum not present in cpuUtil map");
       }
-      auto &utilEntry = utilSensors.at(cpuCoreNum);
+      auto &utilEntry = utilSensorsPrivate.at(cpuCoreNum);
       if (utilEntry.utilOld.hasRead) {
         // calculations
         const long long calc_totalTime = totalTime - utilEntry.utilOld.totalTime;

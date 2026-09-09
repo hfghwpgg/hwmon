@@ -4,6 +4,7 @@
 #include <string>
 
 #include "../Device.hpp"
+#include "../Sensor.hpp"
 
 namespace fs = std::filesystem;
 
@@ -16,9 +17,12 @@ public:
 #endif
 
   void initialize() override;
+  void read() override;
+  void resetReadings() override;
+  nlohmann::json serialize() override;
 
 private:
   fs::path path;
-
+  std::vector<std::unique_ptr<Sensor>> sensors;
   void getName();
 };

@@ -16,8 +16,10 @@ using std::string;
 
 SysfsDevice::SysfsDevice(string name, DeviceType type, fs::path path) :
     Device(name, type),
-    path(path) {
-  spdlog::trace("CURRENT GENERAL DEVICE: {} <{}>", path.string(), name);
+    path(path),
+    sensors() {
+  sensors.reserve(10);
+  spdlog::trace("CURRENT SYSFS DEVICE: {} <{}>", path.string(), name);
   if (helpers::pathType(path) != helpers::pathTypeEnum::DIRECTORY) {
     spdlog::critical("invalid path for device {}: {}", name, path.string());
     throw std::runtime_error("invalid path, check logs");
@@ -34,6 +36,28 @@ void SysfsDevice::initialize() {
   getName();
   const auto available_sensors = SharedHwmonParser::parseHwmonDirectory(path);
   SharedHwmonParser::createSensors(path, available_sensors, sensors);
+}
+
+void SysfsDevice::read() {
+  for (const auto &sensor : sensors) {
+    sensor->updateValue();
+  }
+}
+
+void SysfsDevice::resetReadings() {
+  for (const auto &sensor : sensors) {
+    sensor->resetReadings();
+  }
+}
+
+nlohmann::json SysfsDevice::serialize() {
+  nlohmann::json j;
+  j["name"] = name;
+  j["type"] = type;
+  for (auto &sensor : sensors) {
+    j["sensors"] += sensor->serialize();
+  }
+  return j;
 }
 
 // if hwmon contains name field, we use it

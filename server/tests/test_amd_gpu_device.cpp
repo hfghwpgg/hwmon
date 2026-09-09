@@ -50,9 +50,19 @@ protected:
   }
 
   static nlohmann::json findSensor(const nlohmann::json &sensors, const std::string &name) {
-    for (const auto &s : sensors) {
-      if (s.value("name", std::string{}) == name)
-        return s;
+    if (sensors.is_array()) {
+      for (const auto &s : sensors) {
+        if (s.value("name", std::string{}) == name) {
+          return s;
+        }
+      }
+    } else if (sensors.is_object()) {
+      for (const auto &[_, group] : sensors.items()) {
+        const nlohmann::json found = findSensor(group, name);
+        if (!found.empty()) {
+          return found;
+        }
+      }
     }
     return nlohmann::json{};
   }
