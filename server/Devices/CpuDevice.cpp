@@ -197,10 +197,15 @@ void CpuDevice::readUtilization() {
     unsigned short column = 0;
     try {
       while (ss >> number) {
-        totalTime += number;
-        // 4th column is idle time
-        if (column == 3) {
-          idleTime = number;
+        // guest and guest_nice (columns 9 and 10) are already included
+        // in user and nice, so counting them would double the time
+        if (column < 8) {
+          totalTime += number;
+        }
+        // idle (4th column) and iowait (5th column); some kernels park
+        // the whole idle time of a core in iowait
+        if (column == 3 || column == 4) {
+          idleTime += number;
         }
         column++;
       }

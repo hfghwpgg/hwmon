@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include <nlohmann/json.hpp>
 #include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <thread>
@@ -26,7 +26,7 @@ protected:
   void SetUp() override {
     static std::atomic<unsigned> counter{0};
     root = fs::temp_directory_path() / ("runner_test_" + std::to_string(::getpid()) + "_" +
-                                       std::to_string(counter.fetch_add(1)));
+                                        std::to_string(counter.fetch_add(1)));
   }
 
   void TearDown() override {
@@ -201,9 +201,9 @@ TEST_F(RunnerResetTest, ResetPreservesDeviceList) {
   ASSERT_TRUE(snap);
   const json devices = json::parse(*snap);
   ASSERT_TRUE(devices.is_array());
-  ASSERT_EQ(devices.size(), 1u);
-  EXPECT_EQ(devices[0]["name"], "testchip");
-  EXPECT_TRUE(devices[0].contains("sensors"));
+  ASSERT_EQ(devices.size(), 2u); // timestamp + 1 device
+  EXPECT_EQ(devices[1]["name"], "testchip");
+  EXPECT_TRUE(devices[1].contains("sensors"));
 }
 
 TEST_F(RunnerResetTest, ResetClearsEnergySensorBaseline) {
@@ -216,6 +216,5 @@ TEST_F(RunnerResetTest, ResetClearsEnergySensorBaseline) {
 
   state.resetFlag.store(true, std::memory_order_relaxed);
   // EnergySensor re-establishes baseline on the post-reset read, so times drops to 0.
-  ASSERT_TRUE(
-      waitForSnapshot([](const std::string &s) { return allEnergySensorTimesAre(s, 0); }));
+  ASSERT_TRUE(waitForSnapshot([](const std::string &s) { return allEnergySensorTimesAre(s, 0); }));
 }

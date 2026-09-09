@@ -4,9 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "DeviceType.hpp"
 #include "Sensor.hpp"
-
-enum class DeviceType { CPU, GPU, RAM, STORAGE, UNKNOWN };
 
 class Device {
 public:

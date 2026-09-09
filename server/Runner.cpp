@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <ctime>
 #include <filesystem>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -41,6 +42,12 @@ Runner::~Runner() {
 #endif
 
 /* */
+
+long Runner::getUnixTimestamp() {
+  return std::chrono::duration_cast<std::chrono::seconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
 void Runner::setup() {
   if (!fs::exists(hwmonPath) || access(hwmonPath.c_str(), R_OK) == -1) {
     spdlog::critical("no access to hwmon interface, aborting");
@@ -106,17 +113,21 @@ void Runner::setupGpuDevices(std::set<fs::path> &hwmonPaths) {
 }
 
 void Runner::run() {
+  auto timestamp = getUnixTimestamp();
   while (state.running.load(std::memory_order_relaxed)) {
     if (state.resetFlag.load(std::memory_order_relaxed)) {
       resetReadings();
+      timestamp = getUnixTimestamp();
       state.resetFlag.store(false, std::memory_order_relaxed);
     }
 
     json serializedDevices = json::array();
+    serializedDevices.push_back(json{"timestamp", timestamp});
     for (const auto &device : devices) {
       device->read();
       serializedDevices.push_back(device->serialize());
     }
+
 
     // Publish the latest snapshot for clients to pull on request.
     state.snapshot.store(std::make_shared<const std::string>(serializedDevices.dump()),
