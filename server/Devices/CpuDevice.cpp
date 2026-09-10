@@ -308,7 +308,7 @@ void CpuDevice::getPowerDraw() {
 
   // intel rapl requires root to be read
   const bool intelRaplAccessible =
-      (fs::exists(INTELRAPL_PATH) && access(INTELRAPL_PATH.c_str(), R_OK) == -1);
+      (fs::exists(INTELRAPL_PATH) && access(INTELRAPL_PATH.c_str(), R_OK) != -1);
 
   if (intelRaplAccessible) {
     spdlog::debug("intel rapl is accessible");
@@ -354,7 +354,7 @@ void CpuDevice::getPowerDraw() {
     spdlog::info("using intel rapl interface for cpu power draw");
     auto fd = std::make_unique<std::ifstream>(INTELRAPL_PATH);
     powerSensors.emplace_back(
-        std::make_unique<EnergySensor>(std::move(fd), "Socket power draw", SensorType::POWER));
+        std::make_unique<EnergySensor>(std::move(fd), "Socket power draw", SensorType::ENERGY));
   } else {
     spdlog::error("couldn't read cpu power draw. Try running as root");
   }
