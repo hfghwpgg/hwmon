@@ -4,7 +4,7 @@ Tool for monitoring temperature, power draw and more in real time.
 
 > currently WIP
 
-for compilation instruction, visit [server](./server), [client](./client) folders respectively
+for compilation instructions, visit [server](./server), [client](./client) folders respectively
 
 ## Supported metrics:
 Cpu: 
