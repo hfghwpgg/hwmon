@@ -166,7 +166,7 @@ void IntelGpuDevice::addHwmonSensors() {
     return;
 
   const auto availableSensors = SharedHwmonParser::parseHwmonDirectory(card.hwmonPath);
-  SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sensors);
+  sensors = SharedHwmonParser::createSensors(card.hwmonPath, availableSensors);
 }
 
 // intel_gpu_top ships a PCI id to marketing name table

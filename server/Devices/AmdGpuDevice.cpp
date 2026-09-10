@@ -79,10 +79,8 @@ void AmdGpuDevice::resetReadings() {
   for (const auto &sensor : pcieTxRx) {
     sensor->resetReadings();
   }
-  if (!sysfsFallback.empty()) {
-    for (const auto &sensor : sysfsFallback) {
-      sensor->resetReadings();
-    }
+  for (const auto &sensor : sysfsFallback) {
+    sensor->resetReadings();
   }
 }
 
@@ -294,13 +292,13 @@ void AmdGpuDevice::addHwmonSensors(bool onlyUncoveredMetrics) {
 
   if (onlyUncoveredMetrics) {
     for (auto it = availableSensors.begin(); it != availableSensors.end();) {
-      const SensorType type = helpers::deduceSensorType(it->first);
+      const SensorType type = Sensor::deduceSensorType(it->first);
       const bool keep = type == SensorType::FAN_SPEED || type == SensorType::VOLTAGE;
       it = keep ? std::next(it) : availableSensors.erase(it);
     }
   }
 
-  SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sysfsFallback);
+  sysfsFallback = SharedHwmonParser::createSensors(card.hwmonPath, availableSensors);
 }
 
 void AmdGpuDevice::addSysfsSensor(const fs::path &path, const std::string &sensorName,

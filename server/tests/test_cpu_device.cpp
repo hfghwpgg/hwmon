@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <set>
 #include <string>
+#include <thread>
 #include <unistd.h>
 
 #include "Devices/CpuDevice.hpp"
@@ -25,6 +28,7 @@ protected:
     cpuinfoPath = root / "cpuinfo";
     statPath = root / "stat";
     cpufreqPath = root / "cpufreq";
+    intelRaplPath = root / "intel-rapl:0" / "energy_uj";
   }
 
   void TearDown() override {
@@ -62,13 +66,14 @@ protected:
   }
 
   CpuDevice makeDevice(std::set<fs::path> &paths) {
-    return CpuDevice{paths, cpufreqPath, cpuinfoPath, statPath};
+    return CpuDevice{paths, cpufreqPath, cpuinfoPath, statPath, intelRaplPath};
   }
 
   fs::path root;
   fs::path cpuinfoPath;
   fs::path statPath;
   fs::path cpufreqPath;
+  fs::path intelRaplPath;
 };
 
 } // namespace
@@ -250,4 +255,57 @@ TEST_F(CpuDeviceTest, ResetReadingsForcesNewUtilizationBaseline) {
   const nlohmann::json cpu = findSensor(device.serialize()["sensors"]["Utilization"], "CPU");
   EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 1u);
   EXPECT_FLOAT_EQ(cpu["readings"]["value"].get<float>(), 50.0f);
+}
+
+TEST_F(CpuDeviceTest, UsesIntelRaplWhenZenergyMissing) {
+  fs::create_directories(intelRaplPath.parent_path());
+  writeFile(intelRaplPath, "1000000");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  device.read(); // energy baseline
+
+  writeFile(intelRaplPath, "3000000");
+  std::this_thread::sleep_for(std::chrono::milliseconds{5});
+  device.read();
+
+  const nlohmann::json power =
+      findSensor(device.serialize()["sensors"]["Power draw"], "Socket power draw");
+  ASSERT_FALSE(power.empty());
+  EXPECT_EQ(power["type"].get<int>(), static_cast<int>(SensorType::POWER));
+  EXPECT_EQ(power["readings"]["times"].get<std::size_t>(), 1u);
+  EXPECT_FALSE(std::isnan(power["readings"]["value"].get<float>()));
+  EXPECT_TRUE(std::isfinite(power["readings"]["value"].get<float>()));
+  EXPECT_GT(power["readings"]["value"].get<float>(), 0.0f);
+}
+
+TEST_F(CpuDeviceTest, PrefersZenergyOverIntelRapl) {
+  fs::create_directories(intelRaplPath.parent_path());
+  writeFile(intelRaplPath, "1000000");
+
+  const fs::path zenergy = hwmonDir("hwmon_zenergy0");
+  writeFile(zenergy / "energy1_label", "Esocket0");
+  writeFile(zenergy / "energy1_input", "1000000");
+
+  std::set<fs::path> paths{zenergy};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  device.read(); // energy baseline
+
+  writeFile(zenergy / "energy1_input", "3000000");
+  writeFile(intelRaplPath, "9000000");
+  std::this_thread::sleep_for(std::chrono::milliseconds{5});
+  device.read();
+
+  const nlohmann::json sensors = device.serialize()["sensors"]["Power draw"];
+  const nlohmann::json zenergySensor = findSensor(sensors, "Socket 0 power draw");
+  ASSERT_FALSE(zenergySensor.empty());
+  EXPECT_EQ(zenergySensor["type"].get<int>(), static_cast<int>(SensorType::ENERGY));
+  EXPECT_EQ(zenergySensor["readings"]["times"].get<std::size_t>(), 1u);
+  EXPECT_FALSE(std::isnan(zenergySensor["readings"]["value"].get<float>()));
+  EXPECT_TRUE(std::isfinite(zenergySensor["readings"]["value"].get<float>()));
+  EXPECT_GT(zenergySensor["readings"]["value"].get<float>(), 0.0f);
+
+  EXPECT_TRUE(findSensor(sensors, "Socket power draw").empty());
 }

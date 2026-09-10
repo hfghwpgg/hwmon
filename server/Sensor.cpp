@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <string>
 
 #include "SensorReading.hpp"
 #include "SensorType.hpp"
@@ -30,6 +31,9 @@ Sensor::~Sensor() {
 
 std::string Sensor::getName() {
   return name;
+}
+void Sensor::setName(std::string name) {
+  this->name = name;
 }
 SensorType Sensor::getType() {
   return type;
@@ -99,4 +103,21 @@ nlohmann::json Sensor::serialize() {
   j["type"] = type;
   j["readings"] = readings.serialize();
   return j;
+}
+
+SensorType Sensor::deduceSensorType(std::string sensorName) {
+  auto lastDigit = sensorName.find_first_of("0123456789");
+
+  std::string_view prefix;
+  if (lastDigit != std::string::npos) {
+    prefix = std::string_view(sensorName).substr(0, lastDigit);
+  } else {
+    prefix = sensorName;
+  }
+  auto it = sensorConfigMap.find(prefix);
+  if (it != sensorConfigMap.end()) {
+    return it->second;
+  }
+  // fallback
+  return SensorType::UNKNOWN;
 }

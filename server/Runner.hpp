@@ -31,5 +31,5 @@ private:
 
   void resetReadings();
   void setupGpuDevices(std::set<std::filesystem::path> &hwmonPaths);
-  long getUnixTimestamp();
+  static long getUnixTimestamp();
 };

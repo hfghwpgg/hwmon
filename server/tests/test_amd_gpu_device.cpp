@@ -8,7 +8,6 @@
 #include <string>
 #include <unistd.h>
 
-#include "Device.hpp"
 #include "Devices/AmdGpuDevice.hpp"
 #include "Devices/GpuDetector.hpp"
 #include "SensorType.hpp"
@@ -23,7 +22,7 @@ protected:
   void SetUp() override {
     static std::atomic<unsigned> counter{0};
     root = fs::temp_directory_path() / ("amd_gpu_device_test_" + std::to_string(::getpid()) + "_" +
-                                       std::to_string(counter.fetch_add(1)));
+                                        std::to_string(counter.fetch_add(1)));
     devicePath = root / "0000:08:00.0";
     hwmonPath = devicePath / "hwmon" / "hwmon3";
     fs::create_directories(hwmonPath);

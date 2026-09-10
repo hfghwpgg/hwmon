@@ -22,7 +22,10 @@ public:
   nlohmann::json serialize();
 
   std::string getName();
+  void setName(std::string name);
   SensorType getType();
+  static SensorType deduceSensorType(std::string sensorName);
+
 
 protected:
   virtual long double prepareValue();

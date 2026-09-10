@@ -51,7 +51,7 @@ protected:
   nlohmann::json createReadAndSerialize() {
     const auto map = SharedHwmonParser::parseHwmonDirectory(dir);
     std::vector<std::unique_ptr<Sensor>> sensors;
-    SharedHwmonParser::createSensors(dir, map, sensors);
+    sensors = SharedHwmonParser::createSensors(dir, map);
     for (auto &s : sensors) {
       s->updateValue();
     }
@@ -65,7 +65,7 @@ protected:
   std::vector<std::unique_ptr<Sensor>> createSensors() {
     const auto map = SharedHwmonParser::parseHwmonDirectory(dir);
     std::vector<std::unique_ptr<Sensor>> sensors;
-    SharedHwmonParser::createSensors(dir, map, sensors);
+    sensors = SharedHwmonParser::createSensors(dir, map);
     return sensors;
   }
 

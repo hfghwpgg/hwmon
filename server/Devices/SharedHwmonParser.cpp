@@ -15,6 +15,7 @@ namespace fs = std::filesystem;
 
 std::unordered_map<std::string, std::vector<std::string>>
 SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
+  // body
   std::unordered_map<std::string, std::vector<std::string>> available_sensors;
   for (const auto &entry : fs::directory_iterator(path)) {
     if (!entry.is_regular_file()) {
@@ -49,10 +50,11 @@ SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
   }
   return available_sensors;
 }
-void SharedHwmonParser::createSensors(
+std::vector<std::unique_ptr<Sensor>> SharedHwmonParser::createSensors(
     const fs::path &path,
-    const std::unordered_map<std::string, std::vector<std::string>> &availableSensors,
-    std::vector<std::unique_ptr<Sensor>> &sensors) {
+    const std::unordered_map<std::string, std::vector<std::string>> &availableSensors) {
+  // body
+  std::vector<std::unique_ptr<Sensor>> sensors;
   for (const auto &[sensorBase, extensions] : availableSensors) {
     bool hasInput = false;
     bool hasAverage = false;
@@ -82,7 +84,7 @@ void SharedHwmonParser::createSensors(
       continue;
     }
 
-    const SensorType type = helpers::deduceSensorType(sensorBase);
+    const SensorType type = Sensor::deduceSensorType(sensorBase);
     if (type == SensorType::UNKNOWN) {
       spdlog::warn("unable to find type {} for sensor", sensorBase);
     }
@@ -100,4 +102,5 @@ void SharedHwmonParser::createSensors(
       sensors.emplace_back(std::make_unique<Sensor>(std::move(valueSrc_ptr), label, type));
     }
   }
+  return sensors;
 }

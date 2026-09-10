@@ -256,7 +256,7 @@ void NvidiaGpuDevice::addHwmonSensors() {
     return;
 
   const auto availableSensors = SharedHwmonParser::parseHwmonDirectory(card.hwmonPath);
-  SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sysfsFallback);
+  sysfsFallback = SharedHwmonParser::createSensors(card.hwmonPath, availableSensors);
 }
 
 std::string NvidiaGpuDevice::sysfsName() const {

@@ -24,7 +24,8 @@ class CpuDevice : public Device {
 public:
   CpuDevice(std::set<std::filesystem::path> &hwmonPaths);
   CpuDevice(std::set<std::filesystem::path> &hwmonPaths, std::filesystem::path CPUFREQ_PATH,
-            std::filesystem::path CPUINFO_PATH, std::filesystem::path CPUUTIL_PATH);
+            std::filesystem::path CPUINFO_PATH, std::filesystem::path CPUUTIL_PATH,
+            std::filesystem::path INTELRAPL_PATH);
   ~CpuDevice();
 
   void initialize() override;
@@ -38,13 +39,15 @@ private:
   const std::filesystem::path CPUFREQ_PATH;
   const std::filesystem::path CPUINFO_PATH;
   const std::filesystem::path CPUUTIL_PATH;
+  const std::filesystem::path INTELRAPL_PATH;
 
   std::set<std::filesystem::path> &hwmonPaths;
   std::ifstream CPUUTIL_FD;
 
-  std::vector<std::unique_ptr<Sensor>> tempSensors;
+  std::vector<std::unique_ptr<Sensor>> temperatureSensors;
   std::vector<std::unique_ptr<Sensor>> clockSensors;
   std::vector<std::unique_ptr<Sensor>> utilizationSensors;
+  std::vector<std::unique_ptr<Sensor>> powerSensors;
 
   void getTemperature();
   void getCoreFrequency();
@@ -52,6 +55,8 @@ private:
 
   void initUtilization();
   void readUtilization();
+
+  void getPowerDraw();
 
   // TODO:
   //       power

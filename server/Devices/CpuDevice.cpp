@@ -1,5 +1,6 @@
 #include <exception>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -10,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
 #include "../Device.hpp"
@@ -17,6 +19,7 @@
 #include "../SensorType.hpp"
 #include "CpuDevice.hpp"
 #include "DeviceType.hpp"
+#include "EnergySensor.hpp"
 #include "SharedHwmonParser.hpp"
 #include "ValueSensor.hpp"
 #include "helpers.hpp"
@@ -24,14 +27,16 @@
 namespace fs = std::filesystem;
 
 CpuDevice::CpuDevice(std::set<fs::path> &hwmonPaths) :
-    CpuDevice(hwmonPaths, "/sys/devices/system/cpu/cpufreq/", "/proc/cpuinfo", "/proc/stat") {}
+    CpuDevice(hwmonPaths, "/sys/devices/system/cpu/cpufreq/", "/proc/cpuinfo", "/proc/stat",
+              "/sys/class/powercap/intel-rapl:0/energy_uj") {}
 
-CpuDevice::CpuDevice(std::set<std::filesystem::path> &hwmonPaths, fs::path CPUFREQ_PATH,
-                     fs::path CPUINFO_PATH, fs::path CPUUTIL_PATH) :
+CpuDevice::CpuDevice(std::set<fs::path> &hwmonPaths, fs::path CPUFREQ_PATH, fs::path CPUINFO_PATH,
+                     fs::path CPUUTIL_PATH, fs::path INTELRAPL_PATH) :
     Device("SAMPLE CPU NAME", DeviceType::CPU),
     CPUFREQ_PATH(CPUFREQ_PATH),
     CPUINFO_PATH(CPUINFO_PATH),
     CPUUTIL_PATH(CPUUTIL_PATH),
+    INTELRAPL_PATH(INTELRAPL_PATH),
     hwmonPaths(hwmonPaths) {}
 
 CpuDevice::~CpuDevice() {
@@ -44,17 +49,21 @@ void CpuDevice::initialize() {
   getTemperature();
   getCoreFrequency();
   initUtilization();
+  getPowerDraw();
 }
 
 void CpuDevice::read() {
   readUtilization();
-  for (const auto &sensor : tempSensors) {
+  for (const auto &sensor : temperatureSensors) {
     sensor->updateValue();
   }
   for (const auto &sensor : utilizationSensors) {
     sensor->updateValue();
   }
   for (const auto &sensor : clockSensors) {
+    sensor->updateValue();
+  }
+  for (const auto &sensor : powerSensors) {
     sensor->updateValue();
   }
 }
@@ -67,13 +76,16 @@ void CpuDevice::resetReadings() {
     e.utilOld.idleTime = 0;
     // e.utilSensor->resetReadings();
   }
-  for (const auto &sensor : tempSensors) {
+  for (const auto &sensor : temperatureSensors) {
     sensor->resetReadings();
   }
   for (const auto &sensor : utilizationSensors) {
     sensor->resetReadings();
   }
   for (const auto &sensor : clockSensors) {
+    sensor->resetReadings();
+  }
+  for (const auto &sensor : powerSensors) {
     sensor->resetReadings();
   }
 }
@@ -82,7 +94,7 @@ nlohmann::json CpuDevice::serialize() {
   nlohmann::json j;
   j["name"] = name;
   j["type"] = DeviceType::CPU;
-  for (const auto &sensor : tempSensors) {
+  for (const auto &sensor : temperatureSensors) {
     j["sensors"]["Temperature sensors"] += sensor->serialize();
   }
   for (const auto &sensor : clockSensors) {
@@ -91,11 +103,15 @@ nlohmann::json CpuDevice::serialize() {
   for (const auto &sensor : utilizationSensors) {
     j["sensors"]["Utilization"] += sensor->serialize();
   }
+  for (const auto &sensor : powerSensors) {
+    j["sensors"]["Power draw"] += sensor->serialize();
+  }
   return j;
 }
 
 void CpuDevice::getTemperature() {
-  fs::path coretempDriver = ""; // placeholders
+  // placeholders
+  fs::path coretempDriver = "";
   fs::path cpuTemp = "";
 
   for (const fs::path &dir : hwmonPaths) {
@@ -127,7 +143,7 @@ void CpuDevice::getTemperature() {
       continue;
 
     const auto available_sensors = SharedHwmonParser::parseHwmonDirectory(dir);
-    SharedHwmonParser::createSensors(dir, available_sensors, tempSensors);
+    temperatureSensors = SharedHwmonParser::createSensors(dir, available_sensors);
     hwmonPaths.erase(dir);
   }
 }
@@ -282,5 +298,64 @@ void CpuDevice::readUtilization() {
       spdlog::critical("reading cpu utilization failed. aborting");
       throw std::runtime_error("reading cpu utilization failed");
     }
+  }
+}
+
+void CpuDevice::getPowerDraw() {
+  // we use zenergy primarly
+  // if its not present we try
+  // to use intel rapl
+
+  // intel rapl requires root to be read
+  const bool intelRaplAccessible =
+      (fs::exists(INTELRAPL_PATH) && access(INTELRAPL_PATH.c_str(), R_OK) == -1);
+
+  if (intelRaplAccessible) {
+    spdlog::debug("intel rapl is accessible");
+  } else {
+    spdlog::debug("intel rapl is NOT accessible");
+  }
+
+  fs::path zenergyPath = "";
+  for (const auto &dir : hwmonPaths) {
+    if (dir.string().contains("zenergy")) {
+      zenergyPath = dir;
+      hwmonPaths.erase(dir);
+      break;
+    }
+  }
+
+  // there also apperently exists amd_energy
+  // but i dont have it on my system
+  const bool zenergyAccessible =
+      (!zenergyPath.empty() && helpers::pathType(zenergyPath) == helpers::pathTypeEnum::DIRECTORY);
+
+  if (zenergyAccessible) {
+    spdlog::info("using zenergy interface for cpu power draw");
+    const auto availableSensors = SharedHwmonParser::parseHwmonDirectory(zenergyPath);
+    powerSensors = SharedHwmonParser::createSensors(zenergyPath, availableSensors);
+    // kinda hacky
+    for (const auto &sensor : powerSensors) {
+      const auto name = sensor->getName();
+      if (name.contains("socket")) {
+        // Esocket has 7 letters
+        const auto num = name.substr(7);
+        const int number = std::stoi(num);
+        sensor->setName(std::format("Socket {} power draw", number));
+      }
+      if (name.contains("core")) {
+        // Ecore has 5 letters
+        const auto num = name.substr(5);
+        const int number = std::stoi(num);
+        sensor->setName(std::format("Core {} power draw", number));
+      }
+    }
+  } else if (intelRaplAccessible) {
+    spdlog::info("using intel rapl interface for cpu power draw");
+    auto fd = std::make_unique<std::ifstream>(INTELRAPL_PATH);
+    powerSensors.emplace_back(
+        std::make_unique<EnergySensor>(std::move(fd), "Socket power draw", SensorType::POWER));
+  } else {
+    spdlog::error("couldn't read cpu power draw. Try running as root");
   }
 }

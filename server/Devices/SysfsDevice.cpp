@@ -35,7 +35,7 @@ SysfsDevice::~SysfsDevice() {
 void SysfsDevice::initialize() {
   getName();
   const auto available_sensors = SharedHwmonParser::parseHwmonDirectory(path);
-  SharedHwmonParser::createSensors(path, available_sensors, sensors);
+  sensors = SharedHwmonParser::createSensors(path, available_sensors);
 }
 
 void SysfsDevice::read() {

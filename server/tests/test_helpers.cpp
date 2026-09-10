@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "Sensor.hpp"
 #include "SensorType.hpp"
 #include <string>
 #include <vector>
@@ -29,16 +30,16 @@ TEST(trim, ClearsTrailingSpaces) {
 }
 
 TEST(deduceSensorType, ReturnsCorrectSensorType) {
-  EXPECT_EQ(helpers::deduceSensorType("temp1_input"), SensorType::TEMPERATURE);
-  EXPECT_EQ(helpers::deduceSensorType("in3_input"), SensorType::VOLTAGE);
-  EXPECT_EQ(helpers::deduceSensorType("voltage2_input"), SensorType::VOLTAGE);
-  EXPECT_EQ(helpers::deduceSensorType("fan20_input"), SensorType::FAN_SPEED);
-  EXPECT_EQ(helpers::deduceSensorType("power5_input"), SensorType::POWER);
-  EXPECT_EQ(helpers::deduceSensorType("current4_input"), SensorType::CURRENT);
-  EXPECT_EQ(helpers::deduceSensorType("freq1_input"), SensorType::FREQUENCY);
-  EXPECT_EQ(helpers::deduceSensorType("energy3_input"), SensorType::ENERGY);
-  EXPECT_EQ(helpers::deduceSensorType("util2_input"), SensorType::UTILIZATION);
-  EXPECT_EQ(helpers::deduceSensorType("unknown7_input"), SensorType::UNKNOWN);
+  EXPECT_EQ(Sensor::deduceSensorType("temp1_input"), SensorType::TEMPERATURE);
+  EXPECT_EQ(Sensor::deduceSensorType("in3_input"), SensorType::VOLTAGE);
+  EXPECT_EQ(Sensor::deduceSensorType("voltage2_input"), SensorType::VOLTAGE);
+  EXPECT_EQ(Sensor::deduceSensorType("fan20_input"), SensorType::FAN_SPEED);
+  EXPECT_EQ(Sensor::deduceSensorType("power5_input"), SensorType::POWER);
+  EXPECT_EQ(Sensor::deduceSensorType("current4_input"), SensorType::CURRENT);
+  EXPECT_EQ(Sensor::deduceSensorType("freq1_input"), SensorType::FREQUENCY);
+  EXPECT_EQ(Sensor::deduceSensorType("energy3_input"), SensorType::ENERGY);
+  EXPECT_EQ(Sensor::deduceSensorType("util2_input"), SensorType::UTILIZATION);
+  EXPECT_EQ(Sensor::deduceSensorType("unknown7_input"), SensorType::UNKNOWN);
 }
 
 TEST(pathType, ReturnsCorrectPathType) {
