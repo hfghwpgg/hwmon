@@ -60,6 +60,18 @@ void NvidiaGpuDevice::initialize() {
 
 void NvidiaGpuDevice::read() {
   readNvml();
+  for (const auto &sensor : tempSensors) {
+    sensor->updateValue();
+  }
+  for (const auto &sensor : utilizationSensors) {
+    sensor->updateValue();
+  }
+  for (const auto &sensor : memSensors) {
+    sensor->updateValue();
+  }
+  for (const auto &sensor : pcieTxRx) {
+    sensor->updateValue();
+  }
   if (!sysfsFallback.empty()) {
     for (const auto &sensor : sysfsFallback) {
       sensor->updateValue();
