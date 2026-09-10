@@ -68,7 +68,6 @@ void Runner::setup() {
   }
 
   spdlog::trace("hwmon length: {}", hwmonPaths.size());
-
   // rest of hwmon devices
   for (const auto &entry : hwmonPaths) {
     auto dev = std::make_unique<SysfsDevice>(entry.filename(), DeviceType::UNKNOWN, entry);
@@ -122,7 +121,7 @@ void Runner::run() {
     }
 
     json serializedDevices = json::array();
-    serializedDevices.push_back(json{"timestamp", timestamp});
+    serializedDevices.push_back({{"timestamp", timestamp}});
     for (const auto &device : devices) {
       device->read();
       serializedDevices.push_back(device->serialize());

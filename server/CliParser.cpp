@@ -1,9 +1,9 @@
-#include "configManager.hpp"
+#include "CliParser.hpp"
 #include <argparse/argparse.hpp>
 #include <filesystem>
 #include <stdexcept>
 
-Config configManager(int argc, char *argv[]) {
+Config CliParser(int argc, char *argv[]) {
   argparse::ArgumentParser hwmon("hwmon");
   hwmon.add_argument("-d", "--debuglevel")
       .default_value(0u)
@@ -57,6 +57,11 @@ Config configManager(int argc, char *argv[]) {
       .default_value(false)
       .help("force remove socket file and its folder")
       .flag();
+  hwmon.add_argument("--dontdroproot")
+      .default_value(false)
+      .help("dont drop root privileges (not recommended)\nmaybe useful if you're elevating with "
+            "something different than sudo")
+      .flag();
   try {
     hwmon.parse_args(argc, argv);
   } catch (const std::exception &err) {
@@ -72,5 +77,6 @@ Config configManager(int argc, char *argv[]) {
   config.initialIntervalMs = hwmon.get<unsigned int>("--interval");
   config.backlog = hwmon.get<unsigned int>("--backlog");
   config.refreshSocket = hwmon.get<bool>("--refreshsocket");
+  config.dontDropRoot = hwmon.get<bool>("--dontdroproot");
   return config;
 }

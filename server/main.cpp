@@ -7,10 +7,10 @@
 #include <thread>
 #include <unistd.h>
 
+#include "CliParser.hpp"
 #include "Runner.hpp"
 #include "SharedState.hpp"
 #include "UDSServer.hpp"
-#include "configManager.hpp"
 #include "dropPrivileges.hpp"
 
 namespace {
@@ -25,7 +25,7 @@ void HandleSignal(int sig) {
 } // namespace
 
 int main(int argc, char *argv[]) {
-  Config config = configManager(argc, argv);
+  Config config = CliParser(argc, argv);
 
   switch (config.debuglevel) {
   case 2:
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 
   Runner runner{state, config.hwmonPath, true};
   runner.setup();
-  dropPrivileges();
+  dropPrivileges(config.dontDropRoot);
 
   UDSServer server{config.sockPath, config.backlog, state};
 

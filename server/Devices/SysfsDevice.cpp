@@ -55,7 +55,7 @@ nlohmann::json SysfsDevice::serialize() {
   j["name"] = name;
   j["type"] = type;
   for (auto &sensor : sensors) {
-    j["sensors"] += sensor->serialize();
+    j["sensors"].push_back(sensor->serialize());
   }
   return j;
 }

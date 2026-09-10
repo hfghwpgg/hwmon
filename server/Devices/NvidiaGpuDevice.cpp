@@ -104,20 +104,20 @@ nlohmann::json NvidiaGpuDevice::serialize() {
   j["name"] = name;
   j["type"] = DeviceType::GPU;
   for (const auto &sensor : tempSensors) {
-    j["sensors"]["Temperature sensors"] += sensor->serialize();
+    j["sensors"]["Temperature sensors"].push_back(sensor->serialize());
   }
   for (const auto &sensor : utilizationSensors) {
-    j["sensors"]["Utilization"] += sensor->serialize();
+    j["sensors"]["Utilization"].push_back(sensor->serialize());
   }
   for (const auto &sensor : memSensors) {
-    j["sensors"]["VRAM sensors"] += sensor->serialize();
+    j["sensors"]["VRAM sensors"].push_back(sensor->serialize());
   }
   for (const auto &sensor : pcieTxRx) {
-    j["sensors"]["PCIe speed"] += sensor->serialize();
+    j["sensors"]["PCIe speed"].push_back(sensor->serialize());
   }
   if (!sysfsFallback.empty()) {
     for (const auto &sensor : sysfsFallback) {
-      j["sensors"]["Sysfs fallback"] += sensor->serialize();
+      j["sensors"]["Sysfs fallback"].push_back(sensor->serialize());
     }
   }
   return j;

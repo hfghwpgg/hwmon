@@ -1134,18 +1134,19 @@ QVector<DeviceData> MonitorModel::parseDevices(const QJsonArray &root, qint64 *t
     QHash<QString, int> deviceCounts;
 
     for (const QJsonValue &entry : root) {
-        if (entry.isArray()) {
-            const QJsonArray pair = entry.toArray();
-            if (pair.size() >= 2 && pair.at(0).toString() == QLatin1String("timestamp") && timestampOut != nullptr) {
-                *timestampOut = pair.at(1).toVariant().toLongLong();
-            }
-            continue;
-        }
         if (!entry.isObject()) {
             continue;
         }
 
         const QJsonObject object = entry.toObject();
+        if (object.contains(QLatin1String("timestamp")) && !object.contains(QLatin1String("name"))
+            && !object.contains(QLatin1String("sensors"))) {
+            if (timestampOut != nullptr) {
+                *timestampOut = object.value(QLatin1String("timestamp")).toVariant().toLongLong();
+            }
+            continue;
+        }
+
         DeviceData device;
         device.name = object.value(QLatin1String("name")).toString();
         device.type = object.value(QLatin1String("type")).toInt(4);

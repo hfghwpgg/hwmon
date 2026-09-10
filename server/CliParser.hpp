@@ -8,5 +8,6 @@ struct Config {
   unsigned int initialIntervalMs;
   int backlog;
   bool refreshSocket;
+  bool dontDropRoot;
 };
-Config configManager(int argc, char *argv[]);
+Config CliParser(int argc, char *argv[]);

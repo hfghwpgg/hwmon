@@ -95,16 +95,16 @@ nlohmann::json CpuDevice::serialize() {
   j["name"] = name;
   j["type"] = DeviceType::CPU;
   for (const auto &sensor : temperatureSensors) {
-    j["sensors"]["Temperature sensors"] += sensor->serialize();
+    j["sensors"]["Temperature sensors"].push_back(sensor->serialize());
   }
   for (const auto &sensor : clockSensors) {
-    j["sensors"]["Core frequency"] += sensor->serialize();
+    j["sensors"]["Core frequency"].push_back(sensor->serialize());
   }
   for (const auto &sensor : utilizationSensors) {
-    j["sensors"]["Utilization"] += sensor->serialize();
+    j["sensors"]["Utilization"].push_back(sensor->serialize());
   }
   for (const auto &sensor : powerSensors) {
-    j["sensors"]["Power draw"] += sensor->serialize();
+    j["sensors"]["Power draw"].push_back(sensor->serialize());
   }
   return j;
 }
@@ -309,12 +309,6 @@ void CpuDevice::getPowerDraw() {
   // intel rapl requires root to be read
   const bool intelRaplAccessible =
       (fs::exists(INTELRAPL_PATH) && access(INTELRAPL_PATH.c_str(), R_OK) != -1);
-
-  if (intelRaplAccessible) {
-    spdlog::debug("intel rapl is accessible");
-  } else {
-    spdlog::debug("intel rapl is NOT accessible");
-  }
 
   fs::path zenergyPath = "";
   for (const auto &dir : hwmonPaths) {

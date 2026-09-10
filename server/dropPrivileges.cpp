@@ -5,7 +5,13 @@
 #include <stdexcept>
 #include <unistd.h>
 
-void dropPrivileges() {
+// this only works with sudo. idk what to do if we
+// get elevated somehow else (such as run0). for now
+// we crash but its probably not a very good idea
+void dropPrivileges(bool dontDropRoot) {
+  if (dontDropRoot)
+    return;
+
   // we arent running as root
   if (getuid() != 0) {
     spdlog::debug("we're NOT running as root");

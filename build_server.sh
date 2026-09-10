@@ -15,8 +15,6 @@ Subcommands:
   help     Show this message (default)
   debug    Configure and build with CMAKE_BUILD_TYPE=Debug
   release  Configure and build with CMAKE_BUILD_TYPE=Release
-           add 'static' word at the end to make a static build
-           supports only debug/release builds, without tests
   test     Configure and build with unit tests enabled, then run them
   iwyu     Run include-what-you-use in debug mode and fix includes
            Build from iwyu won't be saved.
@@ -65,17 +63,16 @@ run_tests() {
 }
 
 cmd="${1:-help}"
-static_flag="${2:-false}"
 
 case "$cmd" in
   help)
     usage
     ;;
   debug)
-    build_with_type Debug "$static_flag"
+    build_with_type Debug
     ;;
   release)
-    build_with_type Release "$static_flag"
+    build_with_type Release
     ;;
   test)
     run_tests
