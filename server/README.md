@@ -14,11 +14,12 @@
 - Make (tested with version 4.4.1)
 
 ## How to query data?
-see [miniclient.py](miniclient.py)
+see [miniclient.py](../miniclient.py)
 
 ## Server compilation
 
 Recommended way of compiling server is using provided `build_server.sh` shell script
+
 running it without any arguments will display help message
 
 1. clone the repository

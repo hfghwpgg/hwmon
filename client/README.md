@@ -12,6 +12,7 @@
 ## Client compilation
 
 Recommended way of compiling client is using provided `build_client.sh` shell script
+
 running it without any arguments will display help message
 
 1. clone the repository
