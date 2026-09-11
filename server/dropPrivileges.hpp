@@ -1,2 +1,2 @@
 #pragma once
-void dropPrivileges(bool dontDropRoot);
+void dropPrivileges();

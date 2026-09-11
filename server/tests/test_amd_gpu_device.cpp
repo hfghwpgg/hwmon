@@ -8,9 +8,9 @@
 #include <string>
 #include <unistd.h>
 
-#include "Devices/AmdGpuDevice.hpp"
-#include "Devices/GpuDetector.hpp"
-#include "SensorType.hpp"
+#include "../Devices/AmdGpuDevice.hpp"
+#include "../Devices/GpuDetector.hpp"
+#include "../SensorType.hpp"
 
 namespace fs = std::filesystem;
 
@@ -88,14 +88,16 @@ TEST_F(AmdGpuDeviceTest, ReadsUtilizationAndVramFromSysfs) {
   EXPECT_EQ(j["type"].get<int>(), static_cast<int>(DeviceType::GPU));
   EXPECT_EQ(j["name"], "AMD GPU (1002:744c)");
 
-  const nlohmann::json busy = findSensor(j["sensors"], "gpu_busy");
+  const nlohmann::json busy = findSensor(j["sensors"]["Utilization"], "GPU utilization");
   ASSERT_FALSE(busy.empty());
   EXPECT_EQ(busy["type"].get<int>(), static_cast<int>(SensorType::UTILIZATION));
   EXPECT_DOUBLE_EQ(busy["readings"]["value"].get<double>(), 37.0);
 
-  EXPECT_DOUBLE_EQ(findSensor(j["sensors"], "mem_busy")["readings"]["value"].get<double>(), 12.0);
+  EXPECT_DOUBLE_EQ(findSensor(j["sensors"]["Utilization"], "VRAM utilization")["readings"]["value"]
+                       .get<double>(),
+                   12.0);
 
-  const nlohmann::json vram = findSensor(j["sensors"], "vram_used");
+  const nlohmann::json vram = findSensor(j["sensors"]["Utilization"], "GPU memory");
   ASSERT_FALSE(vram.empty());
   EXPECT_EQ(vram["type"].get<int>(), static_cast<int>(SensorType::MEMORY));
   EXPECT_DOUBLE_EQ(vram["readings"]["value"].get<double>(), 1073741824.0);

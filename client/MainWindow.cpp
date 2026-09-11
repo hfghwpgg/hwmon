@@ -229,7 +229,7 @@ void MainWindow::openSettings() {
   QDialog dialog(this);
   dialog.setWindowTitle(QStringLiteral("Settings"));
   dialog.setModal(true);
-  dialog.resize(320, 220);
+  dialog.resize(360, 280);
 
   auto *layout = new QVBoxLayout(&dialog);
   auto *form = new QFormLayout();
@@ -252,6 +252,9 @@ void MainWindow::openSettings() {
   interval->setSuffix(QStringLiteral(" ms"));
   interval->setValue(m_backend.intervalMs());
   form->addRow(QStringLiteral("Read interval"), interval);
+
+  auto *resetOrder = new QPushButton(QStringLiteral("Reset sensor order"), &dialog);
+  form->addRow(QString(), resetOrder);
 
   layout->addLayout(form);
   auto *hint = new QLabel(QStringLiteral("Minimum 50 ms. The same interval is sent to the server."),
@@ -279,6 +282,10 @@ void MainWindow::openSettings() {
   connect(&m_backend, &ClientBackend::darkModeChanged, &dialog, applyHintStyle);
   connect(interval, &QSpinBox::valueChanged, this,
           [this](int value) { m_backend.setIntervalMs(value); });
+  connect(resetOrder, &QPushButton::clicked, this, [this] {
+    m_model->resetSensorOrder();
+    restoreExpandedState();
+  });
 
   dialog.exec();
 }

@@ -30,6 +30,14 @@ SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
     // not all tho
     // TODO: include sensors that DO NOT contain
     // underscores (ex: pwm sensors dont)
+
+    // // pwm readings are weird, will work on it later
+    // // uncommenting this block will allow them to be read
+    // if (filename.contains("pwm")) {
+    //   available_sensors.insert({filename, {""}}); // pwm sensors dont have
+    //   continue;                                   // any extensions
+    // }
+
     size_t underscorePos = filename.find('_');
     if (underscorePos == std::string::npos) {
       spdlog::trace("{} does not contain an underscore", filename);
@@ -48,14 +56,17 @@ SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
       available_sensors.insert({part1, std::vector<std::string>{part2}});
     }
   }
+
   return available_sensors;
 }
 std::vector<std::unique_ptr<Sensor>> SharedHwmonParser::createSensors(
     const fs::path &path,
     const std::unordered_map<std::string, std::vector<std::string>> &availableSensors) {
   // body
+
   std::vector<std::unique_ptr<Sensor>> sensors;
   for (const auto &[sensorBase, extensions] : availableSensors) {
+    bool isPwm = sensorBase.contains("pwm");
     bool hasInput = false;
     bool hasAverage = false;
     fs::path valueSrcPath;
@@ -74,11 +85,16 @@ std::vector<std::unique_ptr<Sensor>> SharedHwmonParser::createSensors(
         label = helpers::readFileFirstLine(path / (sensorBase + "_label"));
       }
     }
+
+    if (isPwm) {
+      valueSrcPath = path / sensorBase;
+    }
     // if no reading available, continue
-    if (!hasInput && !hasAverage) {
+    if (!hasInput && !hasAverage && !isPwm) {
       spdlog::warn("sensor {} exposes no known reading interface", sensorBase);
       continue;
-    } else if (hasInput && hasAverage) {
+    }
+    if (hasInput && hasAverage) {
       spdlog::error("singular sensor has both input and average fields, please make a report "
                     "on this. ignoring this sensor");
       continue;
@@ -86,7 +102,7 @@ std::vector<std::unique_ptr<Sensor>> SharedHwmonParser::createSensors(
 
     const SensorType type = Sensor::deduceSensorType(sensorBase);
     if (type == SensorType::UNKNOWN) {
-      spdlog::warn("unable to find type {} for sensor", sensorBase);
+      spdlog::warn("unable to find type for sensor {}", sensorBase);
     }
 
     auto valueSrc_ptr = std::make_unique<std::ifstream>(valueSrcPath);

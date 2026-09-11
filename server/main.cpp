@@ -51,7 +51,10 @@ int main(int argc, char *argv[]) {
 
   Runner runner{state, config.hwmonPath, true};
   runner.setup();
-  dropPrivileges(config.dontDropRoot);
+
+  if (!config.dontDropRoot) {
+    dropPrivileges();
+  }
 
   UDSServer server{config.sockPath, config.backlog, state};
 

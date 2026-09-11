@@ -7,8 +7,8 @@
 #include <string>
 #include <unistd.h>
 
-#include "Devices/SysfsDevice.hpp"
-#include "SensorType.hpp"
+#include "../Devices/SysfsDevice.hpp"
+#include "../SensorType.hpp"
 
 namespace fs = std::filesystem;
 

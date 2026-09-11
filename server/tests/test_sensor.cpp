@@ -11,10 +11,10 @@
 #include <thread>
 #include <unistd.h>
 
-#include "EnergySensor.hpp"
-#include "Sensor.hpp"
-#include "SensorReading.hpp"
-#include "SensorType.hpp"
+#include "../EnergySensor.hpp"
+#include "../Sensor.hpp"
+#include "../SensorReading.hpp"
+#include "../SensorType.hpp"
 
 namespace fs = std::filesystem;
 

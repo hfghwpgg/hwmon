@@ -18,7 +18,6 @@
 #include "../Sensor.hpp"
 #include "../SensorType.hpp"
 #include "../ValueSensor.hpp"
-#include "../helpers.hpp"
 #include "GpuDetector.hpp"
 #include "SharedHwmonParser.hpp"
 
@@ -137,7 +136,8 @@ bool AmdGpuDevice::setupRsmi() {
 
   if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_JUNCTION, RSMI_TEMP_CURRENT,
                                      &temp) == RSMI_STATUS_SUCCESS) {
-    rsmiSensors.temp_junction = addValueSensor(tempSensors, "GPU hotspot", SensorType::TEMPERATURE);
+    rsmiSensors.temp_junction =
+        addValueSensor(tempSensors, "GPU hotspot", SensorType::TEMPERATURE, true, true);
   }
 
   if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_MEMORY, RSMI_TEMP_CURRENT, &temp) ==
@@ -175,7 +175,8 @@ bool AmdGpuDevice::setupRsmi() {
   }
   if (rsmi->rsmi_dev_memory_usage_get(rsmiIndex, RSMI_MEM_TYPE_VRAM, &vram) ==
       RSMI_STATUS_SUCCESS) {
-    rsmiSensors.vramUsed = addValueSensor(memSensors, "GPU used memory", SensorType::MEMORY);
+    rsmiSensors.vramUsed =
+        addValueSensor(memSensors, "GPU used memory", SensorType::MEMORY, true, true);
   }
 
   uint64_t tx = 0;
@@ -271,13 +272,16 @@ void AmdGpuDevice::readRsmi() {
 // amdgpu exposes utilization and VRAM usage outside of hwmon, as plain
 // integers under the DRM device directory
 void AmdGpuDevice::setupSysfs() {
-  addSysfsSensor(card.devicePath / "gpu_busy_percent", "gpu_busy", SensorType::UTILIZATION, 1);
-  addSysfsSensor(card.devicePath / "mem_busy_percent", "mem_busy", SensorType::UTILIZATION, 1);
-  addSysfsSensor(card.devicePath / "mem_info_vram_total", "vram_total", SensorType::MEMORY, 1,
-                 false);
-  addSysfsSensor(card.devicePath / "mem_info_vram_used", "vram_used", SensorType::MEMORY, 1);
+  addSysfsSensor(utilizationSensors, card.devicePath / "gpu_busy_percent", "GPU utilization",
+                 SensorType::UTILIZATION, 1);
+  addSysfsSensor(utilizationSensors, card.devicePath / "mem_busy_percent", "VRAM utilization",
+                 SensorType::UTILIZATION, 1);
+  addSysfsSensor(utilizationSensors, card.devicePath / "mem_info_vram_used", "GPU memory",
+                 SensorType::MEMORY, 1, true, true);
+  addSysfsSensor(memSensors, card.devicePath / "mem_info_vram_total", "GPU total memory",
+                 SensorType::MEMORY, 1, false, false);
 
-  if (memSensors.empty() && card.hwmonPath.empty()) {
+  if (utilizationSensors.empty() && memSensors.empty() && card.hwmonPath.empty()) {
     spdlog::warn("{}: no readable metrics found", card.devicePath.string());
     return;
   }
@@ -301,8 +305,10 @@ void AmdGpuDevice::addHwmonSensors(bool onlyUncoveredMetrics) {
   sysfsFallback = SharedHwmonParser::createSensors(card.hwmonPath, availableSensors);
 }
 
-void AmdGpuDevice::addSysfsSensor(const fs::path &path, const std::string &sensorName,
-                                  SensorType type, unsigned int divider, bool aggregateData) {
+void AmdGpuDevice::addSysfsSensor(std::vector<std::unique_ptr<Sensor>> &sensors,
+                                  const fs::path &path, const std::string &sensorName,
+                                  SensorType type, unsigned int divider, bool aggregateData,
+                                  bool isPrimary) {
   if (!fs::exists(path))
     return;
 
@@ -311,8 +317,8 @@ void AmdGpuDevice::addSysfsSensor(const fs::path &path, const std::string &senso
     spdlog::warn("unable to open {}", path.string());
     return;
   }
-  sysfsFallback.emplace_back(
-      std::make_unique<Sensor>(std::move(stream), sensorName, type, divider, aggregateData));
+  sensors.emplace_back(std::make_unique<Sensor>(std::move(stream), sensorName, type, divider,
+                                                aggregateData, isPrimary));
 }
 
 std::string AmdGpuDevice::sysfsName() const {

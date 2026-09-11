@@ -19,7 +19,7 @@ add_executable(hwmon_tests
 
 target_link_libraries(hwmon_tests
   PRIVATE
-    HwmonCore
+    hwmonCore
     GTest::gtest
 )
 

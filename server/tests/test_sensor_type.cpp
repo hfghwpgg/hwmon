@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "SensorType.hpp"
+#include "../SensorType.hpp"
 
 TEST(GetDivider, KnownTypesHaveExpectedDividers) {
   EXPECT_EQ(getDivider(SensorType::TEMPERATURE), 1000);

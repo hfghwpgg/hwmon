@@ -6,7 +6,7 @@
 #include <string>
 #include <unistd.h>
 
-#include "Devices/GpuDetector.hpp"
+#include "../Devices/GpuDetector.hpp"
 
 namespace fs = std::filesystem;
 
@@ -17,7 +17,7 @@ protected:
   void SetUp() override {
     static std::atomic<unsigned> counter{0};
     root = fs::temp_directory_path() / ("gpu_detector_test_" + std::to_string(::getpid()) + "_" +
-                                       std::to_string(counter.fetch_add(1)));
+                                        std::to_string(counter.fetch_add(1)));
     drmRoot = root / "drm";
     devicesRoot = root / "devices";
     fs::create_directories(drmRoot);

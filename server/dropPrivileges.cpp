@@ -5,12 +5,10 @@
 #include <stdexcept>
 #include <unistd.h>
 
-// this only works with sudo. idk what to do if we
-// get elevated somehow else (such as run0). for now
-// we crash but its probably not a very good idea
-void dropPrivileges(bool dontDropRoot) {
-  if (dontDropRoot)
-    return;
+// this only works with sudo. idk what to do if we get elevated
+// somehow else (such as run0, or run as root account)
+// for now we crash but its probably not a very good idea
+void dropPrivileges() {
 
   // we arent running as root
   if (getuid() != 0) {

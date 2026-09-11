@@ -9,8 +9,8 @@
 #include "Sensor.hpp"
 #include "SensorType.hpp"
 
-ValueSensor::ValueSensor(std::string name, SensorType type, bool aggregateData) :
-    Sensor(nullptr, name, type, 1, aggregateData),
+ValueSensor::ValueSensor(std::string name, SensorType type, bool aggregateData, bool isPrimary) :
+    Sensor(nullptr, name, type, 1, aggregateData, isPrimary),
     pendingValue(NAN) {}
 
 void ValueSensor::setValue(long double value) {
@@ -35,8 +35,8 @@ long double ValueSensor::prepareValue() {
 }
 
 ValueSensor *addValueSensor(std::vector<std::unique_ptr<Sensor>> &sensors, std::string name,
-                            SensorType type, bool aggregateData) {
-  auto sensor = std::make_unique<ValueSensor>(std::move(name), type, aggregateData);
+                            SensorType type, bool aggregateData, bool isPrimary) {
+  auto sensor = std::make_unique<ValueSensor>(std::move(name), type, aggregateData, isPrimary);
   ValueSensor *borrowed = sensor.get();
   sensors.emplace_back(std::move(sensor));
   return borrowed;

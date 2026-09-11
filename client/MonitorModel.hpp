@@ -20,6 +20,7 @@ struct SensorData {
     double sum = 0.0;
     qint64 times = 0;
     bool hidden = false;
+    bool primary = false;
     qint64 flashCurrentUntil = 0;
     qint64 flashMinUntil = 0;
     qint64 flashMaxUntil = 0;
@@ -78,6 +79,7 @@ public:
     bool isNodeExpanded(const QModelIndex &index) const;
     void setDarkTheme(bool dark);
     void setFlashDurationMs(int ms);
+    void resetSensorOrder();
 
 private:
     int visibleSectionCount(int deviceIndex) const;
@@ -112,6 +114,7 @@ private:
                                      const QVector<SensorData> &incoming) const;
     QVector<DeviceData> reorderDevices(QVector<DeviceData> devices, const QStringList &order) const;
     QVector<SensorData> reorderSensors(QVector<SensorData> sensors, const QStringList &order) const;
+    void sortSensorsByName(QVector<SensorData> &sensors) const;
     bool moveDevice(int from, int to);
     bool moveSection(int deviceIndex, int fromVisible, int toVisible);
     bool moveSensor(int deviceIndex, int sectionIndex, int fromVisible, int toVisible);

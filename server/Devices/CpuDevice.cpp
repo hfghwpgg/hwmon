@@ -216,9 +216,11 @@ void CpuDevice::initUtilization() {
     // remove cpu beginning
     const std::string suffix = cpuCoreNum.substr(3);
     const std::string label = suffix.length() > 0 ? "CPU core " + suffix : "CPU";
-    utilSensorsPrivate.emplace(cpuCoreNum, utilSensorData{addValueSensor(utilizationSensors, label,
-                                                                         SensorType::UTILIZATION),
-                                                          {0, 0, false}});
+    const bool primary = label == "CPU";
+    utilSensorsPrivate.emplace(
+        cpuCoreNum, utilSensorData{addValueSensor(utilizationSensors, label,
+                                                  SensorType::UTILIZATION, true, primary),
+                                   {0, 0, false}});
   }
 }
 
@@ -336,6 +338,7 @@ void CpuDevice::getPowerDraw() {
         const auto num = name.substr(7);
         const int number = std::stoi(num);
         sensor->setName(std::format("Socket {} power draw", number));
+        sensor->switchPrimary();
       }
       if (name.contains("core")) {
         // Ecore has 5 letters

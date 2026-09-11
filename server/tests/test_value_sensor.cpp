@@ -5,9 +5,9 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 
-#include "Sensor.hpp"
-#include "SensorType.hpp"
-#include "ValueSensor.hpp"
+#include "../Sensor.hpp"
+#include "../SensorType.hpp"
+#include "../ValueSensor.hpp"
 
 TEST(ValueSensorTest, StaysNanUntilValueIsPushed) {
   ValueSensor sensor{"gpu_util", SensorType::UTILIZATION};

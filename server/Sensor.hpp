@@ -12,7 +12,7 @@ enum class SensorType;
 class Sensor {
 public:
   Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type,
-         unsigned int divider, bool aggregateData = true);
+         unsigned int divider, bool aggregateData = true, bool isPrimary = false);
   Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type);
   virtual ~Sensor();
 
@@ -20,6 +20,7 @@ public:
   SensorReading getReadings();
   virtual void resetReadings();
   nlohmann::json serialize();
+  void switchPrimary();
 
   std::string getName();
   void setName(std::string name);
@@ -30,7 +31,12 @@ public:
 protected:
   virtual long double prepareValue();
   std::string readRawSensorString();
+  // whether to accumulate sum and times
+  // variables
   bool aggregateData;
+  // show as primary for a section
+  // on client-side
+  bool isPrimary;
 
   std::shared_ptr<std::istream> dataStream;
   std::string name;

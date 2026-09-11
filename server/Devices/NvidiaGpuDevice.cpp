@@ -144,7 +144,7 @@ bool NvidiaGpuDevice::setupNvml() {
 
   unsigned int value = 0;
   if (nvml->nvmlDeviceGetTemperature(handle, NVML_TEMPERATURE_GPU, &value) == NVML_SUCCESS) {
-    nvmlSensors.temp = addValueSensor(tempSensors, "GPU core", SensorType::TEMPERATURE);
+    nvmlSensors.temp = addValueSensor(tempSensors, "GPU core", SensorType::TEMPERATURE, true, true);
   }
 
   nvmlUtilization_t utilization{};

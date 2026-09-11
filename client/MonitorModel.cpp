@@ -2,6 +2,7 @@
 
 #include "Types.hpp"
 
+#include <QCollator>
 #include <QColor>
 #include <QDateTime>
 #include <QFont>
@@ -11,6 +12,7 @@
 #include <QMimeData>
 #include <QSettings>
 
+#include <algorithm>
 #include <cmath>
 #include <utility>
 
@@ -101,9 +103,8 @@ qint64 nowMs()
     return QDateTime::currentMSecsSinceEpoch();
 }
 
-struct SectionPeak {
+struct SectionSummary {
     bool valid = false;
-    bool uniform = false;
     int type = 10;
     double current = 0.0;
     double min = 0.0;
@@ -115,43 +116,29 @@ struct SectionPeak {
     bool flashMax = false;
 };
 
-SectionPeak peakForSection(const SectionData &section)
+SectionSummary primaryForSection(const SectionData &section)
 {
-    SectionPeak peak;
+    SectionSummary summary;
     const qint64 now = nowMs();
-    bool first = true;
     for (const SensorData &sensor : section.sensors) {
-        if (sensor.hidden) {
+        if (!sensor.primary || sensor.hidden) {
             continue;
         }
-        if (first) {
-            peak.valid = true;
-            peak.uniform = true;
-            peak.type = sensor.type;
-            peak.current = sensor.value;
-            peak.min = sensor.min;
-            peak.max = sensor.max;
-            first = false;
-        } else {
-            if (sensor.type != peak.type) {
-                peak.uniform = false;
-            }
-            peak.current = std::max(peak.current, sensor.value);
-            peak.min = std::max(peak.min, sensor.min);
-            peak.max = std::max(peak.max, sensor.max);
-        }
+        summary.valid = true;
+        summary.type = sensor.type;
+        summary.current = sensor.value;
+        summary.min = sensor.min;
+        summary.max = sensor.max;
         if (sensor.times > 0) {
-            const double avg = sensor.sum / static_cast<double>(sensor.times);
-            if (!peak.hasAvg || avg > peak.avg) {
-                peak.avg = avg;
-                peak.hasAvg = true;
-            }
+            summary.avg = sensor.sum / static_cast<double>(sensor.times);
+            summary.hasAvg = true;
         }
-        peak.flashCurrent = peak.flashCurrent || sensor.flashCurrentUntil > now;
-        peak.flashMin = peak.flashMin || sensor.flashMinUntil > now;
-        peak.flashMax = peak.flashMax || sensor.flashMaxUntil > now;
+        summary.flashCurrent = sensor.flashCurrentUntil > now;
+        summary.flashMin = sensor.flashMinUntil > now;
+        summary.flashMax = sensor.flashMaxUntil > now;
+        break;
     }
-    return peak;
+    return summary;
 }
 
 } // namespace
@@ -247,7 +234,7 @@ QVariant MonitorModel::data(const QModelIndex &index, int role) const
         return {};
     }
 
-    const SectionPeak peak = section != nullptr ? peakForSection(*section) : SectionPeak{};
+    const SectionSummary summary = section != nullptr ? primaryForSection(*section) : SectionSummary{};
     const qint64 now = nowMs();
 
     if (role == Qt::DisplayRole) {
@@ -256,8 +243,8 @@ QVariant MonitorModel::data(const QModelIndex &index, int role) const
                 return QStringLiteral("[%1]  %2").arg(deviceTypeLabel(device->type), device->name);
             }
             if (isSection(index)) {
-                if (peak.valid && peak.uniform) {
-                    return QStringLiteral("[%1]  %2").arg(sensorTypeLabel(peak.type), section->name);
+                if (summary.valid) {
+                    return QStringLiteral("[%1]  %2").arg(sensorTypeLabel(summary.type), section->name);
                 }
                 return section->name;
             }
@@ -267,18 +254,18 @@ QVariant MonitorModel::data(const QModelIndex &index, int role) const
             return {};
         }
         if (isSection(index)) {
-            if (!peak.valid || !peak.uniform) {
+            if (!summary.valid) {
                 return {};
             }
             switch (index.column()) {
             case CurrentColumn:
-                return formatValue(peak.type, peak.current);
+                return formatValue(summary.type, summary.current);
             case MinColumn:
-                return formatValue(peak.type, peak.min);
+                return formatValue(summary.type, summary.min);
             case MaxColumn:
-                return formatValue(peak.type, peak.max);
+                return formatValue(summary.type, summary.max);
             case AvgColumn:
-                return peak.hasAvg ? formatValue(peak.type, peak.avg) : QStringLiteral("—");
+                return summary.hasAvg ? formatValue(summary.type, summary.avg) : QStringLiteral("—");
             default:
                 return {};
             }
@@ -325,14 +312,14 @@ QVariant MonitorModel::data(const QModelIndex &index, int role) const
         if (isSection(index)) {
             const QColor base = m_darkTheme ? QColor("#1e2a36") : QColor("#e4ecf4");
             const QColor flash = m_darkTheme ? QColor(108, 182, 255, 26) : QColor(21, 101, 192, 13);
-            if (peak.uniform && peak.valid) {
-                if (index.column() == CurrentColumn && peak.flashCurrent) {
+            if (summary.valid) {
+                if (index.column() == CurrentColumn && summary.flashCurrent) {
                     return flash;
                 }
-                if (index.column() == MinColumn && peak.flashMin) {
+                if (index.column() == MinColumn && summary.flashMin) {
                     return flash;
                 }
-                if (index.column() == MaxColumn && peak.flashMax) {
+                if (index.column() == MaxColumn && summary.flashMax) {
                     return flash;
                 }
             }
@@ -644,7 +631,8 @@ bool MonitorModel::applySnapshot(const QJsonDocument &document, qint64 *timestam
                 sectionOrder != m_sectionOrder.cend()) {
                 device.sections = reorderSections(std::move(device.sections), sectionOrder.value());
             }
-            if (auto order = m_sensorOrder.constFind(device.key); order != m_sensorOrder.cend()) {
+            if (auto order = m_sensorOrder.constFind(device.key);
+                order != m_sensorOrder.cend() && !order->isEmpty()) {
                 for (SectionData &section : device.sections) {
                     section.sensors = reorderSensors(std::move(section.sensors), order.value());
                 }
@@ -859,6 +847,18 @@ void MonitorModel::setDarkTheme(bool dark)
 void MonitorModel::setFlashDurationMs(int ms)
 {
     m_flashDurationMs = qMax(50, ms);
+}
+
+void MonitorModel::resetSensorOrder()
+{
+    beginResetModel();
+    for (DeviceData &device : m_devices) {
+        for (SectionData &section : device.sections) {
+            sortSensorsByName(section.sensors);
+        }
+    }
+    endResetModel();
+    saveSettings();
 }
 
 int MonitorModel::visibleSectionCount(int deviceIndex) const
@@ -1194,6 +1194,7 @@ QVector<SectionData> MonitorModel::groupSensors(const QString &deviceKey, QVecto
         section.key = deviceKey + QStringLiteral("/sec/") + QString::number(type);
         section.expanded = !m_collapsedKeys.contains(section.key);
         section.sensors = std::move(it.value());
+        sortSensorsByName(section.sensors);
         sections.push_back(std::move(section));
     }
     return sections;
@@ -1252,6 +1253,8 @@ SensorData MonitorModel::parseSensor(const QString &deviceKey, QHash<QString, in
     sensor.max = readings.value(QLatin1String("max_value")).toDouble();
     sensor.sum = readings.value(QLatin1String("sum")).toDouble();
     sensor.times = readings.value(QLatin1String("times")).toVariant().toLongLong();
+    const QJsonValue primary = sensorObject.value(QLatin1String("isPrimary"));
+    sensor.primary = primary.toBool() || primary.toInt() != 0;
     return sensor;
 }
 
@@ -1290,6 +1293,7 @@ QVector<SectionData> MonitorModel::parseCustomSections(const QString &deviceKey,
         section.key = deviceKey + QStringLiteral("/sec/") + it.key();
         section.expanded = !m_collapsedKeys.contains(section.key);
         section.sensors = std::move(sensors);
+        sortSensorsByName(section.sensors);
         sections.push_back(std::move(section));
     }
     return sections;
@@ -1395,6 +1399,20 @@ QVector<SensorData> MonitorModel::reorderSensors(QVector<SensorData> sensors, co
         }
     }
     return ordered;
+}
+
+void MonitorModel::sortSensorsByName(QVector<SensorData> &sensors) const
+{
+    QCollator collator;
+    collator.setNumericMode(true);
+    collator.setCaseSensitivity(Qt::CaseInsensitive);
+    std::sort(sensors.begin(), sensors.end(), [&](const SensorData &left, const SensorData &right) {
+        const int compared = collator.compare(left.name, right.name);
+        if (compared != 0) {
+            return compared < 0;
+        }
+        return left.key < right.key;
+    });
 }
 
 bool MonitorModel::moveDevice(int from, int to)

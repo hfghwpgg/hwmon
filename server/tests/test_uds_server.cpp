@@ -13,8 +13,8 @@
 #include <thread>
 #include <unistd.h>
 
-#include "SharedState.hpp"
-#include "UDSServer.hpp"
+#include "../SharedState.hpp"
+#include "../UDSServer.hpp"
 
 using json = nlohmann::json;
 using namespace std::chrono_literals;

@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "Sensor.hpp"
-#include "SensorType.hpp"
+#include "../Sensor.hpp"
+#include "../SensorType.hpp"
 #include <string>
 #include <vector>
 
-#include "helpers.hpp"
+#include "../helpers.hpp"
 
 TEST(RoundFloat, RoundsToRequestedPrecision) {
   EXPECT_NEAR(helpers::roundFloat(3.14159f, 2), 3.14f, 1e-4f);

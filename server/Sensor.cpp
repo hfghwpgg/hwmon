@@ -12,8 +12,9 @@
 #include "SensorType.hpp"
 
 Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType type,
-               unsigned int divider, bool aggregateData) :
+               unsigned int divider, bool aggregateData, bool isPrimary) :
     aggregateData(aggregateData),
+    isPrimary(isPrimary),
     dataStream(file),
     name(name),
     type(type),
@@ -37,6 +38,9 @@ void Sensor::setName(std::string name) {
 }
 SensorType Sensor::getType() {
   return type;
+}
+void Sensor::switchPrimary() {
+  this->isPrimary = !isPrimary;
 }
 
 std::string Sensor::readRawSensorString() {
@@ -101,6 +105,7 @@ nlohmann::json Sensor::serialize() {
   nlohmann::json j;
   j["name"] = name;
   j["type"] = type;
+  j["isPrimary"] = isPrimary;
   j["readings"] = readings.serialize();
   return j;
 }

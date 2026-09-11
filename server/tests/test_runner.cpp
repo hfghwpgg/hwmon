@@ -11,9 +11,9 @@
 #include <thread>
 #include <unistd.h>
 
-#include "Runner.hpp"
-#include "SensorType.hpp"
-#include "SharedState.hpp"
+#include "../Runner.hpp"
+#include "../SensorType.hpp"
+#include "../SharedState.hpp"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;

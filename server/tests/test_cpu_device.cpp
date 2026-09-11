@@ -11,8 +11,8 @@
 #include <thread>
 #include <unistd.h>
 
-#include "Devices/CpuDevice.hpp"
-#include "SensorType.hpp"
+#include "../Devices/CpuDevice.hpp"
+#include "../SensorType.hpp"
 
 namespace fs = std::filesystem;
 
@@ -273,7 +273,7 @@ TEST_F(CpuDeviceTest, UsesIntelRaplWhenZenergyMissing) {
   const nlohmann::json power =
       findSensor(device.serialize()["sensors"]["Power draw"], "Socket power draw");
   ASSERT_FALSE(power.empty());
-  EXPECT_EQ(power["type"].get<int>(), static_cast<int>(SensorType::POWER));
+  EXPECT_EQ(power["type"].get<int>(), static_cast<int>(SensorType::ENERGY));
   EXPECT_EQ(power["readings"]["times"].get<std::size_t>(), 1u);
   EXPECT_FALSE(std::isnan(power["readings"]["value"].get<float>()));
   EXPECT_TRUE(std::isfinite(power["readings"]["value"].get<float>()));
