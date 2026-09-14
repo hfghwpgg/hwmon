@@ -48,12 +48,12 @@ long Runner::getUnixTimestamp() {
       .count();
 }
 void Runner::setup() {
-  if (!fs::exists(hwmonPath) || access(hwmonPath.c_str(), R_OK) == -1) {
+  if (!hwmon::fs::exists(hwmonPath) || access(hwmonPath.c_str(), R_OK) == -1) {
     spdlog::critical("no access to hwmon interface, aborting");
     throw std::runtime_error("no access to hwmon interface");
   }
 
-  std::set<fs::path> hwmonPaths;
+  std::set<hwmon::fs::path> hwmonPaths;
   for (const auto &entry : hwmon::fs::directory_iterator(hwmonPath)) {
     hwmonPaths.insert(hwmon::fs::canonical(entry.path()));
   }
