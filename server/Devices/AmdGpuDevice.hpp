@@ -8,15 +8,16 @@
 #include "../Device.hpp"
 #include "../Libraries/RsmiLibrary.hpp"
 #include "../ValueSensor.hpp"
+#include "../hwmon.hpp"
 #include "GpuDetector.hpp"
 
 class AmdGpuDevice : public Device {
 public:
   // hwmonPaths is the set Runner hands out; the card's own hwmon directory is
   // removed from it so it doesn't show up again as a GeneralDevice
-  AmdGpuDevice(GpuCardInfo card, std::set<std::filesystem::path> &hwmonPaths);
+  AmdGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths);
   // allowRsmi = false forces the sysfs backend, used by the tests
-  AmdGpuDevice(GpuCardInfo card, std::set<std::filesystem::path> &hwmonPaths, bool allowRsmi);
+  AmdGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths, bool allowRsmi);
 
   void initialize() override;
   void read() override;
@@ -41,14 +42,8 @@ private:
     ValueSensor *pcieRx = nullptr;
   };
 
-  std::vector<std::unique_ptr<Sensor>> tempSensors;
-  std::vector<std::unique_ptr<Sensor>> utilizationSensors;
-  std::vector<std::unique_ptr<Sensor>> memSensors;
-  std::vector<std::unique_ptr<Sensor>> pcieTxRx;
-  std::vector<std::unique_ptr<Sensor>> sysfsFallback;
-
   const GpuCardInfo card;
-  std::set<std::filesystem::path> &hwmonPaths;
+  std::set<hwmon::fs::path> &hwmonPaths;
   const bool allowRsmi;
 
   std::shared_ptr<RsmiLibrary> rsmi;
@@ -62,9 +57,8 @@ private:
   // adds the card's hwmon sensors; when onlyUncoveredMetrics is set, only the
   // readings ROCm SMI doesn't provide (fan speed, voltage) are added
   void addHwmonSensors(bool onlyUncoveredMetrics);
-  void addSysfsSensor(std::vector<std::unique_ptr<Sensor>> &sensors,
-                      const std::filesystem::path &path, const std::string &sensorName,
-                      SensorType type, unsigned int divider, bool aggregateData = true,
-                      bool isPrimary = false);
+  void addSysfsSensor(hwmon::SensorVec &sensors, const hwmon::fs::path &path,
+                      const std::string &sensorName, SensorType type, unsigned int divider,
+                      bool aggregateData = true, bool isPrimary = false);
   std::string sysfsName() const;
 };

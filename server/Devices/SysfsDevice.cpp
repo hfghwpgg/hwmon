@@ -16,9 +16,7 @@ using std::string;
 
 SysfsDevice::SysfsDevice(string name, DeviceType type, fs::path path) :
     Device(name, type),
-    path(path),
-    sensors() {
-  sensors.reserve(10);
+    path(path) {
   spdlog::trace("CURRENT SYSFS DEVICE: {} <{}>", path.string(), name);
   if (helpers::pathType(path) != helpers::pathTypeEnum::DIRECTORY) {
     spdlog::critical("invalid path for device {}: {}", name, path.string());
@@ -35,7 +33,7 @@ SysfsDevice::~SysfsDevice() {
 void SysfsDevice::initialize() {
   getName();
   const auto available_sensors = SharedHwmonParser::parseHwmonDirectory(path);
-  sensors = SharedHwmonParser::createSensors(path, available_sensors);
+  SharedHwmonParser::createSensors(path, available_sensors, sensors);
 }
 
 void SysfsDevice::read() {

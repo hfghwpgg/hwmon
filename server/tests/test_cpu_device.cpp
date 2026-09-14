@@ -176,7 +176,7 @@ TEST_F(CpuDeviceTest, UtilizationProducesSampleAfterSecondRead) {
                       "cpu0 100 0 0 100 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpu = findSensor(device.serialize()["sensors"]["Utilization"], "CPU");
+  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "CPU");
   ASSERT_FALSE(cpu.empty());
   EXPECT_EQ(cpu["type"].get<int>(), static_cast<int>(SensorType::UTILIZATION));
   EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 1u);
@@ -193,8 +193,7 @@ TEST_F(CpuDeviceTest, CreatesFrequencySensorsFromCpufreq) {
   device.initialize();
   device.read();
 
-  const nlohmann::json freq =
-      findSensor(device.serialize()["sensors"]["Core frequency"], "CPU core 0");
+  const nlohmann::json freq = findSensor(device.serialize()["sensors"], "CPU core 0");
   ASSERT_FALSE(freq.empty());
   EXPECT_EQ(freq["type"].get<int>(), static_cast<int>(SensorType::FREQUENCY));
   EXPECT_FLOAT_EQ(freq["readings"]["value"].get<float>(), 2400.0f);
@@ -212,12 +211,11 @@ TEST_F(CpuDeviceTest, ResetReadingsClearsUtilizationAggregates) {
                       "cpu0 100 0 0 100 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpuBefore = findSensor(device.serialize()["sensors"]["Utilization"], "CPU");
+  const nlohmann::json cpuBefore = findSensor(device.serialize()["sensors"], "CPU");
   ASSERT_EQ(cpuBefore["readings"]["times"].get<std::size_t>(), 1u);
 
   device.resetReadings();
-  const nlohmann::json cpuAfterReset =
-      findSensor(device.serialize()["sensors"]["Utilization"], "CPU");
+  const nlohmann::json cpuAfterReset = findSensor(device.serialize()["sensors"], "CPU");
   EXPECT_EQ(cpuAfterReset["readings"]["times"].get<std::size_t>(), 0u);
 }
 
@@ -233,8 +231,7 @@ TEST_F(CpuDeviceTest, ResetReadingsForcesNewUtilizationBaseline) {
                       "cpu0 300 0 0 200 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpuBeforeReset =
-      findSensor(device.serialize()["sensors"]["Utilization"], "CPU");
+  const nlohmann::json cpuBeforeReset = findSensor(device.serialize()["sensors"], "CPU");
   ASSERT_EQ(cpuBeforeReset["readings"]["times"].get<std::size_t>(), 1u);
 
   device.resetReadings();
@@ -244,15 +241,14 @@ TEST_F(CpuDeviceTest, ResetReadingsForcesNewUtilizationBaseline) {
                       "cpu0 600 0 0 400 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpuAfterBaseline =
-      findSensor(device.serialize()["sensors"]["Utilization"], "CPU");
+  const nlohmann::json cpuAfterBaseline = findSensor(device.serialize()["sensors"], "CPU");
   EXPECT_EQ(cpuAfterBaseline["readings"]["times"].get<std::size_t>(), 0u);
 
   writeFile(statPath, "cpu 700 0 0 500 0 0 0 0 0 0\n"
                       "cpu0 700 0 0 500 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpu = findSensor(device.serialize()["sensors"]["Utilization"], "CPU");
+  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "CPU");
   EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 1u);
   EXPECT_FLOAT_EQ(cpu["readings"]["value"].get<float>(), 50.0f);
 }
@@ -270,10 +266,9 @@ TEST_F(CpuDeviceTest, UsesIntelRaplWhenZenergyMissing) {
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
   device.read();
 
-  const nlohmann::json power =
-      findSensor(device.serialize()["sensors"]["Power draw"], "Socket power draw");
+  const nlohmann::json power = findSensor(device.serialize()["sensors"], "Socket power draw");
   ASSERT_FALSE(power.empty());
-  EXPECT_EQ(power["type"].get<int>(), static_cast<int>(SensorType::ENERGY));
+  EXPECT_EQ(power["type"].get<int>(), static_cast<int>(SensorType::POWER));
   EXPECT_EQ(power["readings"]["times"].get<std::size_t>(), 1u);
   EXPECT_FALSE(std::isnan(power["readings"]["value"].get<float>()));
   EXPECT_TRUE(std::isfinite(power["readings"]["value"].get<float>()));
@@ -298,10 +293,10 @@ TEST_F(CpuDeviceTest, PrefersZenergyOverIntelRapl) {
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
   device.read();
 
-  const nlohmann::json sensors = device.serialize()["sensors"]["Power draw"];
+  const nlohmann::json sensors = device.serialize()["sensors"];
   const nlohmann::json zenergySensor = findSensor(sensors, "Socket 0 power draw");
   ASSERT_FALSE(zenergySensor.empty());
-  EXPECT_EQ(zenergySensor["type"].get<int>(), static_cast<int>(SensorType::ENERGY));
+  EXPECT_EQ(zenergySensor["type"].get<int>(), static_cast<int>(SensorType::POWER));
   EXPECT_EQ(zenergySensor["readings"]["times"].get<std::size_t>(), 1u);
   EXPECT_FALSE(std::isnan(zenergySensor["readings"]["value"].get<float>()));
   EXPECT_TRUE(std::isfinite(zenergySensor["readings"]["value"].get<float>()));

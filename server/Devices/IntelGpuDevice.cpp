@@ -14,6 +14,7 @@
 #include "../Device.hpp"
 #include "../SensorType.hpp"
 #include "../ValueSensor.hpp"
+#include "../hwmon.hpp"
 #include "GpuDetector.hpp"
 #include "SharedHwmonParser.hpp"
 
@@ -39,8 +40,6 @@ extern "C" {
 // indexing has to go through the last member, like upstream intel_gpu_top does
 #define engine_ptr(engines, n) (&(engines)->engine + (n))
 
-namespace fs = std::filesystem;
-
 namespace {
 
 // the perf PMU name for the i915 device; discover_engines keeps the pointer,
@@ -49,7 +48,8 @@ constexpr const char *PMU_DEVICE = "i915";
 
 } // namespace
 
-IntelGpuDevice::IntelGpuDevice(GpuCardInfo card, std::set<fs::path> &hwmonPaths, bool allowPmu) :
+IntelGpuDevice::IntelGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths,
+                               bool allowPmu) :
     Device(card.cardPath.filename().string(), DeviceType::GPU),
     card(std::move(card)),
     hwmonPaths(hwmonPaths),
@@ -166,7 +166,7 @@ void IntelGpuDevice::addHwmonSensors() {
     return;
 
   const auto availableSensors = SharedHwmonParser::parseHwmonDirectory(card.hwmonPath);
-  sensors = SharedHwmonParser::createSensors(card.hwmonPath, availableSensors);
+  SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sensors);
 }
 
 // intel_gpu_top ships a PCI id to marketing name table

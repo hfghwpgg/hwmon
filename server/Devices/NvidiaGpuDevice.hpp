@@ -7,15 +7,16 @@
 #include "../Device.hpp"
 #include "../Libraries/NvmlLibrary.hpp"
 #include "../ValueSensor.hpp"
+#include "../hwmon.hpp"
 #include "GpuDetector.hpp"
 
 class NvidiaGpuDevice : public Device {
 public:
   // hwmonPaths is the set Runner hands out; the card's own hwmon directory is
   // removed from it so it doesn't show up again as a GeneralDevice
-  NvidiaGpuDevice(GpuCardInfo card, std::set<std::filesystem::path> &hwmonPaths);
+  NvidiaGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths);
   // allowNvml = false forces the hwmon backend, used by the tests
-  NvidiaGpuDevice(GpuCardInfo card, std::set<std::filesystem::path> &hwmonPaths, bool allowNvml);
+  NvidiaGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths, bool allowNvml);
 
   void initialize() override;
   void read() override;
@@ -40,14 +41,8 @@ private:
     ValueSensor *decoderUtil = nullptr;
   };
 
-  std::vector<std::unique_ptr<Sensor>> tempSensors;
-  std::vector<std::unique_ptr<Sensor>> utilizationSensors;
-  std::vector<std::unique_ptr<Sensor>> memSensors;
-  std::vector<std::unique_ptr<Sensor>> pcieTxRx;
-  std::vector<std::unique_ptr<Sensor>> sysfsFallback;
-
   const GpuCardInfo card;
-  std::set<std::filesystem::path> &hwmonPaths;
+  std::set<hwmon::fs::path> &hwmonPaths;
   const bool allowNvml;
 
   std::shared_ptr<NvmlLibrary> nvml;

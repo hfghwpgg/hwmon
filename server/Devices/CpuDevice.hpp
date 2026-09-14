@@ -4,28 +4,18 @@
 #include <set>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 #include "../Device.hpp"
 #include "../ValueSensor.hpp"
+#include "../hwmon.hpp"
 
-struct lastReading { // cpu time
-  unsigned long long totalTime;
-  unsigned long long idleTime;
-  bool hasRead;
-};
-
-struct utilSensorData { // cpu time
-  ValueSensor *sensor;
-  lastReading utilOld;
-};
 
 class CpuDevice : public Device {
 public:
-  CpuDevice(std::set<std::filesystem::path> &hwmonPaths);
-  CpuDevice(std::set<std::filesystem::path> &hwmonPaths, std::filesystem::path CPUFREQ_PATH,
-            std::filesystem::path CPUINFO_PATH, std::filesystem::path CPUUTIL_PATH,
-            std::filesystem::path INTELRAPL_PATH);
+  CpuDevice(std::set<hwmon::fs::path> &hwmonPaths);
+  CpuDevice(std::set<hwmon::fs::path> &hwmonPaths, hwmon::fs::path cpufreq_path,
+            hwmon::fs::path cpuinfo_path, hwmon::fs::path cpuutil_path,
+            hwmon::fs::path intelrapl_path);
   ~CpuDevice();
 
   void initialize() override;
@@ -34,20 +24,28 @@ public:
   nlohmann::json serialize() override;
 
 private:
+  struct lastReading { // cpu time
+    unsigned long long totalTime;
+    unsigned long long idleTime;
+    bool hasRead;
+  };
+
+  struct utilSensorData { // cpu time
+    ValueSensor *sensor;
+    lastReading utilOld;
+  };
+
+  const struct CpuPaths {
+    hwmon::fs::path cpufreq;
+    hwmon::fs::path cpuinfo;
+    hwmon::fs::path cpuutil;
+    hwmon::fs::path intelrapl;
+  } cpuPaths;
+
   std::unordered_map<std::string, utilSensorData> utilSensorsPrivate;
 
-  const std::filesystem::path CPUFREQ_PATH;
-  const std::filesystem::path CPUINFO_PATH;
-  const std::filesystem::path CPUUTIL_PATH;
-  const std::filesystem::path INTELRAPL_PATH;
-
-  std::set<std::filesystem::path> &hwmonPaths;
-  std::ifstream CPUUTIL_FD;
-
-  std::vector<std::unique_ptr<Sensor>> temperatureSensors;
-  std::vector<std::unique_ptr<Sensor>> clockSensors;
-  std::vector<std::unique_ptr<Sensor>> utilizationSensors;
-  std::vector<std::unique_ptr<Sensor>> powerSensors;
+  std::set<hwmon::fs::path> &hwmonPaths;
+  std::ifstream cpuutil_fd;
 
   void getTemperature();
   void getCoreFrequency();

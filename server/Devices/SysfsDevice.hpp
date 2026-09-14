@@ -4,13 +4,11 @@
 #include <string>
 
 #include "../Device.hpp"
-#include "../Sensor.hpp"
-
-namespace fs = std::filesystem;
+#include "../hwmon.hpp"
 
 class SysfsDevice : public Device {
 public:
-  SysfsDevice(std::string name, DeviceType type, fs::path path);
+  SysfsDevice(std::string name, DeviceType type, hwmon::fs::path path);
 
 #ifdef DEBUG
   ~SysfsDevice();
@@ -22,7 +20,6 @@ public:
   nlohmann::json serialize() override;
 
 private:
-  fs::path path;
-  std::vector<std::unique_ptr<Sensor>> sensors;
+  hwmon::fs::path path;
   void getName();
 };

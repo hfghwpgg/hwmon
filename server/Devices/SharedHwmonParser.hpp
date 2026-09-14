@@ -1,21 +1,19 @@
 #pragma once
 #include <filesystem>
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
-#include "../Sensor.hpp"
+#include "../hwmon.hpp"
 
 struct SharedHwmonParser {
   SharedHwmonParser() = default;
   ~SharedHwmonParser() = default;
 
 
-  static auto parseHwmonDirectory(const std::filesystem::path &path)
-      -> std::unordered_map<std::string, std::vector<std::string>>;
+  static hwmon::AvailableSensorsMap parseHwmonDirectory(const hwmon::fs::path &path);
 
-  static std::vector<std::unique_ptr<Sensor>>
-  createSensors(const std::filesystem::path &path,
-                const std::unordered_map<std::string, std::vector<std::string>> &available_sensors);
+  static void createSensors(const hwmon::fs::path &path,
+                            const hwmon::AvailableSensorsMap &available_sensors,
+                            hwmon::SensorVec &sensors);
+
+  static hwmon::SensorVec returnSensors(const hwmon::fs::path &path,
+                                        const hwmon::AvailableSensorsMap &available_sensors);
 };

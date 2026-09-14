@@ -8,6 +8,7 @@
 
 #include "Sensor.hpp"
 #include "SensorType.hpp"
+#include "hwmon.hpp"
 
 ValueSensor::ValueSensor(std::string name, SensorType type, bool aggregateData, bool isPrimary) :
     Sensor(nullptr, name, type, 1, aggregateData, isPrimary),
@@ -34,8 +35,8 @@ long double ValueSensor::prepareValue() {
   return value;
 }
 
-ValueSensor *addValueSensor(std::vector<std::unique_ptr<Sensor>> &sensors, std::string name,
-                            SensorType type, bool aggregateData, bool isPrimary) {
+ValueSensor *addValueSensor(hwmon::SensorVec &sensors, std::string name, SensorType type,
+                            bool aggregateData, bool isPrimary) {
   auto sensor = std::make_unique<ValueSensor>(std::move(name), type, aggregateData, isPrimary);
   ValueSensor *borrowed = sensor.get();
   sensors.emplace_back(std::move(sensor));

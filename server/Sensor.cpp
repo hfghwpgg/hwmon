@@ -11,11 +11,11 @@
 #include "SensorReading.hpp"
 #include "SensorType.hpp"
 
-Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType type,
+Sensor::Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type,
                unsigned int divider, bool aggregateData, bool isPrimary) :
     aggregateData(aggregateData),
     isPrimary(isPrimary),
-    dataStream(file),
+    dataStream(dataStream),
     name(name),
     type(type),
     divider(divider),
@@ -23,8 +23,16 @@ Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType 
   spdlog::trace("sensor init; its name: {}", name);
 }
 
+Sensor::Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type,
+               unsigned int divider, bool aggregateData) :
+    Sensor(dataStream, name, type, divider, aggregateData, false) {}
+
+Sensor::Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type,
+               unsigned int divider) :
+    Sensor(dataStream, name, type, divider, true, false) {}
+
 Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType type) :
-    Sensor(file, name, type, getDivider(type)) {}
+    Sensor(file, name, type, getDivider(type), true, false) {}
 
 Sensor::~Sensor() {
   spdlog::trace("sensor destroyed: {}", name);
@@ -60,7 +68,7 @@ double long Sensor::prepareValue() {
   long double readData;
   try {
     readData = std::stold(str);
-  } catch (const std::invalid_argument &) { // makes compilator happy
+  } catch (const std::invalid_argument &) {
     return NAN;
   } catch (const std::out_of_range &) {
     return NAN;
@@ -76,13 +84,13 @@ void Sensor::updateValue() {
   }
 
   readings.value = value;
-  readings.times++;
 
   if (!aggregateData) {
     readings.sum = value;
     readings.times = 1;
   } else {
     readings.sum += value;
+    readings.times++;
   }
 
   if (readings.min_value > value || std::isnan(readings.min_value)) {

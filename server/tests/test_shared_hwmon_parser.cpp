@@ -51,7 +51,7 @@ protected:
   nlohmann::json createReadAndSerialize() {
     const auto map = SharedHwmonParser::parseHwmonDirectory(dir);
     std::vector<std::unique_ptr<Sensor>> sensors;
-    sensors = SharedHwmonParser::createSensors(dir, map);
+    SharedHwmonParser::createSensors(dir, map, sensors);
     for (auto &s : sensors) {
       s->updateValue();
     }
@@ -65,7 +65,7 @@ protected:
   std::vector<std::unique_ptr<Sensor>> createSensors() {
     const auto map = SharedHwmonParser::parseHwmonDirectory(dir);
     std::vector<std::unique_ptr<Sensor>> sensors;
-    sensors = SharedHwmonParser::createSensors(dir, map);
+    SharedHwmonParser::createSensors(dir, map, sensors);
     return sensors;
   }
 
@@ -152,7 +152,7 @@ TEST_F(SharedHwmonParserTest, CreatesEnergySensor) {
   sensors[0]->updateValue();
 
   const nlohmann::json energy = sensors[0]->serialize();
-  EXPECT_EQ(energy["type"].get<int>(), static_cast<int>(SensorType::ENERGY));
+  EXPECT_EQ(energy["type"].get<int>(), static_cast<int>(SensorType::POWER));
   EXPECT_EQ(energy["readings"]["times"].get<std::size_t>(), 1u);
   EXPECT_FALSE(std::isnan(energy["readings"]["value"].get<float>()));
   EXPECT_TRUE(std::isfinite(energy["readings"]["value"].get<float>()));

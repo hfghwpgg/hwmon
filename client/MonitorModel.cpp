@@ -243,9 +243,6 @@ QVariant MonitorModel::data(const QModelIndex &index, int role) const
                 return QStringLiteral("[%1]  %2").arg(deviceTypeLabel(device->type), device->name);
             }
             if (isSection(index)) {
-                if (summary.valid) {
-                    return QStringLiteral("[%1]  %2").arg(sensorTypeLabel(summary.type), section->name);
-                }
                 return section->name;
             }
             return QStringLiteral("[%1]  %2").arg(sensorTypeLabel(sensor->type), sensor->name);

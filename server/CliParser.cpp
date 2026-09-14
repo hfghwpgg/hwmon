@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <stdexcept>
 
+#include "hwmon.hpp"
+
 Config CliParser(int argc, char *argv[]) {
   argparse::ArgumentParser hwmon("hwmon");
   hwmon.add_argument("-d", "--debug-level")
@@ -33,12 +35,12 @@ Config CliParser(int argc, char *argv[]) {
         return static_cast<unsigned int>(parsed);
       });
   hwmon.add_argument("--sock-path")
-      .default_value(std::filesystem::path("/tmp/hwmon/hwmon.sock"))
+      .default_value(hwmon::fs::path("/tmp/hwmon/hwmon.sock"))
       .help("file path for socket")
       .nargs(1)
       .action([](const std::string &val) {
-        const std::filesystem::path retPath = std::filesystem::path(val);
-        return static_cast<std::filesystem::path>(retPath);
+        const hwmon::fs::path retPath = hwmon::fs::path(val);
+        return static_cast<hwmon::fs::path>(retPath);
       });
   hwmon.add_argument("--backlog")
       .default_value(3u)
@@ -46,12 +48,12 @@ Config CliParser(int argc, char *argv[]) {
       .scan<'u', unsigned int>()
       .nargs(1);
   hwmon.add_argument("--hwmon-path")
-      .default_value(std::filesystem::path("/sys/class/hwmon"))
+      .default_value(hwmon::fs::path("/sys/class/hwmon"))
       .help("path to sysfs hwmon (for testing)")
       .nargs(1)
       .action([](const std::string &val) {
-        const std::filesystem::path retPath = std::filesystem::path(val);
-        return static_cast<std::filesystem::path>(retPath);
+        const hwmon::fs::path retPath = hwmon::fs::path(val);
+        return static_cast<hwmon::fs::path>(retPath);
       });
   hwmon.add_argument("--refresh-socket")
       .default_value(false)
@@ -72,8 +74,8 @@ Config CliParser(int argc, char *argv[]) {
 
   Config config;
   config.debuglevel = hwmon.get<unsigned int>("--debug-level");
-  config.sockPath = hwmon.get<std::filesystem::path>("--sock-path");
-  config.hwmonPath = hwmon.get<std::filesystem::path>("--hwmon-path");
+  config.sockPath = hwmon.get<hwmon::fs::path>("--sock-path");
+  config.hwmonPath = hwmon.get<hwmon::fs::path>("--hwmon-path");
   config.initialIntervalMs = hwmon.get<unsigned int>("--interval");
   config.backlog = hwmon.get<unsigned int>("--backlog");
   config.refreshSocket = hwmon.get<bool>("--refresh-socket");

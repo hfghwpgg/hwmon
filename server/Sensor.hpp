@@ -12,7 +12,11 @@ enum class SensorType;
 class Sensor {
 public:
   Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type,
-         unsigned int divider, bool aggregateData = true, bool isPrimary = false);
+         unsigned int divider, bool aggregateData, bool isPrimary);
+  Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type,
+         unsigned int divider, bool aggregateData);
+  Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type,
+         unsigned int divider);
   Sensor(std::shared_ptr<std::istream> dataStream, std::string name, SensorType type);
   virtual ~Sensor();
 

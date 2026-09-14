@@ -14,10 +14,9 @@
 #include "../SensorType.hpp"
 #include "../ValueSensor.hpp"
 #include "../helpers.hpp"
+#include "../hwmon.hpp"
 #include "GpuDetector.hpp"
 #include "SharedHwmonParser.hpp"
-
-namespace fs = std::filesystem;
 
 namespace {
 
@@ -34,10 +33,11 @@ std::string stripBranding(std::string deviceName) {
 
 } // namespace
 
-NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<fs::path> &hwmonPaths) :
+NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths) :
     NvidiaGpuDevice(std::move(card), hwmonPaths, true) {}
 
-NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<fs::path> &hwmonPaths, bool allowNvml) :
+NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths,
+                                 bool allowNvml) :
     Device(card.cardPath.filename().string(), DeviceType::GPU),
     card(std::move(card)),
     hwmonPaths(hwmonPaths),
@@ -54,71 +54,29 @@ void NvidiaGpuDevice::initialize() {
   // under nouveau, where NVML is unavailable anyway
   addHwmonSensors();
 
-  if (!haveNvml && sysfsFallback.empty())
+  if (!haveNvml && sensors.empty())
     spdlog::warn("{}: no readable metrics found", card.devicePath.string());
 }
 
 void NvidiaGpuDevice::read() {
   readNvml();
-  for (const auto &sensor : tempSensors) {
+  for (const auto &sensor : sensors) {
     sensor->updateValue();
-  }
-  for (const auto &sensor : utilizationSensors) {
-    sensor->updateValue();
-  }
-  for (const auto &sensor : memSensors) {
-    sensor->updateValue();
-  }
-  for (const auto &sensor : pcieTxRx) {
-    sensor->updateValue();
-  }
-  if (!sysfsFallback.empty()) {
-    for (const auto &sensor : sysfsFallback) {
-      sensor->updateValue();
-    }
   }
 }
 
 void NvidiaGpuDevice::resetReadings() {
-  for (const auto &sensor : tempSensors) {
+  for (const auto &sensor : sensors) {
     sensor->resetReadings();
-  }
-  for (const auto &sensor : utilizationSensors) {
-    sensor->resetReadings();
-  }
-  for (const auto &sensor : memSensors) {
-    sensor->resetReadings();
-  }
-  for (const auto &sensor : pcieTxRx) {
-    sensor->resetReadings();
-  }
-  if (!sysfsFallback.empty()) {
-    for (const auto &sensor : sysfsFallback) {
-      sensor->resetReadings();
-    }
   }
 }
 
 nlohmann::json NvidiaGpuDevice::serialize() {
   nlohmann::json j;
   j["name"] = name;
-  j["type"] = DeviceType::GPU;
-  for (const auto &sensor : tempSensors) {
-    j["sensors"]["Temperature sensors"].push_back(sensor->serialize());
-  }
-  for (const auto &sensor : utilizationSensors) {
-    j["sensors"]["Utilization"].push_back(sensor->serialize());
-  }
-  for (const auto &sensor : memSensors) {
-    j["sensors"]["VRAM sensors"].push_back(sensor->serialize());
-  }
-  for (const auto &sensor : pcieTxRx) {
-    j["sensors"]["PCIe speed"].push_back(sensor->serialize());
-  }
-  if (!sysfsFallback.empty()) {
-    for (const auto &sensor : sysfsFallback) {
-      j["sensors"]["Sysfs fallback"].push_back(sensor->serialize());
-    }
+  j["type"] = type;
+  for (const auto &sensor : sensors) {
+    j["sensors"].push_back(sensor->serialize());
   }
   return j;
 }
@@ -144,48 +102,45 @@ bool NvidiaGpuDevice::setupNvml() {
 
   unsigned int value = 0;
   if (nvml->nvmlDeviceGetTemperature(handle, NVML_TEMPERATURE_GPU, &value) == NVML_SUCCESS) {
-    nvmlSensors.temp = addValueSensor(tempSensors, "GPU core", SensorType::TEMPERATURE, true, true);
+    nvmlSensors.temp = addValueSensor(sensors, "GPU core", SensorType::TEMPERATURE, true, true);
   }
 
   nvmlUtilization_t utilization{};
   if (nvml->nvmlDeviceGetUtilizationRates(handle, &utilization) == NVML_SUCCESS) {
-    nvmlSensors.gpuUtil = addValueSensor(utilizationSensors, "GPU core", SensorType::UTILIZATION);
-    nvmlSensors.memUtil = addValueSensor(utilizationSensors, "GPU memory", SensorType::UTILIZATION);
+    nvmlSensors.gpuUtil = addValueSensor(sensors, "GPU core", SensorType::UTILIZATION);
+    nvmlSensors.memUtil = addValueSensor(sensors, "GPU memory", SensorType::UTILIZATION);
   }
 
   if (nvml->nvmlDeviceGetClockInfo(handle, NVML_CLOCK_GRAPHICS, &value) == NVML_SUCCESS) {
-    nvmlSensors.gpuClock =
-        addValueSensor(utilizationSensors, "GPU core clock", SensorType::FREQUENCY);
+    nvmlSensors.gpuClock = addValueSensor(sensors, "GPU core clock", SensorType::FREQUENCY);
   }
   if (nvml->nvmlDeviceGetClockInfo(handle, NVML_CLOCK_MEM, &value) == NVML_SUCCESS) {
-    nvmlSensors.memClock =
-        addValueSensor(utilizationSensors, "GPU memory clock", SensorType::FREQUENCY);
+    nvmlSensors.memClock = addValueSensor(sensors, "GPU memory clock", SensorType::FREQUENCY);
   }
 
   if (nvml->nvmlDeviceGetPowerUsage(handle, &value) == NVML_SUCCESS) {
-    nvmlSensors.power = addValueSensor(utilizationSensors, "GPU power draw", SensorType::POWER);
+    nvmlSensors.power = addValueSensor(sensors, "GPU power draw", SensorType::POWER);
   }
 
   nvmlMemory_t memory{};
   if (nvml->nvmlDeviceGetMemoryInfo(handle, &memory) == NVML_SUCCESS) {
-    nvmlSensors.vramTotal =
-        addValueSensor(memSensors, "GPU total memory", SensorType::MEMORY, false);
-    nvmlSensors.vramUsed = addValueSensor(memSensors, "GPU used memory", SensorType::MEMORY);
+    nvmlSensors.vramTotal = addValueSensor(sensors, "GPU total memory", SensorType::MEMORY, false);
+    nvmlSensors.vramUsed = addValueSensor(sensors, "GPU used memory", SensorType::MEMORY);
   }
 
   if (nvml->nvmlDeviceGetPcieThroughput(handle, NVML_PCIE_UTIL_TX_BYTES, &value) == NVML_SUCCESS) {
-    nvmlSensors.pcieTx = addValueSensor(pcieTxRx, "pcie_tx", SensorType::THROUGHPUT);
-    nvmlSensors.pcieRx = addValueSensor(pcieTxRx, "pcie_rx", SensorType::THROUGHPUT);
+    nvmlSensors.pcieTx = addValueSensor(sensors, "pcie_tx", SensorType::THROUGHPUT);
+    nvmlSensors.pcieRx = addValueSensor(sensors, "pcie_rx", SensorType::THROUGHPUT);
   }
 
   unsigned int samplingPeriodUs = 0;
   if (nvml->nvmlDeviceGetEncoderUtilization(handle, &value, &samplingPeriodUs) == NVML_SUCCESS) {
     nvmlSensors.encoderUtil =
-        addValueSensor(utilizationSensors, "Encoder utilization", SensorType::UTILIZATION);
+        addValueSensor(sensors, "Encoder utilization", SensorType::UTILIZATION);
   }
   if (nvml->nvmlDeviceGetDecoderUtilization(handle, &value, &samplingPeriodUs) == NVML_SUCCESS) {
     nvmlSensors.decoderUtil =
-        addValueSensor(utilizationSensors, "Decoder Utilization", SensorType::UTILIZATION);
+        addValueSensor(sensors, "Decoder Utilization", SensorType::UTILIZATION);
   }
 
   spdlog::info("using NVML for {}", name);
@@ -268,7 +223,7 @@ void NvidiaGpuDevice::addHwmonSensors() {
     return;
 
   const auto availableSensors = SharedHwmonParser::parseHwmonDirectory(card.hwmonPath);
-  sysfsFallback = SharedHwmonParser::createSensors(card.hwmonPath, availableSensors);
+  SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sensors);
 }
 
 std::string NvidiaGpuDevice::sysfsName() const {

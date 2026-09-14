@@ -22,12 +22,12 @@
 #include "Devices/NvidiaGpuDevice.hpp"
 #include "Devices/SysfsDevice.hpp"
 #include "SharedState.hpp"
+#include "hwmon.hpp"
 
-namespace fs = std::filesystem;
 using nlohmann::json;
 
-Runner::Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpecializedDevices,
-               std::filesystem::path drmPath) :
+Runner::Runner(SharedState &state, hwmon::fs::path hwmonPath, bool doSpecializedDevices,
+               hwmon::fs::path drmPath) :
     doSpecializedDevices(doSpecializedDevices),
     hwmonPath(hwmonPath),
     drmPath(drmPath),
@@ -54,8 +54,8 @@ void Runner::setup() {
   }
 
   std::set<fs::path> hwmonPaths;
-  for (const auto &entry : fs::directory_iterator(hwmonPath)) {
-    hwmonPaths.insert(fs::canonical(entry.path()));
+  for (const auto &entry : hwmon::fs::directory_iterator(hwmonPath)) {
+    hwmonPaths.insert(hwmon::fs::canonical(entry.path()));
   }
 
   spdlog::trace("hwmon length: {}", hwmonPaths.size());
@@ -80,7 +80,7 @@ void Runner::setup() {
 // One device per physical card, created only for GPUs that are actually
 // present. A card that fails to initialize is skipped rather than aborting
 // startup, so a single broken GPU can't take the whole server down.
-void Runner::setupGpuDevices(std::set<fs::path> &hwmonPaths) {
+void Runner::setupGpuDevices(std::set<hwmon::fs::path> &hwmonPaths) {
   bool intelPmuClaimed = false;
 
   for (const auto &card : GpuDetector::detect(drmPath)) {

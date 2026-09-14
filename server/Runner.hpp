@@ -6,13 +6,14 @@
 
 #include "Device.hpp"
 #include "SharedState.hpp"
+#include "hwmon.hpp"
 
 struct SharedState;
 
 class Runner {
 public:
-  explicit Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpecializedDevices,
-                  std::filesystem::path drmPath = "/sys/class/drm");
+  explicit Runner(SharedState &state, hwmon::fs::path hwmonPath, bool doSpecializedDevices,
+                  hwmon::fs::path drmPath = "/sys/class/drm");
 
 
 #ifdef DEBUG
@@ -24,12 +25,12 @@ public:
 
 private:
   const bool doSpecializedDevices;
-  const std::filesystem::path hwmonPath;
-  const std::filesystem::path drmPath;
+  const hwmon::fs::path hwmonPath;
+  const hwmon::fs::path drmPath;
   SharedState &state;
   std::vector<std::unique_ptr<Device>> devices;
 
   void resetReadings();
-  void setupGpuDevices(std::set<std::filesystem::path> &hwmonPaths);
+  void setupGpuDevices(std::set<hwmon::fs::path> &hwmonPaths);
   static long getUnixTimestamp();
 };

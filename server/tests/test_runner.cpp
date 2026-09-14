@@ -68,7 +68,7 @@ protected:
         continue;
       }
       for (const auto &sensor : device["sensors"]) {
-        if (sensor["type"].get<int>() != static_cast<int>(SensorType::ENERGY)) {
+        if (sensor["type"].get<int>() != static_cast<int>(SensorType::POWER)) {
           continue;
         }
         if (sensor["readings"]["times"].get<std::size_t>() >= minTimes) {
@@ -87,7 +87,7 @@ protected:
         continue;
       }
       for (const auto &sensor : device["sensors"]) {
-        if (sensor["type"].get<int>() != static_cast<int>(SensorType::ENERGY)) {
+        if (sensor["type"].get<int>() != static_cast<int>(SensorType::POWER)) {
           continue;
         }
         found = true;

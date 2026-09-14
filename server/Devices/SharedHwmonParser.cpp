@@ -9,15 +9,13 @@
 #include "../EnergySensor.hpp"
 #include "../SensorWhitelist.hpp"
 #include "../helpers.hpp"
+#include "../hwmon.hpp"
+#include "SensorType.hpp"
 #include "SharedHwmonParser.hpp"
 
-namespace fs = std::filesystem;
-
-std::unordered_map<std::string, std::vector<std::string>>
-SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
-  // body
-  std::unordered_map<std::string, std::vector<std::string>> available_sensors;
-  for (const auto &entry : fs::directory_iterator(path)) {
+hwmon::AvailableSensorsMap SharedHwmonParser::parseHwmonDirectory(const hwmon::fs::path &path) {
+  hwmon::AvailableSensorsMap available_sensors;
+  for (const auto &entry : hwmon::fs::directory_iterator(path)) {
     if (!entry.is_regular_file()) {
       spdlog::trace("{} is not a regular file", entry.path().string());
       continue;
@@ -59,17 +57,15 @@ SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
 
   return available_sensors;
 }
-std::vector<std::unique_ptr<Sensor>> SharedHwmonParser::createSensors(
-    const fs::path &path,
-    const std::unordered_map<std::string, std::vector<std::string>> &availableSensors) {
-  // body
-
-  std::vector<std::unique_ptr<Sensor>> sensors;
+void SharedHwmonParser::createSensors(const hwmon::fs::path &path,
+                                      const hwmon::AvailableSensorsMap &availableSensors,
+                                      hwmon::SensorVec &sensors) {
   for (const auto &[sensorBase, extensions] : availableSensors) {
     bool isPwm = sensorBase.contains("pwm");
     bool hasInput = false;
     bool hasAverage = false;
-    fs::path valueSrcPath;
+
+    hwmon::fs::path valueSrcPath;
     std::string label = sensorBase;
     for (const auto &ext : extensions) {
       if (ext == "input") {
@@ -113,10 +109,18 @@ std::vector<std::unique_ptr<Sensor>> SharedHwmonParser::createSensors(
     };
 
     if (type == SensorType::ENERGY) {
-      sensors.emplace_back(std::make_unique<EnergySensor>(std::move(valueSrc_ptr), label, type));
+      sensors.emplace_back(
+          // energy sensors return power
+          std::make_unique<EnergySensor>(std::move(valueSrc_ptr), label, SensorType::POWER));
     } else {
       sensors.emplace_back(std::make_unique<Sensor>(std::move(valueSrc_ptr), label, type));
     }
   }
+}
+hwmon::SensorVec
+SharedHwmonParser::returnSensors(const hwmon::fs::path &path,
+                                 const hwmon::AvailableSensorsMap &available_sensors) {
+  hwmon::SensorVec sensors;
+  createSensors(path, available_sensors, sensors);
   return sensors;
 }

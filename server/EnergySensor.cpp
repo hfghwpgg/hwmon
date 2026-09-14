@@ -3,17 +3,19 @@
 #include <chrono>
 #include <cmath>
 
-#include "Sensor.hpp"
-
 namespace chrono = std::chrono;
 
-EnergySensor::EnergySensor(std::unique_ptr<std::istream> file, std::string name, SensorType type) :
+EnergySensor::EnergySensor(std::unique_ptr<std::istream> file, std::string name, SensorType type,
+                           unsigned int divider) :
     // energy sensor gets file desciptor as unique
     // as it doesnt need to be shared
-    Sensor(std::move(file), name, type) {
+    Sensor(std::move(file), name, type, divider) {
   lastReading.value = NAN;
   lastReading.time = chrono::steady_clock::now();
 }
+
+EnergySensor::EnergySensor(std::unique_ptr<std::istream> file, std::string name, SensorType type) :
+    EnergySensor(std::move(file), name, type, 1) {}
 
 void EnergySensor::resetReadings() {
   lastReading.value = NAN;

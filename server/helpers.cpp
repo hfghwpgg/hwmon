@@ -1,4 +1,5 @@
 #include "helpers.hpp"
+#include "hwmon.hpp"
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -18,7 +19,7 @@ std::string trim(std::string &str) {
   return str;
 }
 
-pathTypeEnum pathType(const std::filesystem::path &path) {
+pathTypeEnum pathType(const hwmon::fs::path &path) {
   struct stat sb; // struct for metadata
   if (stat(path.c_str(), &sb) == 0) {
     // S_IFDIR = 1 => directory
@@ -27,7 +28,7 @@ pathTypeEnum pathType(const std::filesystem::path &path) {
   return pathTypeEnum::INVALID;
 }
 
-std::string readFileFirstLine(std::filesystem::path pathToFile) {
+std::string readFileFirstLine(hwmon::fs::path pathToFile) {
   std::string content;
   std::ifstream f{pathToFile};
   f.clear();
