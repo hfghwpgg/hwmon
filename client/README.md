@@ -53,6 +53,7 @@ cd hwmon
 
 <details>
 <summary><h2>Screenshots</h2></summary>
+
 ![dark mode](./screens/hwmon0.png "dark mode")
 ![light mode + settings](./screens/hwmon1.png "light mode + settings")
 
