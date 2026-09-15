@@ -19,7 +19,8 @@
 
 > settings are saved in ~/.config/hwmon directory
 
-## Client compilation
+<details>
+<summary><h2>Client compilation</h2></summary>
 
 Recommended way of compiling client is using provided `build_client.sh` shell script
 
@@ -48,3 +49,4 @@ cd hwmon
 ```bash
 ./client/build/hwmonclient
 ```
+</details>

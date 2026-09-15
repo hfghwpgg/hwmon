@@ -16,7 +16,8 @@
 ## How to query data?
 see [miniclient.py](../miniclient.py)
 
-## Server compilation
+<details>
+<summary><h2>Server compilation</h2></summary>
 
 Recommended way of compiling server is using provided `build_server.sh` shell script
 
@@ -45,3 +46,4 @@ cd hwmon
 ```bash
 ./server/build/hwmon
 ```
+</details>
