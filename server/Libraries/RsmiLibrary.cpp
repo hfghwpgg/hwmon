@@ -89,6 +89,7 @@ bool RsmiLibrary::load() {
   LOAD_SYM(rsmi_version_get);
   LOAD_SYM(rsmi_num_monitor_devices);
   LOAD_SYM(rsmi_dev_name_get);
+  LOAD_SYM(rsmi_dev_market_name_get);
   LOAD_SYM(rsmi_dev_pci_id_get);
   LOAD_SYM(rsmi_dev_power_cap_get);
   LOAD_SYM(rsmi_dev_temp_metric_get);

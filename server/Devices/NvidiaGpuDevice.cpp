@@ -111,7 +111,7 @@ bool NvidiaGpuDevice::setupNvml() {
   }
 
   if (nvml->nvmlDeviceGetClockInfo(handle, NVML_CLOCK_GRAPHICS, &value) == NVML_SUCCESS) {
-    nvmlSensors.gpuClock = addValueSensor(sensors, "GPU core clock", SensorType::FREQUENCY);
+    nvmlSensors.gpuClock = addValueSensor(sensors, "GPU core", SensorType::FREQUENCY);
   }
   if (nvml->nvmlDeviceGetClockInfo(handle, NVML_CLOCK_MEM, &value) == NVML_SUCCESS) {
     nvmlSensors.memClock = addValueSensor(sensors, "GPU memory clock", SensorType::FREQUENCY);

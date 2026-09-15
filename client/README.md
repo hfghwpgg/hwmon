@@ -9,6 +9,16 @@
 - CMake (tested with version 4.3.2)
 - Make (tested with version 4.4.1)
 
+## Features
+- display current, minimum, maximum and average value of each sensor
+- slight glow on changed value
+- freely move devices, sensors (within their sections) in the list
+- ability to reset readings
+- change logging interval
+- dark and light themes
+
+> settings are saved in ~/.config/hwmon directory
+
 ## Client compilation
 
 Recommended way of compiling client is using provided `build_client.sh` shell script

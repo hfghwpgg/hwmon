@@ -56,7 +56,9 @@ public:
   // current frequency in MHz, or -1 when unsupported
   long long getCurrentClockMhz(uint32_t index, rsmi_clk_type_t clockType);
 
-  uint32_t deviceCount() const { return device_count; }
+  uint32_t deviceCount() const {
+    return device_count;
+  }
 
   //? Function pointers
   rsmi_status_t (*rsmi_init)(uint64_t) = nullptr;
@@ -64,6 +66,7 @@ public:
   rsmi_status_t (*rsmi_version_get)(rsmi_version_t *) = nullptr;
   rsmi_status_t (*rsmi_num_monitor_devices)(uint32_t *) = nullptr;
   rsmi_status_t (*rsmi_dev_name_get)(uint32_t, char *, size_t) = nullptr;
+  rsmi_status_t (*rsmi_dev_market_name_get)(uint32_t, char *, size_t) = nullptr;
   rsmi_status_t (*rsmi_dev_pci_id_get)(uint32_t, uint64_t *) = nullptr;
   rsmi_status_t (*rsmi_dev_power_cap_get)(uint32_t, uint32_t, uint64_t *) = nullptr;
   rsmi_status_t (*rsmi_dev_temp_metric_get)(uint32_t, uint32_t, rsmi_temperature_metric_t,

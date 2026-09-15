@@ -81,8 +81,12 @@ bool AmdGpuDevice::setupRsmi() {
   }
 
   char deviceName[RSMI_DEVICE_NAME_BUFFER_SIZE];
-  if (rsmi->rsmi_dev_name_get(rsmiIndex, deviceName, RSMI_DEVICE_NAME_BUFFER_SIZE) ==
+  if (rsmi->rsmi_dev_market_name_get(rsmiIndex, deviceName, RSMI_DEVICE_NAME_BUFFER_SIZE) ==
       RSMI_STATUS_SUCCESS) {
+    name = deviceName;
+  } else if (deviceName[0] == '\0' && // returned name is empty
+             rsmi->rsmi_dev_name_get(rsmiIndex, deviceName, RSMI_DEVICE_NAME_BUFFER_SIZE) ==
+                 RSMI_STATUS_SUCCESS) {
     name = deviceName;
   } else {
     spdlog::warn("ROCm SMI: failed to get device name for {}", card.pciAddress);
@@ -115,7 +119,7 @@ bool AmdGpuDevice::setupRsmi() {
   }
 
   if (rsmi->getCurrentClockMhz(rsmiIndex, RSMI_CLK_TYPE_SYS) >= 0) {
-    rsmiSensors.sclk = addValueSensor(sensors, "GPU core clock", SensorType::FREQUENCY);
+    rsmiSensors.sclk = addValueSensor(sensors, "GPU core", SensorType::FREQUENCY);
   }
   if (rsmi->getCurrentClockMhz(rsmiIndex, RSMI_CLK_TYPE_MEM) >= 0) {
     rsmiSensors.mclk = addValueSensor(sensors, "GPU memory", SensorType::FREQUENCY);
@@ -123,7 +127,12 @@ bool AmdGpuDevice::setupRsmi() {
 
   uint64_t power = 0;
   if (rsmi->rsmi_dev_power_ave_get(rsmiIndex, 0, &power) == RSMI_STATUS_SUCCESS) {
-    rsmiSensors.power = addValueSensor(sensors, "GPU power draw", SensorType::POWER);
+    rsmiSensors.power = addValueSensor(sensors, "GPU power draw", SensorType::POWER, true, true);
+  }
+
+  uint64_t powerCap = 0;
+  if (rsmi->rsmi_dev_power_cap_get(rsmiIndex, 0, &powerCap) == RSMI_STATUS_SUCCESS) {
+    rsmiSensors.powerCap = addValueSensor(sensors, "GPU power cap", SensorType::POWER, false);
   }
 
   uint64_t vram = 0;
@@ -201,6 +210,12 @@ void AmdGpuDevice::readRsmi() {
     uint64_t power = 0;
     if (rsmi->rsmi_dev_power_ave_get(rsmiIndex, 0, &power) == RSMI_STATUS_SUCCESS)
       rsmiSensors.power->setValue(static_cast<long double>(power) / 1'000'000); // microwatts
+  }
+
+  if (rsmiSensors.powerCap != nullptr) {
+    uint64_t powerCap = 0;
+    if (rsmi->rsmi_dev_power_cap_get(rsmiIndex, 0, &powerCap) == RSMI_STATUS_SUCCESS)
+      rsmiSensors.powerCap->setValue(static_cast<long double>(powerCap) / 1'000'000); // microwatts
   }
 
   if (rsmiSensors.vramTotal != nullptr) {

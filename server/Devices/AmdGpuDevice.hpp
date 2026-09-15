@@ -36,6 +36,7 @@ private:
     ValueSensor *sclk = nullptr;
     ValueSensor *mclk = nullptr;
     ValueSensor *power = nullptr;
+    ValueSensor *powerCap = nullptr;
     ValueSensor *vramTotal = nullptr;
     ValueSensor *vramUsed = nullptr;
     ValueSensor *pcieTx = nullptr;
