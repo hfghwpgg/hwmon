@@ -7,16 +7,16 @@
 #include "../Device.hpp"
 #include "../Libraries/NvmlLibrary.hpp"
 #include "../ValueSensor.hpp"
-#include "../hwmon.hpp"
+#include "../helpers.hpp"
 #include "GpuDetector.hpp"
 
 class NvidiaGpuDevice : public Device {
 public:
   // hwmonPaths is the set Runner hands out; the card's own hwmon directory is
   // removed from it so it doesn't show up again as a GeneralDevice
-  NvidiaGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths);
+  NvidiaGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths);
   // allowNvml = false forces the hwmon backend, used by the tests
-  NvidiaGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths, bool allowNvml);
+  NvidiaGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths, bool allowNvml);
 
   void initialize() override;
   void read() override;
@@ -42,7 +42,7 @@ private:
   };
 
   const GpuCardInfo card;
-  std::set<hwmon::fs::path> &hwmonPaths;
+  std::set<helpers::fs::path> &hwmonPaths;
   const bool allowNvml;
 
   std::shared_ptr<NvmlLibrary> nvml;

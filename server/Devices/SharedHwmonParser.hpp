@@ -1,19 +1,19 @@
 #pragma once
 #include <filesystem>
 
-#include "../hwmon.hpp"
+#include "../helpers.hpp"
 
 struct SharedHwmonParser {
   SharedHwmonParser() = default;
   ~SharedHwmonParser() = default;
 
 
-  static hwmon::AvailableSensorsMap parseHwmonDirectory(const hwmon::fs::path &path);
+  static helpers::AvailableSensorsMap parseHwmonDirectory(const helpers::fs::path &path);
 
-  static void createSensors(const hwmon::fs::path &path,
-                            const hwmon::AvailableSensorsMap &available_sensors,
-                            hwmon::SensorVec &sensors);
+  static void createSensors(const helpers::fs::path &path,
+                            const helpers::AvailableSensorsMap &available_sensors,
+                            helpers::SensorVec &sensors);
 
-  static hwmon::SensorVec returnSensors(const hwmon::fs::path &path,
-                                        const hwmon::AvailableSensorsMap &available_sensors);
+  static helpers::SensorVec returnSensors(const helpers::fs::path &path,
+                                          const helpers::AvailableSensorsMap &available_sensors);
 };

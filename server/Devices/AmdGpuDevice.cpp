@@ -17,14 +17,14 @@
 #include "../Sensor.hpp"
 #include "../SensorType.hpp"
 #include "../ValueSensor.hpp"
-#include "../hwmon.hpp"
+#include "../helpers.hpp"
 #include "GpuDetector.hpp"
 #include "SharedHwmonParser.hpp"
 
-AmdGpuDevice::AmdGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths) :
+AmdGpuDevice::AmdGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths) :
     AmdGpuDevice(std::move(card), hwmonPaths, true) {}
 
-AmdGpuDevice::AmdGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths,
+AmdGpuDevice::AmdGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths,
                            bool allowRsmi) :
     Device(card.cardPath.filename().string(), DeviceType::GPU),
     card(std::move(card)),
@@ -263,10 +263,10 @@ void AmdGpuDevice::addHwmonSensors(bool onlyUncoveredMetrics) {
   SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sensors);
 }
 
-void AmdGpuDevice::addSysfsSensor(hwmon::SensorVec &sensors, const hwmon::fs::path &path,
+void AmdGpuDevice::addSysfsSensor(helpers::SensorVec &sensors, const helpers::fs::path &path,
                                   const std::string &sensorName, SensorType type,
                                   unsigned int divider, bool aggregateData, bool isPrimary) {
-  if (!hwmon::fs::exists(path))
+  if (!helpers::fs::exists(path))
     return;
 
   auto stream = std::make_shared<std::ifstream>(path);

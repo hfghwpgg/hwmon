@@ -4,11 +4,11 @@
 #include <string>
 
 #include "../Device.hpp"
-#include "../hwmon.hpp"
+#include "../helpers.hpp"
 
 class SysfsDevice : public Device {
 public:
-  SysfsDevice(std::string name, DeviceType type, hwmon::fs::path path);
+  SysfsDevice(std::string name, DeviceType type, helpers::fs::path path);
 
 #ifdef DEBUG
   ~SysfsDevice();
@@ -20,6 +20,6 @@ public:
   nlohmann::json serialize() override;
 
 private:
-  hwmon::fs::path path;
+  helpers::fs::path path;
   void getName();
 };

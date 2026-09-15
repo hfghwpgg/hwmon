@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "SharedState.hpp"
-#include "hwmon.hpp"
+#include "helpers.hpp"
 
 struct SharedState;
 
@@ -43,7 +43,7 @@ private:
 // snapshot and accepts control commands. One jthread per client.
 class UDSServer {
 public:
-  UDSServer(hwmon::fs::path udsPath, int backlog, SharedState &state);
+  UDSServer(helpers::fs::path udsPath, int backlog, SharedState &state);
   ~UDSServer();
 
   UDSServer(const UDSServer &) = delete;
@@ -65,7 +65,7 @@ private:
   std::string ProcessRequest(std::string_view request);
   void ReapFinishedClients();
 
-  const hwmon::fs::path udsPath;
+  const helpers::fs::path udsPath;
   const int backlog;
   SharedState &state;
 

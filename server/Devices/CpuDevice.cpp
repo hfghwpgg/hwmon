@@ -23,15 +23,14 @@
 #include "SharedHwmonParser.hpp"
 #include "ValueSensor.hpp"
 #include "helpers.hpp"
-#include "hwmon.hpp"
 
-CpuDevice::CpuDevice(std::set<hwmon::fs::path> &hwmonPaths) :
+CpuDevice::CpuDevice(std::set<helpers::fs::path> &hwmonPaths) :
     CpuDevice(hwmonPaths, "/sys/devices/system/cpu/cpufreq/", "/proc/cpuinfo", "/proc/stat",
               "/sys/class/powercap/intel-rapl:0/energy_uj") {}
 
-CpuDevice::CpuDevice(std::set<hwmon::fs::path> &hwmonPaths, hwmon::fs::path cpufreq_path,
-                     hwmon::fs::path cpuinfo_path, hwmon::fs::path cpuutil_path,
-                     hwmon::fs::path intelrapl_path) :
+CpuDevice::CpuDevice(std::set<helpers::fs::path> &hwmonPaths, helpers::fs::path cpufreq_path,
+                     helpers::fs::path cpuinfo_path, helpers::fs::path cpuutil_path,
+                     helpers::fs::path intelrapl_path) :
     Device("SAMPLE CPU NAME", DeviceType::CPU),
     cpuPaths(CpuPaths{.cpufreq = cpufreq_path,
                       .cpuinfo = cpuinfo_path,
@@ -84,10 +83,10 @@ nlohmann::json CpuDevice::serialize() {
 
 void CpuDevice::getTemperature() {
   // placeholders
-  hwmon::fs::path coretempDriver = "";
-  hwmon::fs::path cpuTemp = "";
+  helpers::fs::path coretempDriver = "";
+  helpers::fs::path cpuTemp = "";
 
-  for (const hwmon::fs::path &dir : hwmonPaths) {
+  for (const helpers::fs::path &dir : hwmonPaths) {
     if (dir.string().contains("nvme"))
       continue;
 
@@ -96,7 +95,7 @@ void CpuDevice::getTemperature() {
       break;
     }
 
-    for (const auto &file : hwmon::fs::directory_iterator(dir)) {
+    for (const auto &file : helpers::fs::directory_iterator(dir)) {
       const auto filename = file.path().stem().string();
       if (!filename.contains("label"))
         continue;
@@ -124,11 +123,11 @@ void CpuDevice::getTemperature() {
 
 // this interface returns frequency in kHz, not Hz.
 void CpuDevice::getCoreFrequency() {
-  if (!hwmon::fs::exists(cpuPaths.cpufreq) || access(cpuPaths.cpufreq.c_str(), R_OK) == -1) {
+  if (!helpers::fs::exists(cpuPaths.cpufreq) || access(cpuPaths.cpufreq.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible", cpuPaths.cpufreq.string());
     return;
   }
-  for (const auto &policy : hwmon::fs::directory_iterator(cpuPaths.cpufreq)) {
+  for (const auto &policy : helpers::fs::directory_iterator(cpuPaths.cpufreq)) {
     const std::string filename = policy.path().stem().string();
     if (!filename.starts_with("policy"))
       continue;
@@ -145,7 +144,7 @@ void CpuDevice::getCoreFrequency() {
 
 std::string CpuDevice::getName() {
   std::string name = "cpumodel"; // placeholder
-  if (!hwmon::fs::exists(cpuPaths.cpuinfo) || access(cpuPaths.cpuinfo.c_str(), R_OK) == -1) {
+  if (!helpers::fs::exists(cpuPaths.cpuinfo) || access(cpuPaths.cpuinfo.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible; setting general name for cpu", cpuPaths.cpuinfo.string());
     return name;
   }
@@ -174,7 +173,7 @@ std::string CpuDevice::getName() {
 // this is just creating right amount of
 // valueSensors for cpu + each core
 void CpuDevice::initUtilization() {
-  if (!hwmon::fs::exists(cpuPaths.cpuutil) || access(cpuPaths.cpuutil.c_str(), R_OK) == -1) {
+  if (!helpers::fs::exists(cpuPaths.cpuutil) || access(cpuPaths.cpuutil.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible", cpuPaths.cpuutil.string());
     return;
   }
@@ -286,9 +285,9 @@ void CpuDevice::getPowerDraw() {
 
   // intel rapl requires root to be read
   const bool intelRaplAccessible =
-      (hwmon::fs::exists(cpuPaths.intelrapl) && access(cpuPaths.intelrapl.c_str(), R_OK) != -1);
+      (helpers::fs::exists(cpuPaths.intelrapl) && access(cpuPaths.intelrapl.c_str(), R_OK) != -1);
 
-  hwmon::fs::path zenergyPath = "";
+  helpers::fs::path zenergyPath = "";
   for (const auto &dir : hwmonPaths) {
     if (dir.string().contains("zenergy")) {
       zenergyPath = dir;
@@ -302,7 +301,7 @@ void CpuDevice::getPowerDraw() {
   const bool zenergyAccessible =
       (!zenergyPath.empty() && helpers::pathType(zenergyPath) == helpers::pathTypeEnum::DIRECTORY);
 
-  hwmon::SensorVec powerSensors;
+  helpers::SensorVec powerSensors;
   if (zenergyAccessible) {
     spdlog::info("using zenergy interface for cpu power draw");
     const auto availableSensors = SharedHwmonParser::parseHwmonDirectory(zenergyPath);

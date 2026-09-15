@@ -14,7 +14,7 @@
 #include "../Device.hpp"
 #include "../SensorType.hpp"
 #include "../ValueSensor.hpp"
-#include "../hwmon.hpp"
+#include "../helpers.hpp"
 #include "GpuDetector.hpp"
 #include "SharedHwmonParser.hpp"
 
@@ -48,7 +48,7 @@ constexpr const char *PMU_DEVICE = "i915";
 
 } // namespace
 
-IntelGpuDevice::IntelGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths,
+IntelGpuDevice::IntelGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths,
                                bool allowPmu) :
     Device(card.cardPath.filename().string(), DeviceType::GPU),
     card(std::move(card)),

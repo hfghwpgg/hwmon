@@ -3,7 +3,7 @@
 #include <string>
 
 #include "DeviceType.hpp"
-#include "hwmon.hpp"
+#include "helpers.hpp"
 
 class Device {
 public:
@@ -18,5 +18,5 @@ public:
 protected:
   std::string name;
   DeviceType type;
-  hwmon::SensorVec sensors;
+  helpers::SensorVec sensors;
 };

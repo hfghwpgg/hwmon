@@ -7,15 +7,15 @@
 
 #include "../Device.hpp"
 #include "../ValueSensor.hpp"
-#include "../hwmon.hpp"
+#include "../helpers.hpp"
 
 
 class CpuDevice : public Device {
 public:
-  CpuDevice(std::set<hwmon::fs::path> &hwmonPaths);
-  CpuDevice(std::set<hwmon::fs::path> &hwmonPaths, hwmon::fs::path cpufreq_path,
-            hwmon::fs::path cpuinfo_path, hwmon::fs::path cpuutil_path,
-            hwmon::fs::path intelrapl_path);
+  CpuDevice(std::set<helpers::fs::path> &hwmonPaths);
+  CpuDevice(std::set<helpers::fs::path> &hwmonPaths, helpers::fs::path cpufreq_path,
+            helpers::fs::path cpuinfo_path, helpers::fs::path cpuutil_path,
+            helpers::fs::path intelrapl_path);
   ~CpuDevice();
 
   void initialize() override;
@@ -36,15 +36,15 @@ private:
   };
 
   const struct CpuPaths {
-    hwmon::fs::path cpufreq;
-    hwmon::fs::path cpuinfo;
-    hwmon::fs::path cpuutil;
-    hwmon::fs::path intelrapl;
+    helpers::fs::path cpufreq;
+    helpers::fs::path cpuinfo;
+    helpers::fs::path cpuutil;
+    helpers::fs::path intelrapl;
   } cpuPaths;
 
   std::unordered_map<std::string, utilSensorData> utilSensorsPrivate;
 
-  std::set<hwmon::fs::path> &hwmonPaths;
+  std::set<helpers::fs::path> &hwmonPaths;
   std::ifstream cpuutil_fd;
 
   void getTemperature();

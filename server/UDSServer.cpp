@@ -19,7 +19,7 @@
 #include <utility>
 
 #include "SharedState.hpp"
-#include "hwmon.hpp"
+#include "helpers.hpp"
 
 using json = nlohmann::json;
 
@@ -54,7 +54,7 @@ void FdGuard::reset() noexcept {
 // ---------------------------------------------------------------------------
 // UDSServer
 // ---------------------------------------------------------------------------
-UDSServer::UDSServer(hwmon::fs::path udsPath, int backlog, SharedState &state) :
+UDSServer::UDSServer(helpers::fs::path udsPath, int backlog, SharedState &state) :
     udsPath(std::move(udsPath)),
     backlog(backlog),
     state(state) {}
@@ -89,7 +89,7 @@ bool UDSServer::setup() {
   // ::unlink(udsPath.c_str());
   // ::rmdir(udsPath.parent_path().c_str());
 
-  if (hwmon::fs::exists(udsPath)) {
+  if (helpers::fs::exists(udsPath)) {
     spdlog::error("socket already exists, exiting...");
     spdlog::info("it probably means that that other instance is running in the background");
     spdlog::info("or that you pointed socket at a regular file");

@@ -14,7 +14,6 @@
 #include "../SensorType.hpp"
 #include "../ValueSensor.hpp"
 #include "../helpers.hpp"
-#include "../hwmon.hpp"
 #include "GpuDetector.hpp"
 #include "SharedHwmonParser.hpp"
 
@@ -33,10 +32,10 @@ std::string stripBranding(std::string deviceName) {
 
 } // namespace
 
-NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths) :
+NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths) :
     NvidiaGpuDevice(std::move(card), hwmonPaths, true) {}
 
-NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths,
+NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths,
                                  bool allowNvml) :
     Device(card.cardPath.filename().string(), DeviceType::GPU),
     card(std::move(card)),

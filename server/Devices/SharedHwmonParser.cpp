@@ -9,13 +9,12 @@
 #include "../EnergySensor.hpp"
 #include "../SensorWhitelist.hpp"
 #include "../helpers.hpp"
-#include "../hwmon.hpp"
 #include "SensorType.hpp"
 #include "SharedHwmonParser.hpp"
 
-hwmon::AvailableSensorsMap SharedHwmonParser::parseHwmonDirectory(const hwmon::fs::path &path) {
-  hwmon::AvailableSensorsMap available_sensors;
-  for (const auto &entry : hwmon::fs::directory_iterator(path)) {
+helpers::AvailableSensorsMap SharedHwmonParser::parseHwmonDirectory(const helpers::fs::path &path) {
+  helpers::AvailableSensorsMap available_sensors;
+  for (const auto &entry : helpers::fs::directory_iterator(path)) {
     if (!entry.is_regular_file()) {
       spdlog::trace("{} is not a regular file", entry.path().string());
       continue;
@@ -57,15 +56,15 @@ hwmon::AvailableSensorsMap SharedHwmonParser::parseHwmonDirectory(const hwmon::f
 
   return available_sensors;
 }
-void SharedHwmonParser::createSensors(const hwmon::fs::path &path,
-                                      const hwmon::AvailableSensorsMap &availableSensors,
-                                      hwmon::SensorVec &sensors) {
+void SharedHwmonParser::createSensors(const helpers::fs::path &path,
+                                      const helpers::AvailableSensorsMap &availableSensors,
+                                      helpers::SensorVec &sensors) {
   for (const auto &[sensorBase, extensions] : availableSensors) {
     bool isPwm = sensorBase.contains("pwm");
     bool hasInput = false;
     bool hasAverage = false;
 
-    hwmon::fs::path valueSrcPath;
+    helpers::fs::path valueSrcPath;
     std::string label = sensorBase;
     for (const auto &ext : extensions) {
       if (ext == "input") {
@@ -117,10 +116,10 @@ void SharedHwmonParser::createSensors(const hwmon::fs::path &path,
     }
   }
 }
-hwmon::SensorVec
-SharedHwmonParser::returnSensors(const hwmon::fs::path &path,
-                                 const hwmon::AvailableSensorsMap &available_sensors) {
-  hwmon::SensorVec sensors;
+helpers::SensorVec
+SharedHwmonParser::returnSensors(const helpers::fs::path &path,
+                                 const helpers::AvailableSensorsMap &available_sensors) {
+  helpers::SensorVec sensors;
   createSensors(path, available_sensors, sensors);
   return sensors;
 }

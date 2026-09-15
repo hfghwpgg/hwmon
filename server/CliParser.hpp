@@ -1,11 +1,11 @@
 #pragma once
-#include "hwmon.hpp"
+#include "helpers.hpp"
 #include <filesystem>
 
 struct Config {
   unsigned int debuglevel;
-  hwmon::fs::path sockPath;
-  hwmon::fs::path hwmonPath;
+  helpers::fs::path sockPath;
+  helpers::fs::path hwmonPath;
   unsigned int initialIntervalMs;
   int backlog;
   bool refreshSocket;

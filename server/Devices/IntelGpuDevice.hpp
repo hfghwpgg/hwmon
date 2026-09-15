@@ -6,7 +6,7 @@
 
 #include "../Device.hpp"
 #include "../ValueSensor.hpp"
-#include "../hwmon.hpp"
+#include "../helpers.hpp"
 #include "GpuDetector.hpp"
 
 struct engines;
@@ -17,7 +17,7 @@ public:
   // removed from it so it doesn't show up again as a GeneralDevice.
   // allowPmu must be set for at most one card: the i915 perf PMU is a
   // process-wide resource and the upstream helper only handles one device.
-  IntelGpuDevice(GpuCardInfo card, std::set<hwmon::fs::path> &hwmonPaths, bool allowPmu);
+  IntelGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths, bool allowPmu);
   ~IntelGpuDevice();
 
   void initialize() override;
@@ -27,7 +27,7 @@ public:
 
 private:
   const GpuCardInfo card;
-  std::set<hwmon::fs::path> &hwmonPaths;
+  std::set<helpers::fs::path> &hwmonPaths;
   const bool allowPmu;
 
   struct engines *pmuEngines = nullptr;

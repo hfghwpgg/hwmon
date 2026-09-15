@@ -22,12 +22,12 @@
 #include "Devices/NvidiaGpuDevice.hpp"
 #include "Devices/SysfsDevice.hpp"
 #include "SharedState.hpp"
-#include "hwmon.hpp"
+#include "helpers.hpp"
 
 using nlohmann::json;
 
-Runner::Runner(SharedState &state, hwmon::fs::path hwmonPath, bool doSpecializedDevices,
-               hwmon::fs::path drmPath) :
+Runner::Runner(SharedState &state, helpers::fs::path hwmonPath, bool doSpecializedDevices,
+               helpers::fs::path drmPath) :
     doSpecializedDevices(doSpecializedDevices),
     hwmonPath(hwmonPath),
     drmPath(drmPath),
@@ -48,14 +48,14 @@ long Runner::getUnixTimestamp() {
       .count();
 }
 void Runner::setup() {
-  if (!hwmon::fs::exists(hwmonPath) || access(hwmonPath.c_str(), R_OK) == -1) {
+  if (!helpers::fs::exists(hwmonPath) || access(hwmonPath.c_str(), R_OK) == -1) {
     spdlog::critical("no access to hwmon interface, aborting");
     throw std::runtime_error("no access to hwmon interface");
   }
 
-  std::set<hwmon::fs::path> hwmonPaths;
-  for (const auto &entry : hwmon::fs::directory_iterator(hwmonPath)) {
-    hwmonPaths.insert(hwmon::fs::canonical(entry.path()));
+  std::set<helpers::fs::path> hwmonPaths;
+  for (const auto &entry : helpers::fs::directory_iterator(hwmonPath)) {
+    hwmonPaths.insert(helpers::fs::canonical(entry.path()));
   }
 
   spdlog::trace("hwmon length: {}", hwmonPaths.size());
@@ -80,7 +80,7 @@ void Runner::setup() {
 // One device per physical card, created only for GPUs that are actually
 // present. A card that fails to initialize is skipped rather than aborting
 // startup, so a single broken GPU can't take the whole server down.
-void Runner::setupGpuDevices(std::set<hwmon::fs::path> &hwmonPaths) {
+void Runner::setupGpuDevices(std::set<helpers::fs::path> &hwmonPaths) {
   bool intelPmuClaimed = false;
 
   for (const auto &card : GpuDetector::detect(drmPath)) {

@@ -34,6 +34,7 @@ Sensor::Sensor(std::shared_ptr<std::istream> dataStream, std::string name, Senso
 Sensor::Sensor(std::shared_ptr<std::istream> file, std::string name, SensorType type) :
     Sensor(file, name, type, getDivider(type), true, false) {}
 
+
 Sensor::~Sensor() {
   spdlog::trace("sensor destroyed: {}", name);
 }

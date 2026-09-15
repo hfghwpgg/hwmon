@@ -5,7 +5,7 @@
 
 #include "Sensor.hpp"
 #include "SensorType.hpp"
-#include "hwmon.hpp"
+#include "helpers.hpp"
 
 // Sensor whose value is pushed in by its owner instead of being read from a
 // file. Used by devices backed by vendor libraries (NVML, ROCm SMI, i915 PMU).
@@ -28,5 +28,5 @@ private:
 
 // appends a ValueSensor to a device's sensor list and hands back a borrowed
 // pointer the device uses to push values into it
-ValueSensor *addValueSensor(hwmon::SensorVec &sensors, std::string name, SensorType type,
+ValueSensor *addValueSensor(helpers::SensorVec &sensors, std::string name, SensorType type,
                             bool aggregateData = true, bool isPrimary = false);

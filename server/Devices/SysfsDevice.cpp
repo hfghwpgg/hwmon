@@ -14,7 +14,7 @@ enum class DeviceType;
 
 using std::string;
 
-SysfsDevice::SysfsDevice(string name, DeviceType type, hwmon::fs::path path) :
+SysfsDevice::SysfsDevice(string name, DeviceType type, helpers::fs::path path) :
     Device(name, type),
     path(path) {
   spdlog::trace("CURRENT SYSFS DEVICE: {} <{}>", path.string(), name);
@@ -62,7 +62,7 @@ nlohmann::json SysfsDevice::serialize() {
 // as device name
 void SysfsDevice::getName() {
   const auto namePath = path / "name";
-  if (hwmon::fs::exists(namePath) && access(namePath.c_str(), R_OK) != -1) {
+  if (helpers::fs::exists(namePath) && access(namePath.c_str(), R_OK) != -1) {
     name = helpers::readFileFirstLine(namePath);
   }
 }
