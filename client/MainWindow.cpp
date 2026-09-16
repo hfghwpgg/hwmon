@@ -2,6 +2,7 @@
 
 #include "ClientBackend.hpp"
 #include "MonitorModel.hpp"
+#include "UiStyle.hpp"
 
 #include <QAction>
 #include <QCloseEvent>
@@ -16,6 +17,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSettings>
+#include <QSize>
 #include <QSpinBox>
 #include <QTreeView>
 #include <QVBoxLayout>
@@ -39,6 +41,7 @@ MainWindow::MainWindow(ClientBackend &backend, QWidget *parent) :
   m_tree->setAlternatingRowColors(true);
   m_tree->setRootIsDecorated(true);
   m_tree->setItemsExpandable(true);
+  m_tree->setIconSize(QSize(16, 16));
   m_tree->setIndentation(22);
   m_tree->setSelectionBehavior(QAbstractItemView::SelectRows);
   m_tree->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -62,12 +65,17 @@ MainWindow::MainWindow(ClientBackend &backend, QWidget *parent) :
 
   m_statusLabel = new QLabel(m_footer);
   m_statusLabel->setMinimumWidth(110);
+  m_statusLabel->setFont(sizedFont(m_statusLabel->font(), kFontStatus));
   m_elapsedLabel = new QLabel(m_footer);
   m_elapsedLabel->setAlignment(Qt::AlignCenter);
   QFont elapsedFont = m_elapsedLabel->font();
   elapsedFont.setBold(true);
   elapsedFont.setFamilies({QStringLiteral("monospace"), QStringLiteral("Noto Sans Mono")});
-  elapsedFont.setPointSize(elapsedFont.pointSize() + 2);
+  if (kFontElapsed > 0) {
+    elapsedFont.setPointSize(kFontElapsed);
+  } else {
+    elapsedFont.setPointSize(elapsedFont.pointSize() + 2);
+  }
   m_elapsedLabel->setFont(elapsedFont);
 
   m_resetButton = new QPushButton(QStringLiteral("Reset"), m_footer);
@@ -172,26 +180,24 @@ void MainWindow::applyTheme() {
   }
 }
 
-void MainWindow::restoreExpandedState()
-{
-    for (int row = 0; row < m_model->rowCount(); ++row) {
-        const QModelIndex device = m_model->index(row, 0);
-        m_tree->setExpanded(device, m_model->isNodeExpanded(device));
-        for (int sectionRow = 0; sectionRow < m_model->rowCount(device); ++sectionRow) {
-            const QModelIndex section = m_model->index(sectionRow, 0, device);
-            m_tree->setExpanded(section, m_model->isNodeExpanded(section));
-        }
+void MainWindow::restoreExpandedState() {
+  for (int row = 0; row < m_model->rowCount(); ++row) {
+    const QModelIndex device = m_model->index(row, 0);
+    m_tree->setExpanded(device, m_model->isNodeExpanded(device));
+    for (int sectionRow = 0; sectionRow < m_model->rowCount(device); ++sectionRow) {
+      const QModelIndex section = m_model->index(sectionRow, 0, device);
+      m_tree->setExpanded(section, m_model->isNodeExpanded(section));
     }
+  }
 }
 
 void MainWindow::updateFooter() {
   m_statusLabel->setText(m_backend.statusText());
   const QColor accent = m_backend.darkMode() ? QColor("#6cb6ff") : QColor("#1565c0");
-  const QColor muted = m_backend.darkMode() ? QColor("#9aa3ad") : QColor("#66707a");
-  QPalette palette = m_statusLabel->palette();
-  palette.setColor(QPalette::WindowText,
-                   m_backend.connected() || m_backend.fileMode() ? accent : muted);
-  m_statusLabel->setPalette(palette);
+  const QColor statusColor =
+      m_backend.connected() || m_backend.fileMode() ? accent : warningColor(m_backend.darkMode());
+  m_statusLabel->setStyleSheet(
+      QStringLiteral("color: %1; background: transparent;").arg(statusColor.name()));
   m_elapsedLabel->setText(m_backend.elapsedText());
   m_resetButton->setEnabled(m_backend.connected() || m_backend.fileMode());
 }
@@ -202,26 +208,26 @@ void MainWindow::showContextMenu(const QPoint &pos) {
     return;
   }
 
-    QMenu menu(this);
-    if (m_model->isSensor(index)) {
-        QAction *hide = menu.addAction(QStringLiteral("Hide"));
-        connect(hide, &QAction::triggered, this, [this, index] { m_model->hideSensor(index); });
-    } else {
-        QAction *collapse = menu.addAction(QStringLiteral("Collapse"));
-        collapse->setEnabled(m_tree->isExpanded(index));
-        connect(collapse, &QAction::triggered, this, [this, index] { m_tree->collapse(index); });
+  QMenu menu(this);
+  if (m_model->isSensor(index)) {
+    QAction *hide = menu.addAction(QStringLiteral("Hide"));
+    connect(hide, &QAction::triggered, this, [this, index] { m_model->hideSensor(index); });
+  } else {
+    QAction *collapse = menu.addAction(QStringLiteral("Collapse"));
+    collapse->setEnabled(m_tree->isExpanded(index));
+    connect(collapse, &QAction::triggered, this, [this, index] { m_tree->collapse(index); });
 
-        QAction *expand = menu.addAction(QStringLiteral("Expand"));
-        expand->setEnabled(!m_tree->isExpanded(index));
-        connect(expand, &QAction::triggered, this, [this, index] { m_tree->expand(index); });
+    QAction *expand = menu.addAction(QStringLiteral("Expand"));
+    expand->setEnabled(!m_tree->isExpanded(index));
+    connect(expand, &QAction::triggered, this, [this, index] { m_tree->expand(index); });
 
-        QAction *showHidden = menu.addAction(QStringLiteral("Show hidden sensors"));
-        showHidden->setEnabled(m_model->hasHiddenSensors(index));
-        connect(showHidden, &QAction::triggered, this, [this, index] {
-            m_model->showHiddenSensors(index);
-            restoreExpandedState();
-        });
-    }
+    QAction *showHidden = menu.addAction(QStringLiteral("Show hidden sensors"));
+    showHidden->setEnabled(m_model->hasHiddenSensors(index));
+    connect(showHidden, &QAction::triggered, this, [this, index] {
+      m_model->showHiddenSensors(index);
+      restoreExpandedState();
+    });
+  }
   menu.exec(m_tree->viewport()->mapToGlobal(pos));
 }
 

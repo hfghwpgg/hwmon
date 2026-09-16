@@ -230,6 +230,9 @@ void ClientBackend::poll() {
 }
 
 void ClientBackend::updateElapsed() {
+  if (!m_fileMode && !m_connected) {
+    return;
+  }
   qint64 elapsed = 0;
   if (m_startTimestamp > 0) {
     elapsed = QDateTime::currentSecsSinceEpoch() - m_startTimestamp;

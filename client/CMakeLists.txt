@@ -6,9 +6,10 @@ project(client VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Network Svg)
 
 qt_standard_project_setup()
+set(CMAKE_AUTORCC ON)
 
 qt_add_executable(hwmonclient
     main.cpp
@@ -19,6 +20,18 @@ qt_add_executable(hwmonclient
     MainWindow.cpp
     MainWindow.hpp
     Types.hpp
+    UiStyle.hpp
+)
+
+qt_add_resources(hwmonclient "icons"
+    PREFIX "/icons"
+    BASE "svg"
+    FILES
+        svg/clock.svg
+        svg/voltage.svg
+        svg/temperature.svg
+        svg/fan.svg
+        svg/chip.svg
 )
 
 set_target_properties(hwmonclient PROPERTIES
@@ -29,7 +42,7 @@ set_target_properties(hwmonclient PROPERTIES
 )
 
 target_link_libraries(hwmonclient
-    PRIVATE Qt6::Widgets Qt6::Network
+    PRIVATE Qt6::Widgets Qt6::Network Qt6::Svg
 )
 
 install(TARGETS hwmonclient

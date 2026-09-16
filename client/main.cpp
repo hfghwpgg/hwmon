@@ -7,6 +7,7 @@
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
+  Q_INIT_RESOURCE(icons);
   QCoreApplication::setOrganizationName(QStringLiteral("hwmon"));
   QCoreApplication::setApplicationName(QStringLiteral("hwmon-client"));
   QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
