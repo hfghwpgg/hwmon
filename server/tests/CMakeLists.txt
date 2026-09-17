@@ -8,6 +8,8 @@ add_executable(hwmon_tests
     "test_sensor_reading.cpp"
     "test_sensor.cpp"
     "test_value_sensor.cpp"
+    "test_value_delta_sensor.cpp"
+    "test_network_device.cpp"
     "test_sysfs_device.cpp"
     "test_shared_hwmon_parser.cpp"
     "test_cpu_device.cpp"

@@ -327,7 +327,7 @@ void CpuDevice::getPowerDraw() {
     spdlog::info("using intel rapl interface for cpu power draw");
     auto fd = std::make_unique<std::ifstream>(cpuPaths.intelrapl);
     powerSensors.emplace_back(
-        std::make_unique<DeltaSensor>(std::move(fd), "Socket power draw", SensorType::POWER, 1e6));
+        std::make_unique<DeltaSensor>(std::move(fd), "Socket power draw", SensorType::POWER, 1e3));
   } else {
     spdlog::error("couldn't read cpu power draw. Try running as root");
   }

@@ -50,5 +50,5 @@ void dropPrivileges() {
     throw std::runtime_error("we're still root, aborting");
   }
 
-  spdlog::debug("successfully dropped root privileges");
+  spdlog::info("successfully dropped root privileges");
 }

@@ -2,7 +2,9 @@
 #include "Device.hpp"
 #include "ValueDeltaSensor.hpp"
 
+#include <array>
 #include <fstream>
+#include <map>
 #include <string>
 #include <vector>
 
