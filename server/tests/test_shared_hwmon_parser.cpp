@@ -140,7 +140,7 @@ TEST_F(SharedHwmonParserTest, SkipsSensorWithBothInputAndAverage) {
   EXPECT_EQ(sensors.size(), 0u);
 }
 
-TEST_F(SharedHwmonParserTest, CreatesEnergySensor) {
+TEST_F(SharedHwmonParserTest, CreatesDeltaSensor) {
   writeFile("energy1_input", "1000000");
 
   auto sensors = createSensors();

@@ -61,7 +61,7 @@ protected:
     hwmonPath = hwmonRoot;
   }
 
-  static bool snapshotHasEnergySensorTimes(const std::string &snapshot, std::size_t minTimes) {
+  static bool snapshotHasDeltaSensorTimes(const std::string &snapshot, std::size_t minTimes) {
     const json devices = json::parse(snapshot);
     for (const auto &device : devices) {
       if (!device.contains("sensors")) {
@@ -79,7 +79,7 @@ protected:
     return false;
   }
 
-  static bool allEnergySensorTimesAre(const std::string &snapshot, std::size_t times) {
+  static bool allDeltaSensorTimesAre(const std::string &snapshot, std::size_t times) {
     const json devices = json::parse(snapshot);
     bool found = false;
     for (const auto &device : devices) {
@@ -206,15 +206,15 @@ TEST_F(RunnerResetTest, ResetPreservesDeviceList) {
   EXPECT_TRUE(devices[1].contains("sensors"));
 }
 
-TEST_F(RunnerResetTest, ResetClearsEnergySensorBaseline) {
+TEST_F(RunnerResetTest, ResetClearsDeltaSensorBaseline) {
   createFakeHwmonWithEnergy();
   startRunner();
 
   // Loop 1: energy baseline. Loop 2+: energy sample with static counter delta.
   ASSERT_TRUE(
-      waitForSnapshot([](const std::string &s) { return snapshotHasEnergySensorTimes(s, 1); }));
+      waitForSnapshot([](const std::string &s) { return snapshotHasDeltaSensorTimes(s, 1); }));
 
   state.resetFlag.store(true, std::memory_order_relaxed);
-  // EnergySensor re-establishes baseline on the post-reset read, so times drops to 0.
-  ASSERT_TRUE(waitForSnapshot([](const std::string &s) { return allEnergySensorTimesAre(s, 0); }));
+  // DeltaSensor re-establishes baseline on the post-reset read, so times drops to 0.
+  ASSERT_TRUE(waitForSnapshot([](const std::string &s) { return allDeltaSensorTimesAre(s, 0); }));
 }

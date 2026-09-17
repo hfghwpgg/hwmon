@@ -1,0 +1,34 @@
+#pragma once
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "DeltaSensor.hpp"
+#include "SensorType.hpp"
+#include "helpers.hpp"
+
+// Sensor whose value is pushed in by its owner instead of being read from a
+// file.
+class ValueDeltaSensor : public DeltaSensor {
+public:
+  ValueDeltaSensor(std::string name, SensorType type, bool aggregateData = true,
+                   bool isPrimary = false);
+
+  // value is expected in the unit the SensorType is serialized in
+  // (C, MHz, W, %, bytes, bytes/s); no divider is applied
+  void setValue(long double value);
+  void invalidate();
+
+  void resetReadings() override;
+
+private:
+  long double getData() override;
+
+  long double pendingValue;
+};
+
+// appends a ValueSensor to a device's sensor list and hands back a borrowed
+// pointer the device uses to push values into it
+ValueDeltaSensor *addValueDeltaSensor(helpers::SensorVec &sensors, std::string name,
+                                      SensorType type, bool aggregateData = true,
+                                      bool isPrimary = false);

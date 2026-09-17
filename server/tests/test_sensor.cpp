@@ -11,7 +11,7 @@
 #include <thread>
 #include <unistd.h>
 
-#include "../EnergySensor.hpp"
+#include "../DeltaSensor.hpp"
 #include "../Sensor.hpp"
 #include "../SensorReading.hpp"
 #include "../SensorType.hpp"
@@ -119,18 +119,18 @@ TEST_F(SensorFileTest, ResetReadingsClearsAggregates) {
   EXPECT_DOUBLE_EQ(sensor.getReadings().value, 32.0);
 }
 
-TEST_F(SensorFileTest, EnergySensorFirstReadProducesNoSample) {
+TEST_F(SensorFileTest, DeltaSensorFirstReadProducesNoSample) {
   writeRaw("1000000");
-  EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  DeltaSensor sensor{std::move(file), "rapl", SensorType::ENERGY};
   sensor.updateValue();
 
   // The first reading only establishes a baseline; nothing is recorded yet.
   EXPECT_EQ(sensor.getReadings().times, 0u);
 }
 
-TEST_F(SensorFileTest, EnergySensorComputesPositivePowerFromDelta) {
+TEST_F(SensorFileTest, DeltaSensorComputesPositivePowerFromDelta) {
   writeRaw("1000000");
-  EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  DeltaSensor sensor{std::move(file), "rapl", SensorType::ENERGY};
   sensor.updateValue(); // baseline
 
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
@@ -144,9 +144,9 @@ TEST_F(SensorFileTest, EnergySensorComputesPositivePowerFromDelta) {
   EXPECT_GT(r.value, 0.0f);
 }
 
-TEST_F(SensorFileTest, EnergySensorReportsNegativePowerOnCounterReset) {
+TEST_F(SensorFileTest, DeltaSensorReportsNegativePowerOnCounterReset) {
   writeRaw("1000000");
-  EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  DeltaSensor sensor{std::move(file), "rapl", SensorType::ENERGY};
   sensor.updateValue(); // baseline
 
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
@@ -187,15 +187,15 @@ TEST_F(SensorFileTest, BadReadDoesNotClobberPreviousAggregates) {
   EXPECT_DOUBLE_EQ(r.value, 30.0f);
 }
 
-TEST_F(SensorFileTest, EnergySensorSurvivesNonNumericRead) {
+TEST_F(SensorFileTest, DeltaSensorSurvivesNonNumericRead) {
   writeRaw("garbage");
-  EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  DeltaSensor sensor{std::move(file), "rapl", SensorType::ENERGY};
   EXPECT_NO_THROW(sensor.updateValue());
 }
 
-TEST_F(SensorFileTest, EnergySensorResetClearsAggregatesAndBaseline) {
+TEST_F(SensorFileTest, DeltaSensorResetClearsAggregatesAndBaseline) {
   writeRaw("1000000");
-  EnergySensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  DeltaSensor sensor{std::move(file), "rapl", SensorType::ENERGY};
   sensor.updateValue(); // baseline
 
   std::this_thread::sleep_for(std::chrono::milliseconds{5});

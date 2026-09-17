@@ -32,5 +32,6 @@ private:
 
   void resetReadings();
   void setupGpuDevices(std::set<helpers::fs::path> &hwmonPaths);
+  void setupNetworkDevice();
   static long getUnixTimestamp();
 };

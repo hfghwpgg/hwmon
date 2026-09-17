@@ -18,8 +18,8 @@
 #include "../Sensor.hpp"
 #include "../SensorType.hpp"
 #include "CpuDevice.hpp"
+#include "DeltaSensor.hpp"
 #include "DeviceType.hpp"
-#include "EnergySensor.hpp"
 #include "SharedHwmonParser.hpp"
 #include "ValueSensor.hpp"
 #include "helpers.hpp"
@@ -327,7 +327,7 @@ void CpuDevice::getPowerDraw() {
     spdlog::info("using intel rapl interface for cpu power draw");
     auto fd = std::make_unique<std::ifstream>(cpuPaths.intelrapl);
     powerSensors.emplace_back(
-        std::make_unique<EnergySensor>(std::move(fd), "Socket power draw", SensorType::POWER, 1));
+        std::make_unique<DeltaSensor>(std::move(fd), "Socket power draw", SensorType::POWER, 1e6));
   } else {
     spdlog::error("couldn't read cpu power draw. Try running as root");
   }

@@ -15,10 +15,12 @@
 #include <vector>
 
 #include "Device.hpp"
+#include "DeviceType.hpp"
 #include "Devices/AmdGpuDevice.hpp"
 #include "Devices/CpuDevice.hpp"
 #include "Devices/GpuDetector.hpp"
 #include "Devices/IntelGpuDevice.hpp"
+#include "Devices/NetworkDevice.hpp"
 #include "Devices/NvidiaGpuDevice.hpp"
 #include "Devices/SysfsDevice.hpp"
 #include "SharedState.hpp"
@@ -59,12 +61,14 @@ void Runner::setup() {
   }
 
   spdlog::trace("hwmon length: {}", hwmonPaths.size());
+
   if (doSpecializedDevices) {
     auto cpu = std::make_unique<CpuDevice>(hwmonPaths);
     cpu->initialize();
     devices.push_back(std::move(cpu));
 
     setupGpuDevices(hwmonPaths);
+    setupNetworkDevice();
   }
 
   spdlog::trace("hwmon length: {}", hwmonPaths.size());
@@ -108,6 +112,17 @@ void Runner::setupGpuDevices(std::set<helpers::fs::path> &hwmonPaths) {
       spdlog::error("failed to initialize gpu {}: {}", card.cardPath.string(), e.what());
     }
   }
+}
+
+void Runner::setupNetworkDevice() {
+  const helpers::fs::path netDev = "/proc/net/dev";
+  if (!helpers::fs::exists(netDev) || access(netDev.c_str(), R_OK) == -1) {
+    spdlog::error("{} inaccessible; skipping networking", netDev.string());
+    return;
+  }
+  auto net = std::make_unique<NetworkDevice>("Network speed");
+  net->initialize();
+  devices.push_back(std::move(net));
 }
 
 void Runner::run() {

@@ -24,12 +24,6 @@ SysfsDevice::SysfsDevice(string name, DeviceType type, helpers::fs::path path) :
   };
 }
 
-#ifdef DEBUG
-SysfsDevice::~SysfsDevice() {
-  spdlog::trace("GeneralDevice destroyed: {}", name);
-}
-#endif
-
 void SysfsDevice::initialize() {
   getName();
   const auto available_sensors = SharedHwmonParser::parseHwmonDirectory(path);
@@ -52,7 +46,7 @@ nlohmann::json SysfsDevice::serialize() {
   nlohmann::json j;
   j["name"] = name;
   j["type"] = type;
-  for (auto &sensor : sensors) {
+  for (const auto &sensor : sensors) {
     j["sensors"].push_back(sensor->serialize());
   }
   return j;

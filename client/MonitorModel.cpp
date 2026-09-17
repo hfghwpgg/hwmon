@@ -343,6 +343,9 @@ QVariant MonitorModel::data(const QModelIndex &index, int role) const {
     if (isDevice(index)) {
       return tintedSvgIcon(deviceIconPath(device->type), m_darkTheme);
     }
+    if (isSection(index)) {
+      return tintedSvgIcon(sensorIconPath(section->type), m_darkTheme);
+    }
     if (isSensor(index)) {
       return tintedSvgIcon(sensorIconPath(sensor->type), m_darkTheme);
     }

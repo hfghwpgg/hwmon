@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "Sensor.hpp"
 #include "SensorType.hpp"

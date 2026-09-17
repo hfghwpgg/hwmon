@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../EnergySensor.hpp"
+#include "../DeltaSensor.hpp"
 #include "../SensorWhitelist.hpp"
 #include "../helpers.hpp"
 #include "SensorType.hpp"
@@ -110,7 +110,7 @@ void SharedHwmonParser::createSensors(const helpers::fs::path &path,
     if (type == SensorType::ENERGY) {
       sensors.emplace_back(
           // energy sensors return power
-          std::make_unique<EnergySensor>(std::move(valueSrc_ptr), label, SensorType::POWER));
+          std::make_unique<DeltaSensor>(std::move(valueSrc_ptr), label, SensorType::POWER, 1e3));
     } else {
       sensors.emplace_back(std::make_unique<Sensor>(std::move(valueSrc_ptr), label, type));
     }

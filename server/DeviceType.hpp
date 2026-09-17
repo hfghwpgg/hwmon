@@ -1,2 +1,2 @@
 #pragma once
-enum class DeviceType { CPU, GPU, RAM, STORAGE, UNKNOWN };
+enum class DeviceType { CPU, GPU, RAM, STORAGE, NETWORK, UNKNOWN };

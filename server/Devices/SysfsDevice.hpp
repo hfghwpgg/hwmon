@@ -10,10 +10,6 @@ class SysfsDevice : public Device {
 public:
   SysfsDevice(std::string name, DeviceType type, helpers::fs::path path);
 
-#ifdef DEBUG
-  ~SysfsDevice();
-#endif
-
   void initialize() override;
   void read() override;
   void resetReadings() override;
