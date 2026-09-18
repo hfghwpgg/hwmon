@@ -329,7 +329,7 @@ void CpuDevice::getPowerDraw() {
     powerSensors.emplace_back(
         std::make_unique<DeltaSensor>(std::move(fd), "Socket power draw", SensorType::POWER, 1e3));
   } else {
-    spdlog::error("couldn't read cpu power draw. Try running as root");
+    spdlog::error("couldn't read cpu power draw. Try running with sudo");
   }
 
   sensors.insert(sensors.end(), std::make_move_iterator(powerSensors.begin()),

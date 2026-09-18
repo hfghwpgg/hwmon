@@ -49,19 +49,23 @@ int main(int argc, char *argv[]) {
   std::signal(SIGINT, HandleSignal);
   std::signal(SIGTERM, HandleSignal);
 
-  Runner runner{state, config.hwmonPath, true};
-  runner.setup();
+  // this block is only for a correct order
+  // of debug messsages
+  {
+    Runner runner{state, config.hwmonPath, true};
+    runner.setup();
 
-  if (!config.dontDropRoot) {
-    dropPrivileges();
+    if (!config.dontDropRoot) {
+      dropPrivileges();
+    }
+
+    UDSServer server{config.sockPath, config.backlog, state};
+    std::jthread runnerThread{[&runner] { runner.run(); }};
+
+    // Blocks on the accept loop until the shutdown flag is set.
+    server.run();
   }
 
-  UDSServer server{config.sockPath, config.backlog, state};
-
-  std::jthread runnerThread{[&runner] { runner.run(); }};
-
-  // Blocks on the accept loop until the shutdown flag is set.
-  server.run();
-  spdlog::debug("program ended gracefully");
+  spdlog::info("program ended gracefully");
   return 0;
 }

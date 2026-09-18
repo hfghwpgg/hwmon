@@ -26,25 +26,48 @@ Recommended way of compiling client is using provided `build_client.sh` shell sc
 
 running it without any arguments will display help message
 
-1. clone the repository
+1. Install dependencies
+
+<details>
+  <summary>Arch based</summary>
+
+    sudo pacman -S --needed qt6-base qt6-svg cmake make gcc
+
+</details>
+
+<details>
+  <summary>Debian based (Debian, Ubuntu, etc.)</summary>
+
+    sudo apt install qt6-base-dev qt6-svg-dev cmake make gcc
+
+</details>
+
+<details>
+  <summary>RHEL based (Red Hat, CentOS, etc.)</summary>
+
+    sudo dnf install qt6-qtbase-devel qt6-qtsvg-devel cmake make gcc gcc-c++
+
+</details>
+
+2. clone the repository
 
 ```bash
 git clone https://github.com/hfghwpgg/hwmon.git
 ```
 
-2. navigate to the project directory
+3. navigate to the project directory
 
 ```bash
 cd hwmon
 ```
 
-3. run provided shell script to compile the project
+4. run provided shell script to compile the project
 
 ```bash
 ./build_client.sh debug
 ```
 
-4. the compiled binary will be located in the `build` directory
+5. the compiled binary will be located in the `build` directory
 
 ```bash
 ./client/build/hwmonclient

@@ -66,8 +66,8 @@ target_link_libraries(hwmonCore
 target_compile_definitions(hwmonCore PUBLIC "$<$<CONFIG:Debug>:DEBUG>")
 target_link_libraries(hwmonCore PRIVATE ${CMAKE_DL_LIBS})
 
-add_executable(hwmon "main.cpp")
-target_link_libraries(hwmon PRIVATE hwmonCore hwmon_opts)
+add_executable(hwmon-server "main.cpp")
+target_link_libraries(hwmon-server PRIVATE hwmonCore hwmon_opts)
 
 option(HWMON_BUILD_TESTS "Build the unit test suite (requires GTest)" OFF)
 if(HWMON_BUILD_TESTS)

@@ -17,33 +17,55 @@
 see [miniclient.py](../miniclient.py)
 
 <details>
-<summary><h2>Server compilation</h2></summary>
+  <summary><h2>Server compilation</h2></summary>
 
-Recommended way of compiling server is using provided `build_server.sh` shell script
-
+Recommended way of compiling server is using provided `build_server.sh` shell script  
 running it without any arguments will display help message
 
-1. clone the repository
+1. Install dependencies
 
-```bash
-git clone https://github.com/hfghwpgg/hwmon.git
-```
+<details>
+  <summary>Arch based</summary>
 
-2. navigate to the project directory
+    sudo pacman -S --needed nlohmann-json spdlog gtest argparse make cmake gcc
 
-```bash
-cd hwmon
-```
+</details>
 
-3. run provided shell script to compile the project
+<details>
+  <summary>Debian based (Debian, Ubuntu, etc.)</summary>
 
-```bash
-./build_server.sh debug
-```
+    sudo apt install nlohmann-json3-dev spdlog-dev libgtest-dev \
+      libargparse-dev cmake make gcc
 
-4. the compiled binary will be located in the `build` directory
+</details>
 
-```bash
-./server/build/hwmon
-```
+<details>
+  <summary>RHEL based (Red Hat, CentOS, etc.)</summary>
+
+    sudo dnf install nlohmann-json-devel spdlog-devel gtest-devel cmake \
+      make gcc gcc-c++ argparse-devel
+
+</details>
+
+
+  2. clone the repository
+  ```bash
+  git clone https://github.com/hfghwpgg/hwmon.git
+  ```
+  
+  3. navigate to the project directory
+  ```bash
+  cd hwmon
+  ```
+  
+  4. run provided shell script to compile the project
+  ```bash
+  ./build_server.sh debug
+  ```
+  
+  5. the compiled binary will be located in the `build` directory
+  ```bash
+  ./server/build/hwmon
+  ```
+  
 </details>

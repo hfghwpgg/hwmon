@@ -6,9 +6,10 @@
 #include <unistd.h>
 
 // this only works with sudo. idk what to do if we get elevated
-// somehow else (such as run0, or run as root account)
+// somehow else (or rather, if we dont get SUDO_UID/GID env)
 // for now we crash but its probably not a very good idea
 void dropPrivileges() {
+  spdlog::debug("current uid: {} | gid: {}", getuid(), getgid());
 
   // we arent running as root
   if (getuid() != 0) {
@@ -21,6 +22,7 @@ void dropPrivileges() {
 
   if (!uid || !gid) {
     spdlog::critical("didnt recieve uid/gid from sudo");
+    spdlog::warn("dont run this as root user ...");
     throw std::runtime_error("didnt recieve uid/gid from sudo");
   }
 
@@ -45,10 +47,12 @@ void dropPrivileges() {
   }
 
   // sanity check
-  if (setuid(0) == 0) {
+
+  if (getuid() == 0) {
     spdlog::critical("we're still root, aborting");
     throw std::runtime_error("we're still root, aborting");
   }
 
   spdlog::info("successfully dropped root privileges");
+  spdlog::debug("current uid: {} | gid: {}", getuid(), getgid());
 }

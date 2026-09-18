@@ -62,7 +62,6 @@ ifaceMap NetworkDevice::parseData() {
   return ifaces;
 }
 void NetworkDevice::initialize() {
-  spdlog::trace("init ran");
   auto ifaces = parseData();
   for (const auto &iface : ifaces) {
     my_sensors.emplace_back(addValueDeltaSensor(sensors, std::format("{} download", iface.first),
