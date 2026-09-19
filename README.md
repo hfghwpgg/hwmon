@@ -22,6 +22,9 @@ Gpu:
 - core/memory frequency
 > \* temperature may not be available on intel gpus
 
+Network interface:
+ - download/upload speed
+
 Other devices:
  - whatever is reported by sysfs hwmon interface
 
