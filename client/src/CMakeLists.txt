@@ -25,13 +25,13 @@ qt_add_executable(hwmon-client
 
 qt_add_resources(hwmon-client "icons"
     PREFIX "/icons"
-    BASE "svg"
+    BASE "../svg"
     FILES
-        svg/clock.svg
-        svg/voltage.svg
-        svg/temperature.svg
-        svg/fan.svg
-        svg/chip.svg
+        ../svg/clock.svg
+        ../svg/voltage.svg
+        ../svg/temperature.svg
+        ../svg/fan.svg
+        ../svg/chip.svg
 )
 
 set_target_properties(hwmon-client PROPERTIES

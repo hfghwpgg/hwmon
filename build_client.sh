@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLIENT="${ROOT}/client"
-BUILD="${CLIENT}/build/"
+CLIENT="${ROOT}/client/src"
+BUILD="${ROOT}/client/build/"
 
 usage() {
   cat <<EOF
