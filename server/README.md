@@ -65,7 +65,7 @@ running it without any arguments will display help message
   
   5. the compiled binary will be located in the `build` directory
   ```bash
-  ./server/build/hwmon
+  ./server/build/hwmon-server
   ```
   
 </details>

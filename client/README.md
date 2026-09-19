@@ -70,7 +70,7 @@ cd hwmon
 5. the compiled binary will be located in the `build` directory
 
 ```bash
-./client/build/hwmonclient
+./client/build/hwmon-client
 ```
 </details>
 
