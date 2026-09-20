@@ -4,11 +4,11 @@
 #include <set>
 #include <string>
 
-#include "../Device.hpp"
-#include "../Libraries/NvmlLibrary.hpp"
-#include "../ValueSensor.hpp"
-#include "../helpers.hpp"
+#include "Device.hpp"
 #include "GpuDetector.hpp"
+#include "Libraries/NvmlLibrary.hpp"
+#include "ValueSensor.hpp"
+#include "helpers.hpp"
 
 class NvidiaGpuDevice : public Device {
 public:

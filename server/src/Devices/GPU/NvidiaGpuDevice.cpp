@@ -9,13 +9,13 @@
 #include <string>
 #include <utility>
 
-#include "../Device.hpp"
-#include "../Libraries/NvmlLibrary.hpp"
-#include "../SensorType.hpp"
-#include "../ValueSensor.hpp"
-#include "../helpers.hpp"
+#include "Device.hpp"
 #include "GpuDetector.hpp"
+#include "Libraries/NvmlLibrary.hpp"
+#include "SensorType.hpp"
 #include "SharedHwmonParser.hpp"
+#include "ValueSensor.hpp"
+#include "helpers.hpp"
 
 namespace {
 

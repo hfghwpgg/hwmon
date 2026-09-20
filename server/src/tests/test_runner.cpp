@@ -30,7 +30,7 @@ protected:
   }
 
   void TearDown() override {
-    state.running.store(false);
+    state.requestShutdown();
     if (runThread.joinable()) {
       runThread.join();
     }

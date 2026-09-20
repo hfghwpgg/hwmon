@@ -3,6 +3,7 @@
 #include <argparse/argparse.hpp>
 #include <filesystem>
 #include <stdexcept>
+#include <string>
 
 Config CliParser(int argc, char *argv[]) {
   argparse::ArgumentParser hwmon("hwmon");
@@ -42,10 +43,32 @@ Config CliParser(int argc, char *argv[]) {
         return static_cast<helpers::fs::path>(retPath);
       });
   hwmon.add_argument("--backlog")
-      .default_value(3u)
-      .help("amount of clients that can connect at once")
+      .default_value(6u)
+      .help("max amount of client queries in queue")
       .scan<'u', unsigned int>()
-      .nargs(1);
+      .nargs(1)
+      .action([](const std::string &val) {
+        constexpr short backlog_max = 128;
+        const unsigned int value = std::stoi(val);
+        if (value > backlog_max) {
+          throw std::runtime_error("backlog out of range, max is " + std::to_string(backlog_max));
+        }
+        return value;
+      });
+  hwmon.add_argument("--max-clients")
+      .default_value(5u)
+      .help("max amount of clients served at the same time")
+      .scan<'u', unsigned int>()
+      .nargs(1)
+      .action([](const std::string &val) {
+        constexpr unsigned int max_clients_limit = 1024;
+        const unsigned int value = std::stoul(val);
+        if (value < 1 || value > max_clients_limit) {
+          throw std::runtime_error("max-clients out of range, must be between 1 and " +
+                                   std::to_string(max_clients_limit));
+        }
+        return value;
+      });
   hwmon.add_argument("--hwmon-path")
       .default_value(helpers::fs::path("/sys/class/hwmon"))
       .help("path to sysfs hwmon (for testing)")
@@ -77,6 +100,7 @@ Config CliParser(int argc, char *argv[]) {
   config.hwmonPath = hwmon.get<helpers::fs::path>("--hwmon-path");
   config.initialIntervalMs = hwmon.get<unsigned int>("--interval");
   config.backlog = hwmon.get<unsigned int>("--backlog");
+  config.maxClients = hwmon.get<unsigned int>("--max-clients");
   config.refreshSocket = hwmon.get<bool>("--refresh-socket");
   config.dontDropRoot = hwmon.get<bool>("--dont-drop-root");
 

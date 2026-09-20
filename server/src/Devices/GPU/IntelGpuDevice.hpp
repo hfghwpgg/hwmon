@@ -4,10 +4,10 @@
 #include <string>
 #include <vector>
 
-#include "../Device.hpp"
-#include "../ValueSensor.hpp"
-#include "../helpers.hpp"
+#include "Device.hpp"
 #include "GpuDetector.hpp"
+#include "ValueSensor.hpp"
+#include "helpers.hpp"
 
 struct engines;
 

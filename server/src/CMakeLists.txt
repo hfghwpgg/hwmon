@@ -5,9 +5,12 @@ project(hwmon VERSION 0.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+endif()
 
 find_package(spdlog REQUIRED)
 find_package(nlohmann_json REQUIRED)
@@ -17,11 +20,13 @@ find_package(Threads REQUIRED)
 add_library(hwmon_opts INTERFACE)
 target_compile_options(hwmon_opts INTERFACE
   -Wall -Wextra -Wpedantic
-  "$<$<CONFIG:Debug>:-Og;-ggdb>"
-  "$<$<CONFIG:Release>:-Os;-flto;-march=native>"
+  "$<$<CONFIG:Debug>:-Og>"
+  "$<$<CONFIG:Release>:-march=native>"
+  "$<$<CONFIG:MinSizeRel>:-march=native>"
 )
 target_compile_definitions(hwmon_opts INTERFACE
   "$<$<CONFIG:Release>:NDEBUG>"
+  "$<$<CONFIG:MinSizeRel>:NDEBUG>"
 )
 
 # vendored from igt-gpu-tools, provides the i915 perf PMU helpers
@@ -37,16 +42,17 @@ add_library(hwmonCore STATIC
     "ValueSensor.cpp"
     "ValueDeltaSensor.cpp"
     "Device.cpp"
-    "Devices/SharedHwmonParser.cpp"
+    "SharedState.cpp"
+    "SharedHwmonParser.cpp"
     "Devices/SysfsDevice.cpp"
     "Devices/CpuDevice.cpp"
     "Devices/NetworkDevice.cpp"
-    "Devices/GpuDetector.cpp"
+    "Devices/GPU/GpuDetector.cpp"
     "Libraries/NvmlLibrary.cpp"
     "Libraries/RsmiLibrary.cpp"
-    "Devices/AmdGpuDevice.cpp"
-    "Devices/NvidiaGpuDevice.cpp"
-    "Devices/IntelGpuDevice.cpp"
+    "Devices/GPU/AmdGpuDevice.cpp"
+    "Devices/GPU/NvidiaGpuDevice.cpp"
+    "Devices/GPU/IntelGpuDevice.cpp"
     "UDSServer.cpp"
     "Runner.cpp"
     $<TARGET_OBJECTS:igt>

@@ -1,8 +1,10 @@
 #include "Runner.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -16,12 +18,12 @@
 
 #include "Device.hpp"
 #include "DeviceType.hpp"
-#include "Devices/AmdGpuDevice.hpp"
 #include "Devices/CpuDevice.hpp"
-#include "Devices/GpuDetector.hpp"
-#include "Devices/IntelGpuDevice.hpp"
+#include "Devices/GPU/AmdGpuDevice.hpp"
+#include "Devices/GPU/GpuDetector.hpp"
+#include "Devices/GPU/IntelGpuDevice.hpp"
+#include "Devices/GPU/NvidiaGpuDevice.hpp"
 #include "Devices/NetworkDevice.hpp"
-#include "Devices/NvidiaGpuDevice.hpp"
 #include "Devices/SysfsDevice.hpp"
 #include "SharedState.hpp"
 #include "helpers.hpp"
@@ -147,8 +149,14 @@ void Runner::run() {
     state.snapshot.store(std::make_shared<const std::string>(serializedDevices.dump()),
                          std::memory_order_release);
 
+    // Interruptible sleep: shutdown ends the wait instead of running out the
+    // whole interval first.
     const unsigned int intervalMs = state.intervalMs.load(std::memory_order_relaxed);
-    std::this_thread::sleep_for(std::chrono::milliseconds{intervalMs});
+    const int waitMs =
+        static_cast<int>(std::min<unsigned int>(intervalMs, std::numeric_limits<int>::max()));
+    if (state.waitForShutdown(waitMs)) {
+      break;
+    }
   }
 }
 

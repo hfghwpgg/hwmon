@@ -18,7 +18,26 @@ struct SharedState {
 
   std::atomic<bool> resetFlag{false};
 
+  explicit SharedState(unsigned int initialIntervalMs);
+  ~SharedState();
 
-  explicit SharedState(unsigned int initialIntervalMs) :
-      intervalMs(initialIntervalMs) {}
+  SharedState(const SharedState &) = delete;
+  SharedState &operator=(const SharedState &) = delete;
+
+  // Clears `running` and wakes everything blocked in waitForShutdown() or
+  // polling shutdownFd(). Async-signal-safe, so a signal handler may call it.
+  void requestShutdown() noexcept;
+
+  // Sleeps up to timeoutMs (negative waits forever), returning early as soon
+  // as shutdown is requested. True means shutdown, false means timed out.
+  bool waitForShutdown(int timeoutMs) const noexcept;
+
+  // Level-triggered eventfd that becomes readable on shutdown and stays
+  // readable. Add it to a poll() set to make any wait interruptible.
+  int shutdownFd() const noexcept {
+    return wakeFd;
+  }
+
+private:
+  int wakeFd{-1};
 };

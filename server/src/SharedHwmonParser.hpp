@@ -1,7 +1,7 @@
 #pragma once
 #include <filesystem>
 
-#include "../helpers.hpp"
+#include "helpers.hpp"
 
 struct SharedHwmonParser {
   SharedHwmonParser() = default;

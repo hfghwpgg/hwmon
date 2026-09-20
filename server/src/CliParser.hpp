@@ -1,5 +1,6 @@
 #pragma once
 #include "helpers.hpp"
+#include <cstddef>
 #include <filesystem>
 
 struct Config {
@@ -8,6 +9,7 @@ struct Config {
   helpers::fs::path hwmonPath;
   unsigned int initialIntervalMs;
   int backlog;
+  size_t maxClients;
   bool refreshSocket;
   bool dontDropRoot;
 };

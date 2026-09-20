@@ -6,11 +6,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../DeltaSensor.hpp"
-#include "../SensorWhitelist.hpp"
-#include "../helpers.hpp"
+#include "DeltaSensor.hpp"
 #include "SensorType.hpp"
+#include "SensorWhitelist.hpp"
 #include "SharedHwmonParser.hpp"
+#include "helpers.hpp"
 
 helpers::AvailableSensorsMap SharedHwmonParser::parseHwmonDirectory(const helpers::fs::path &path) {
   helpers::AvailableSensorsMap available_sensors;

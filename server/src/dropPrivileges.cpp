@@ -3,6 +3,7 @@
 #include <grp.h>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <string>
 #include <unistd.h>
 
 // this only works with sudo. idk what to do if we get elevated
@@ -26,8 +27,8 @@ void dropPrivileges() {
     throw std::runtime_error("didnt recieve uid/gid from sudo");
   }
 
-  uid_t target_uid = (uid_t)atoi(uid);
-  gid_t target_gid = (gid_t)atoi(gid);
+  uid_t target_uid = (uid_t)std::stoi(uid);
+  gid_t target_gid = (gid_t)std::stoi(gid);
   // clear root groups
   if (setgroups(0, NULL) != 0) {
     perror("setgroups");

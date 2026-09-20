@@ -5,11 +5,11 @@
 #include <nlohmann/json_fwd.hpp>
 #include <set>
 
-#include "../Device.hpp"
-#include "../Libraries/RsmiLibrary.hpp"
-#include "../ValueSensor.hpp"
-#include "../helpers.hpp"
+#include "Device.hpp"
 #include "GpuDetector.hpp"
+#include "Libraries/RsmiLibrary.hpp"
+#include "ValueSensor.hpp"
+#include "helpers.hpp"
 
 class AmdGpuDevice : public Device {
 public:

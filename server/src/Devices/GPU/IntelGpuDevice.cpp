@@ -11,12 +11,12 @@
 #include <utility>
 #include <vector>
 
-#include "../Device.hpp"
-#include "../SensorType.hpp"
-#include "../ValueSensor.hpp"
-#include "../helpers.hpp"
+#include "Device.hpp"
 #include "GpuDetector.hpp"
+#include "SensorType.hpp"
 #include "SharedHwmonParser.hpp"
+#include "ValueSensor.hpp"
+#include "helpers.hpp"
 
 // Redefining C++ keywords fortunately has a warning in clang, however it's
 // unavoidable here since the C library uses "class" as a struct member and
@@ -28,7 +28,7 @@
 
 #define class class_
 extern "C" {
-#include "../Libraries/intel_gpu_top/intel_gpu_top.h"
+#include "../../Libraries/intel_gpu_top/intel_gpu_top.h"
 }
 #undef class
 

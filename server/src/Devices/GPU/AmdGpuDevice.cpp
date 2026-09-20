@@ -12,14 +12,14 @@
 #include <string>
 #include <utility>
 
-#include "../Device.hpp"
-#include "../Libraries/RsmiLibrary.hpp"
-#include "../Sensor.hpp"
-#include "../SensorType.hpp"
-#include "../ValueSensor.hpp"
-#include "../helpers.hpp"
+#include "Device.hpp"
 #include "GpuDetector.hpp"
+#include "Libraries/RsmiLibrary.hpp"
+#include "Sensor.hpp"
+#include "SensorType.hpp"
 #include "SharedHwmonParser.hpp"
+#include "ValueSensor.hpp"
+#include "helpers.hpp"
 
 AmdGpuDevice::AmdGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths) :
     AmdGpuDevice(std::move(card), hwmonPaths, true) {}
