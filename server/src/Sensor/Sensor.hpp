@@ -1,5 +1,6 @@
 #pragma once
 #include <concepts>
+#include <csignal>
 #include <filesystem>
 #include <memory>
 #include <nlohmann/json_fwd.hpp>
@@ -27,11 +28,10 @@ struct SensorConfig {
   }
 };
 
+// to add a sensor, use one makeFileSensor or addPushSensor
+// for template, use derivative of Transform interface
 class Sensor {
 public:
-  Sensor(std::unique_ptr<Source> source, std::unique_ptr<Transform> readingTransform,
-         SensorConfig config);
-
   void updateValue();
   SensorReading getReadings();
   void resetReadings();
@@ -51,6 +51,9 @@ public:
                                    SensorConfig config);
 
 private:
+  Sensor(std::unique_ptr<Source> source, std::unique_ptr<Transform> readingTransform,
+         SensorConfig config);
+
   void accumulate(double value);
 
   std::unique_ptr<Source> source;
@@ -63,8 +66,9 @@ template <std::derived_from<Transform> TTransform>
 void Sensor::makeFileSensor(std::vector<std::unique_ptr<Sensor>> &sensors,
                             const std::filesystem::path &streamPath, SensorConfig config) {
   auto src = std::make_unique<SourceFile>(streamPath);
-  auto transform = std::make_unique<TTransform>(config.divider());
-  sensors.emplace_back(std::make_unique<Sensor>(std::move(src), std::move(transform), config));
+  auto transform = std::unique_ptr<TTransform>(new TTransform(config.divider()));
+  sensors.emplace_back(
+      std::unique_ptr<Sensor>(new Sensor(std::move(src), std::move(transform), config)));
 }
 
 template <std::derived_from<Transform> TTransform>
@@ -72,7 +76,8 @@ SourcePush *Sensor::addPushSensor(std::vector<std::unique_ptr<Sensor>> &sensors,
                                   SensorConfig config) {
   auto src = std::make_unique<SourcePush>();
   SourcePush *borrowed = src.get();
-  auto transform = std::make_unique<TTransform>(config.divider());
-  sensors.emplace_back(std::make_unique<Sensor>(std::move(src), std::move(transform), config));
+  auto transform = std::unique_ptr<TTransform>(new TTransform(config.divider()));
+  sensors.emplace_back(
+      std::unique_ptr<Sensor>(new Sensor(std::move(src), std::move(transform), config)));
   return borrowed;
 }

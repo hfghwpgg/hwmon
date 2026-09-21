@@ -19,6 +19,7 @@
 #include "../Sensor/SourceFile.hpp"
 #include "../Sensor/TransformDelta.hpp"
 #include "../Sensor/TransformScale.hpp"
+#include "helpers.hpp"
 
 namespace fs = std::filesystem;
 
@@ -45,13 +46,14 @@ protected:
     f.flush();
   }
 
-  // Mirrors what Sensor::makeFileSensor builds, but returns the sensor by value
-  // so tests can drive it directly instead of through a SensorVec.
+  // returns sensor instead of adding it to a global vector
   template <std::derived_from<Transform> TTransform>
   Sensor makeSensor(std::string name, SensorType type, unsigned int rawDivider = 0) {
     SensorConfig config{std::move(name), type, rawDivider};
-    return Sensor{std::make_unique<SourceFile>(path),
-                  std::make_unique<TTransform>(config.divider()), config};
+    helpers::SensorVec sensors;
+    Sensor::makeFileSensor<TTransform>(sensors, path, config);
+
+    return std::move(*sensors[0]);
   }
 
   fs::path path;
