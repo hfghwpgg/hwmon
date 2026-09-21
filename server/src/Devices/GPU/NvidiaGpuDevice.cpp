@@ -12,9 +12,9 @@
 #include "Device.hpp"
 #include "GpuDetector.hpp"
 #include "Libraries/NvmlLibrary.hpp"
-#include "SensorType.hpp"
+#include "Sensor/SourcePush.hpp"
+#include "Sensor/TransformScale.hpp"
 #include "SharedHwmonParser.hpp"
-#include "ValueSensor.hpp"
 #include "helpers.hpp"
 
 namespace {
@@ -32,10 +32,10 @@ std::string stripBranding(std::string deviceName) {
 
 } // namespace
 
-NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths) :
+NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<std::filesystem::path> &hwmonPaths) :
     NvidiaGpuDevice(std::move(card), hwmonPaths, true) {}
 
-NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths,
+NvidiaGpuDevice::NvidiaGpuDevice(GpuCardInfo card, std::set<std::filesystem::path> &hwmonPaths,
                                  bool allowNvml) :
     Device(card.cardPath.filename().string(), DeviceType::GPU),
     card(std::move(card)),
@@ -101,45 +101,59 @@ bool NvidiaGpuDevice::setupNvml() {
 
   unsigned int value = 0;
   if (nvml->nvmlDeviceGetTemperature(handle, NVML_TEMPERATURE_GPU, &value) == NVML_SUCCESS) {
-    nvmlSensors.temp = addValueSensor(sensors, "GPU core", SensorType::TEMPERATURE, true, true);
+    nvmlSensors.temp = Sensor::addPushSensor<TransformScale>(
+        sensors, {"GPU core", SensorType::TEMPERATURE, 0, true, true});
   }
 
   nvmlUtilization_t utilization{};
   if (nvml->nvmlDeviceGetUtilizationRates(handle, &utilization) == NVML_SUCCESS) {
-    nvmlSensors.gpuUtil = addValueSensor(sensors, "GPU core", SensorType::UTILIZATION);
-    nvmlSensors.memUtil = addValueSensor(sensors, "GPU memory", SensorType::UTILIZATION);
+    nvmlSensors.gpuUtil =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU core", SensorType::UTILIZATION});
+    nvmlSensors.memUtil =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU memory", SensorType::UTILIZATION});
   }
 
   if (nvml->nvmlDeviceGetClockInfo(handle, NVML_CLOCK_GRAPHICS, &value) == NVML_SUCCESS) {
-    nvmlSensors.gpuClock = addValueSensor(sensors, "GPU core", SensorType::FREQUENCY);
+    // nvmlSensors.gpuClock = addValueSensor(sensors, "GPU core", SensorType::FREQUENCY);
+    //
+    nvmlSensors.gpuClock =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU core", SensorType::FREQUENCY});
   }
   if (nvml->nvmlDeviceGetClockInfo(handle, NVML_CLOCK_MEM, &value) == NVML_SUCCESS) {
-    nvmlSensors.memClock = addValueSensor(sensors, "GPU memory clock", SensorType::FREQUENCY);
+    // nvmlSensors.memClock = addValueSensor(sensors, "GPU memory clock", SensorType::FREQUENCY);
+    //
+    nvmlSensors.memClock =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU memory clock", SensorType::FREQUENCY});
   }
 
   if (nvml->nvmlDeviceGetPowerUsage(handle, &value) == NVML_SUCCESS) {
-    nvmlSensors.power = addValueSensor(sensors, "GPU power draw", SensorType::POWER);
+    nvmlSensors.power =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU power draw", SensorType::POWER});
   }
 
   nvmlMemory_t memory{};
   if (nvml->nvmlDeviceGetMemoryInfo(handle, &memory) == NVML_SUCCESS) {
-    nvmlSensors.vramTotal = addValueSensor(sensors, "GPU total memory", SensorType::MEMORY, false);
-    nvmlSensors.vramUsed = addValueSensor(sensors, "GPU used memory", SensorType::MEMORY);
+    nvmlSensors.vramTotal =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU total memory", SensorType::MEMORY});
+    nvmlSensors.vramUsed =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU used memory", SensorType::MEMORY});
   }
 
   if (nvml->nvmlDeviceGetPcieThroughput(handle, NVML_PCIE_UTIL_TX_BYTES, &value) == NVML_SUCCESS) {
-    nvmlSensors.pcieTx = addValueSensor(sensors, "pcie_tx", SensorType::THROUGHPUT);
-    nvmlSensors.pcieRx = addValueSensor(sensors, "pcie_rx", SensorType::THROUGHPUT);
+    nvmlSensors.pcieTx =
+        Sensor::addPushSensor<TransformScale>(sensors, {"pcie_tx", SensorType::THROUGHPUT});
+    nvmlSensors.pcieRx =
+        Sensor::addPushSensor<TransformScale>(sensors, {"pcie_rx", SensorType::THROUGHPUT});
   }
 
   unsigned int samplingPeriodUs = 0;
   if (nvml->nvmlDeviceGetEncoderUtilization(handle, &value, &samplingPeriodUs) == NVML_SUCCESS) {
-    nvmlSensors.encoderUtil =
-        addValueSensor(sensors, "Encoder utilization", SensorType::UTILIZATION);
+    nvmlSensors.encoderUtil = Sensor::addPushSensor<TransformScale>(
+        sensors, {"Encoder utilization", SensorType::UTILIZATION});
   }
   if (nvml->nvmlDeviceGetDecoderUtilization(handle, &value, &samplingPeriodUs) == NVML_SUCCESS) {
-    nvmlSensors.decoderUtil =
-        addValueSensor(sensors, "Decoder Utilization", SensorType::UTILIZATION);
+    nvmlSensors.decoderUtil = Sensor::addPushSensor<TransformScale>(
+        sensors, {"Decoder Utilization", SensorType::UTILIZATION});
   }
 
   spdlog::info("using NVML for {}", name);
@@ -179,14 +193,14 @@ void NvidiaGpuDevice::readNvml() {
   if (nvmlSensors.power != nullptr) {
     unsigned int power = 0;
     if (nvml->nvmlDeviceGetPowerUsage(handle, &power) == NVML_SUCCESS)
-      nvmlSensors.power->setValue(static_cast<long double>(power) / 1'000); // milliwatts
+      nvmlSensors.power->setValue(static_cast<double>(power) / 1'000); // milliwatts
   }
 
   if (nvmlSensors.vramTotal != nullptr) {
     nvmlMemory_t memory{};
     if (nvml->nvmlDeviceGetMemoryInfo(handle, &memory) == NVML_SUCCESS) {
-      nvmlSensors.vramTotal->setValue(static_cast<long double>(memory.total));
-      nvmlSensors.vramUsed->setValue(static_cast<long double>(memory.used));
+      nvmlSensors.vramTotal->setValue(static_cast<double>(memory.total));
+      nvmlSensors.vramUsed->setValue(static_cast<double>(memory.used));
     }
   }
 
@@ -195,9 +209,9 @@ void NvidiaGpuDevice::readNvml() {
     unsigned int tx = 0;
     unsigned int rx = 0;
     if (nvml->nvmlDeviceGetPcieThroughput(handle, NVML_PCIE_UTIL_TX_BYTES, &tx) == NVML_SUCCESS)
-      nvmlSensors.pcieTx->setValue(static_cast<long double>(tx) * 1'024); // reported in KB/s
+      nvmlSensors.pcieTx->setValue(static_cast<double>(tx) * 1'024); // reported in KB/s
     if (nvml->nvmlDeviceGetPcieThroughput(handle, NVML_PCIE_UTIL_RX_BYTES, &rx) == NVML_SUCCESS)
-      nvmlSensors.pcieRx->setValue(static_cast<long double>(rx) * 1'024);
+      nvmlSensors.pcieRx->setValue(static_cast<double>(rx) * 1'024);
   }
 
   if (nvmlSensors.encoderUtil != nullptr) {

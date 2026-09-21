@@ -9,13 +9,13 @@
 
 #include "../DeviceType.hpp"
 #include "../helpers.hpp"
-#include "SensorType.hpp"
-#include "ValueDeltaSensor.hpp"
+#include "Sensor/SensorType.hpp"
+#include "Sensor/TransformDelta.hpp"
 
 // -------------------------------- <name, [rx, tx]>
 using ifaceMap = std::map<std::string, std::array<unsigned long long, 2>>;
 
-NetworkDevice::NetworkDevice(std::string name, helpers::fs::path netDev) :
+NetworkDevice::NetworkDevice(std::string name, std::filesystem::path netDev) :
     Device(name, DeviceType::NETWORK),
     netDevFD(netDev) {}
 
@@ -64,10 +64,10 @@ ifaceMap NetworkDevice::parseData() {
 void NetworkDevice::initialize() {
   auto ifaces = parseData();
   for (const auto &iface : ifaces) {
-    my_sensors.emplace_back(addValueDeltaSensor(sensors, std::format("{} download", iface.first),
-                                                SensorType::THROUGHPUT));
-    my_sensors.emplace_back(addValueDeltaSensor(sensors, std::format("{} upload", iface.first),
-                                                SensorType::THROUGHPUT));
+    Sources.emplace_back(Sensor::addPushSensor<TransformDelta>(
+        sensors, {std::format("{} download", iface.first), SensorType::THROUGHPUT}));
+    Sources.emplace_back(Sensor::addPushSensor<TransformDelta>(
+        sensors, {std::format("{} upload", iface.first), SensorType::THROUGHPUT}));
   }
 }
 
@@ -77,8 +77,8 @@ void NetworkDevice::read() {
   for (const auto &iface : ifaces) {
     const auto rx = iface.second[0];
     const auto tx = iface.second[1];
-    my_sensors.at(idx++)->setValue(rx);
-    my_sensors.at(idx++)->setValue(tx);
+    Sources.at(idx++)->setValue(rx);
+    Sources.at(idx++)->setValue(tx);
   }
   for (const auto &sensor : sensors) {
     sensor->updateValue();

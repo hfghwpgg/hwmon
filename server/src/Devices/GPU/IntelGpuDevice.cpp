@@ -13,9 +13,11 @@
 
 #include "Device.hpp"
 #include "GpuDetector.hpp"
-#include "SensorType.hpp"
+#include "Sensor/Sensor.hpp"
+#include "Sensor/SensorType.hpp"
+#include "Sensor/SourcePush.hpp"
+#include "Sensor/TransformScale.hpp"
 #include "SharedHwmonParser.hpp"
-#include "ValueSensor.hpp"
 #include "helpers.hpp"
 
 // Redefining C++ keywords fortunately has a warning in clang, however it's
@@ -48,7 +50,7 @@ constexpr const char *PMU_DEVICE = "i915";
 
 } // namespace
 
-IntelGpuDevice::IntelGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths,
+IntelGpuDevice::IntelGpuDevice(GpuCardInfo card, std::set<std::filesystem::path> &hwmonPaths,
                                bool allowPmu) :
     Device(card.cardPath.filename().string(), DeviceType::GPU),
     card(std::move(card)),
@@ -117,20 +119,22 @@ bool IntelGpuDevice::setupPmu() {
   // establish the first sample so the next read has a delta to work with
   pmu_sample(pmuEngines);
 
-  gpuUtil = addValueSensor(sensors, "gpu_util", SensorType::UTILIZATION);
+  gpuUtil =
+      Sensor::addPushSensor<TransformScale>(sensors, {"GPU utilization", SensorType::UTILIZATION});
 
   engineUtil.reserve(pmuEngines->num_engines);
   for (unsigned int i = 0; i < pmuEngines->num_engines; ++i) {
     const struct engine *engine = engine_ptr(pmuEngines, i);
     const char *engineName = engine->display_name != nullptr ? engine->display_name : engine->name;
-    engineUtil.push_back(
-        addValueSensor(sensors, std::format("{}_util", engineName), SensorType::UTILIZATION));
+    engineUtil.push_back(Sensor::addPushSensor<TransformScale>(
+        sensors, {std::format("{}_util", engineName), SensorType::UTILIZATION}));
   }
 
   if (pmuEngines->freq_act.present)
-    frequency = addValueSensor(sensors, "gpu_clock", SensorType::FREQUENCY);
+    frequency =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU clock", SensorType::FREQUENCY});
   if (pmuEngines->num_rapl > 0)
-    power = addValueSensor(sensors, "gpu_power", SensorType::POWER);
+    power = Sensor::addPushSensor<TransformScale>(sensors, {"GPU power", SensorType::POWER});
 
   spdlog::info("using i915 PMU for {} ({} engines)", name, pmuEngines->num_engines);
   return true;

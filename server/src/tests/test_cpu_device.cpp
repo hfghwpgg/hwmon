@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 #include "../Devices/CpuDevice.hpp"
-#include "../SensorType.hpp"
+#include "../Sensor/SensorType.hpp"
 
 namespace fs = std::filesystem;
 
@@ -219,7 +219,9 @@ TEST_F(CpuDeviceTest, ResetReadingsClearsUtilizationAggregates) {
   EXPECT_EQ(cpuAfterReset["readings"]["times"].get<std::size_t>(), 0u);
 }
 
-TEST_F(CpuDeviceTest, ResetReadingsForcesNewUtilizationBaseline) {
+// resetReadings clears the reported statistics but keeps the /proc/stat
+// counters, so no sampling interval is lost across a reset
+TEST_F(CpuDeviceTest, ResetReadingsKeepsUtilizationBaseline) {
   writeFile(statPath, "cpu 100 0 0 100 0 0 0 0 0 0\n"
                       "cpu0 100 0 0 100 0 0 0 0 0 0\n");
 
@@ -236,20 +238,24 @@ TEST_F(CpuDeviceTest, ResetReadingsForcesNewUtilizationBaseline) {
 
   device.resetReadings();
 
-  // Re-establish baseline only; stale utilOld must not produce a sample.
+  const nlohmann::json cleared = findSensor(device.serialize()["sensors"], "CPU");
+  ASSERT_EQ(cleared["readings"]["times"].get<std::size_t>(), 0u);
+
+  // 500 busy of 800 total since the pre-reset sample
   writeFile(statPath, "cpu 600 0 0 400 0 0 0 0 0 0\n"
                       "cpu0 600 0 0 400 0 0 0 0 0 0\n");
   device.read();
 
-  const nlohmann::json cpuAfterBaseline = findSensor(device.serialize()["sensors"], "CPU");
-  EXPECT_EQ(cpuAfterBaseline["readings"]["times"].get<std::size_t>(), 0u);
+  const nlohmann::json cpuAfterReset = findSensor(device.serialize()["sensors"], "CPU");
+  EXPECT_EQ(cpuAfterReset["readings"]["times"].get<std::size_t>(), 1u);
+  EXPECT_FLOAT_EQ(cpuAfterReset["readings"]["value"].get<float>(), 60.0f);
 
   writeFile(statPath, "cpu 700 0 0 500 0 0 0 0 0 0\n"
                       "cpu0 700 0 0 500 0 0 0 0 0 0\n");
   device.read();
 
   const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "CPU");
-  EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 1u);
+  EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 2u);
   EXPECT_FLOAT_EQ(cpu["readings"]["value"].get<float>(), 50.0f);
 }
 
@@ -303,4 +309,197 @@ TEST_F(CpuDeviceTest, PrefersZenergyOverIntelRapl) {
   EXPECT_GT(zenergySensor["readings"]["value"].get<float>(), 0.0f);
 
   EXPECT_TRUE(findSensor(sensors, "Socket power draw").empty());
+}
+
+// -------------------------------------------------------------------------
+// Degenerate /proc/stat states. Utilization is a delta over cpu time, so any
+// interval where the counters don't advance has no answer; the device must
+// report nothing for that cycle instead of a bogus sample, and must keep
+// working afterwards.
+// -------------------------------------------------------------------------
+
+// initialize() only builds the sensor map, so the first read() establishes the
+// counter baseline and yields nothing
+TEST_F(CpuDeviceTest, UtilizationFirstReadOnlyEstablishesBaseline) {
+  writeFile(statPath, "cpu 100 0 0 100 0 0 0 0 0 0\n"
+                      "cpu0 100 0 0 100 0 0 0 0 0 0\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  ASSERT_NO_THROW(device.read());
+
+  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "CPU");
+  ASSERT_FALSE(cpu.empty());
+  EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 0u);
+  EXPECT_TRUE(std::isnan(cpu["readings"]["value"].get<double>()));
+}
+
+// /proc/stat has USER_HZ granularity (10ms), so two polls inside the same tick
+// see identical counters; the resulting 0/0 must not become a sample
+TEST_F(CpuDeviceTest, UtilizationSkipsSampleWhenCountersDoNotAdvance) {
+  writeFile(statPath, "cpu 100 0 0 100 0 0 0 0 0 0\n"
+                      "cpu0 100 0 0 100 0 0 0 0 0 0\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  device.read();                  // baseline
+  ASSERT_NO_THROW(device.read()); // same tick: zero delta
+
+  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "CPU");
+  ASSERT_FALSE(cpu.empty());
+  EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 0u);
+  EXPECT_TRUE(std::isnan(cpu["readings"]["value"].get<double>()));
+}
+
+TEST_F(CpuDeviceTest, UtilizationRecoversAfterStalledCounters) {
+  writeFile(statPath, "cpu 100 0 0 100 0 0 0 0 0 0\n"
+                      "cpu0 100 0 0 100 0 0 0 0 0 0\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  device.read(); // baseline (200 total, 100 idle)
+  device.read(); // stalled, no sample
+
+  // 200 total / 100 idle since the baseline
+  writeFile(statPath, "cpu 200 0 0 200 0 0 0 0 0 0\n"
+                      "cpu0 200 0 0 200 0 0 0 0 0 0\n");
+  device.read();
+
+  const nlohmann::json afterRecovery = findSensor(device.serialize()["sensors"], "CPU");
+  EXPECT_EQ(afterRecovery["readings"]["times"].get<std::size_t>(), 1u);
+  EXPECT_FLOAT_EQ(afterRecovery["readings"]["value"].get<float>(), 50.0f);
+
+  // a stall in the middle of a run must not corrupt the baseline either
+  device.read(); // counters unchanged again
+  const nlohmann::json afterStall = findSensor(device.serialize()["sensors"], "CPU");
+  EXPECT_EQ(afterStall["readings"]["times"].get<std::size_t>(), 1u);
+
+  // 400 total / 100 idle since the last accepted sample
+  writeFile(statPath, "cpu 500 0 0 300 0 0 0 0 0 0\n"
+                      "cpu0 500 0 0 300 0 0 0 0 0 0\n");
+  device.read();
+
+  const nlohmann::json resumed = findSensor(device.serialize()["sensors"], "CPU");
+  EXPECT_EQ(resumed["readings"]["times"].get<std::size_t>(), 2u);
+  EXPECT_FLOAT_EQ(resumed["readings"]["value"].get<float>(), 75.0f);
+}
+
+// 0% is a real reading, not a missing one: it must be recorded
+TEST_F(CpuDeviceTest, UtilizationReportsZeroWhenFullyIdle) {
+  writeFile(statPath, "cpu 100 0 0 100 0 0 0 0 0 0\n"
+                      "cpu0 100 0 0 100 0 0 0 0 0 0\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  device.read(); // baseline
+
+  // only the idle column advances
+  writeFile(statPath, "cpu 100 0 0 200 0 0 0 0 0 0\n"
+                      "cpu0 100 0 0 200 0 0 0 0 0 0\n");
+  device.read();
+
+  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "CPU");
+  EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 1u);
+  EXPECT_FLOAT_EQ(cpu["readings"]["value"].get<float>(), 0.0f);
+}
+
+TEST_F(CpuDeviceTest, UtilizationReportsHundredWhenFullyBusy) {
+  writeFile(statPath, "cpu 100 0 0 100 0 0 0 0 0 0\n"
+                      "cpu0 100 0 0 100 0 0 0 0 0 0\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  device.read(); // baseline
+
+  // only a non-idle column advances
+  writeFile(statPath, "cpu 200 0 0 100 0 0 0 0 0 0\n"
+                      "cpu0 200 0 0 100 0 0 0 0 0 0\n");
+  device.read();
+
+  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "CPU");
+  EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 1u);
+  EXPECT_FLOAT_EQ(cpu["readings"]["value"].get<float>(), 100.0f);
+}
+
+// a core going offline stops appearing in /proc/stat
+TEST_F(CpuDeviceTest, UtilizationSurvivesCoreDisappearingFromStat) {
+  writeFile(statPath, "cpu 100 0 0 100 0 0 0 0 0 0\n"
+                      "cpu0 100 0 0 100 0 0 0 0 0 0\n"
+                      "cpu1 100 0 0 100 0 0 0 0 0 0\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  device.read(); // baseline
+
+  writeFile(statPath, "cpu 200 0 0 200 0 0 0 0 0 0\n"
+                      "cpu0 200 0 0 200 0 0 0 0 0 0\n"
+                      "cpu1 200 0 0 200 0 0 0 0 0 0\n");
+  device.read();
+  ASSERT_EQ(findSensor(device.serialize()["sensors"], "CPU core 1")["readings"]["times"]
+                .get<std::size_t>(),
+            1u);
+
+  // cpu1 went offline
+  writeFile(statPath, "cpu 400 0 0 300 0 0 0 0 0 0\n"
+                      "cpu0 400 0 0 300 0 0 0 0 0 0\n");
+  ASSERT_NO_THROW(device.read());
+
+  const nlohmann::json sensors = device.serialize()["sensors"];
+  // the surviving cores keep sampling
+  EXPECT_EQ(findSensor(sensors, "CPU core 0")["readings"]["times"].get<std::size_t>(), 2u);
+  // the offline core keeps its last sample and gains no new one
+  const nlohmann::json gone = findSensor(sensors, "CPU core 1");
+  ASSERT_FALSE(gone.empty());
+  EXPECT_EQ(gone["readings"]["times"].get<std::size_t>(), 1u);
+}
+
+// current behaviour: a core appearing after initialize() is fatal, because the
+// sensor map is built once and readUtilization refuses to guess
+TEST_F(CpuDeviceTest, UtilizationThrowsWhenNewCoreAppearsAfterInit) {
+  writeFile(statPath, "cpu 100 0 0 100 0 0 0 0 0 0\n"
+                      "cpu0 100 0 0 100 0 0 0 0 0 0\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  device.initialize();
+  device.read(); // baseline
+
+  writeFile(statPath, "cpu 200 0 0 200 0 0 0 0 0 0\n"
+                      "cpu0 200 0 0 200 0 0 0 0 0 0\n"
+                      "cpu1 200 0 0 200 0 0 0 0 0 0\n");
+
+  EXPECT_THROW(device.read(), std::runtime_error);
+}
+
+TEST_F(CpuDeviceTest, UtilizationSurvivesMalformedStatColumns) {
+  writeFile(statPath, "cpu bogus columns here\n"
+                      "cpu0 bogus columns here\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  ASSERT_NO_THROW(device.initialize());
+  ASSERT_NO_THROW(device.read());
+  ASSERT_NO_THROW(device.read());
+
+  const nlohmann::json cpu = findSensor(device.serialize()["sensors"], "CPU");
+  ASSERT_FALSE(cpu.empty());
+  EXPECT_EQ(cpu["readings"]["times"].get<std::size_t>(), 0u);
+  EXPECT_TRUE(std::isnan(cpu["readings"]["value"].get<double>()));
+}
+
+TEST_F(CpuDeviceTest, SurvivesStatWithoutCpuLines) {
+  writeFile(statPath, "intr 12345\n"
+                      "ctxt 678\n");
+
+  std::set<fs::path> paths{};
+  CpuDevice device = makeDevice(paths);
+  ASSERT_NO_THROW(device.initialize());
+  ASSERT_NO_THROW(device.read());
+  EXPECT_TRUE(findSensor(device.serialize()["sensors"], "CPU").empty());
 }

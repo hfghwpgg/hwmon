@@ -1,6 +1,7 @@
 #pragma once
 #include "Device.hpp"
-#include "ValueDeltaSensor.hpp"
+#include "Sensor/Sensor.hpp"
+#include "Sensor/SourcePush.hpp"
 
 #include <array>
 #include <fstream>
@@ -11,7 +12,7 @@
 
 class NetworkDevice : public Device {
 public:
-  NetworkDevice(std::string name, helpers::fs::path netDev);
+  NetworkDevice(std::string name, std::filesystem::path netDev);
   NetworkDevice(std::string name);
   ~NetworkDevice();
 
@@ -22,6 +23,6 @@ public:
   nlohmann::json serialize() override;
 
 private:
-  std::vector<ValueDeltaSensor *> my_sensors;
+  std::vector<SourcePush *> Sources;
   std::ifstream netDevFD;
 };

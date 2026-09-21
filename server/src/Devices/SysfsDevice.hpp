@@ -8,7 +8,7 @@
 
 class SysfsDevice : public Device {
 public:
-  SysfsDevice(std::string name, DeviceType type, helpers::fs::path path);
+  SysfsDevice(std::string name, DeviceType type, std::filesystem::path path);
 
   void initialize() override;
   void read() override;
@@ -16,6 +16,6 @@ public:
   nlohmann::json serialize() override;
 
 private:
-  helpers::fs::path path;
+  std::filesystem::path path;
   void getName();
 };

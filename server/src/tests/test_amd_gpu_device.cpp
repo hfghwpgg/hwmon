@@ -8,9 +8,9 @@
 #include <string>
 #include <unistd.h>
 
-#include "../Devices/AmdGpuDevice.hpp"
-#include "../Devices/GpuDetector.hpp"
-#include "../SensorType.hpp"
+#include "../Devices/GPU/AmdGpuDevice.hpp"
+#include "../Devices/GPU/GpuDetector.hpp"
+#include "../Sensor/SensorType.hpp"
 
 namespace fs = std::filesystem;
 

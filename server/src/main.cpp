@@ -48,7 +48,7 @@ std::string describeFileType(mode_t mode) {
 
 // --refresh-socket deletes whatever sits at the socket path, so make sure it
 // really is a leftover socket before removing anything.
-bool removeStaleSocket(const helpers::fs::path &path) {
+bool removeStaleSocket(const std::filesystem::path &path) {
   if (const auto problem = UDSServer::ValidateSocketPath(path)) {
     spdlog::error("refusing to remove unsafe socket path {}: {}", path.string(), *problem);
     return false;

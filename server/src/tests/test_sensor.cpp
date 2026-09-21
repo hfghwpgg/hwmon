@@ -7,14 +7,18 @@
 #include <fstream>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <unistd.h>
+#include <vector>
 
-#include "../DeltaSensor.hpp"
-#include "../Sensor.hpp"
-#include "../SensorReading.hpp"
-#include "../SensorType.hpp"
+#include "../Sensor/Sensor.hpp"
+#include "../Sensor/SensorReading.hpp"
+#include "../Sensor/SensorType.hpp"
+#include "../Sensor/SourceFile.hpp"
+#include "../Sensor/TransformDelta.hpp"
+#include "../Sensor/TransformScale.hpp"
 
 namespace fs = std::filesystem;
 
@@ -28,7 +32,6 @@ protected:
     path = fs::temp_directory_path() / ("hwmon_sensor_test_" + std::to_string(::getpid()) + "_" +
                                         std::to_string(counter.fetch_add(1)));
     { std::ofstream touch{path}; }
-    file = std::make_unique<std::ifstream>(path);
   }
 
   void TearDown() override {
@@ -42,15 +45,23 @@ protected:
     f.flush();
   }
 
+  // Mirrors what Sensor::makeFileSensor builds, but returns the sensor by value
+  // so tests can drive it directly instead of through a SensorVec.
+  template <std::derived_from<Transform> TTransform>
+  Sensor makeSensor(std::string name, SensorType type, unsigned int rawDivider = 0) {
+    SensorConfig config{std::move(name), type, rawDivider};
+    return Sensor{std::make_unique<SourceFile>(path),
+                  std::make_unique<TTransform>(config.divider()), config};
+  }
+
   fs::path path;
-  std::unique_ptr<std::ifstream> file;
 };
 
 } // namespace
 
 TEST_F(SensorFileTest, ScalesRawValueByDivider) {
   writeRaw("30500\n");
-  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
+  Sensor sensor = makeSensor<TransformScale>("cpu", SensorType::TEMPERATURE);
   sensor.updateValue();
 
   const SensorReading r = sensor.getReadings();
@@ -62,14 +73,21 @@ TEST_F(SensorFileTest, ScalesRawValueByDivider) {
 
 TEST_F(SensorFileTest, FanSpeedIsNotScaled) {
   writeRaw("1200");
-  Sensor sensor{std::move(file), "fan", SensorType::FAN_SPEED};
+  Sensor sensor = makeSensor<TransformScale>("fan", SensorType::FAN_SPEED);
   sensor.updateValue();
-  EXPECT_DOUBLE_EQ(sensor.getReadings().value, 1200.0f);
+  EXPECT_DOUBLE_EQ(sensor.getReadings().value, 1200.0);
+}
+
+TEST_F(SensorFileTest, ExplicitDividerOverridesTypeDefault) {
+  writeRaw("2500000");
+  Sensor sensor = makeSensor<TransformScale>("core", SensorType::FREQUENCY, 1000);
+  sensor.updateValue();
+  EXPECT_DOUBLE_EQ(sensor.getReadings().value, 2500.0);
 }
 
 TEST_F(SensorFileTest, AggregatesMinMaxSumAcrossReads) {
   writeRaw("30000");
-  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
+  Sensor sensor = makeSensor<TransformScale>("cpu", SensorType::TEMPERATURE);
 
   sensor.updateValue(); // 30
   writeRaw("31000");
@@ -78,28 +96,36 @@ TEST_F(SensorFileTest, AggregatesMinMaxSumAcrossReads) {
   sensor.updateValue(); // 29
 
   const SensorReading r = sensor.getReadings();
-  EXPECT_DOUBLE_EQ(r.value, 29.0f);
-  EXPECT_DOUBLE_EQ(r.min_value, 29.0f);
-  EXPECT_DOUBLE_EQ(r.max_value, 31.0f);
+  EXPECT_DOUBLE_EQ(r.value, 29.0);
+  EXPECT_DOUBLE_EQ(r.min_value, 29.0);
+  EXPECT_DOUBLE_EQ(r.max_value, 31.0);
   EXPECT_DOUBLE_EQ(r.sum, 90.0);
   EXPECT_EQ(r.times, 3u);
 }
 
 TEST_F(SensorFileTest, SerializeEmitsNameTypeAndReadings) {
   writeRaw("45000");
-  Sensor sensor{std::move(file), "core", SensorType::TEMPERATURE};
+  Sensor sensor = makeSensor<TransformScale>("core", SensorType::TEMPERATURE);
   sensor.updateValue();
 
   const nlohmann::json j = sensor.serialize();
   EXPECT_EQ(j["name"], "core");
   EXPECT_EQ(j["type"].get<int>(), static_cast<int>(SensorType::TEMPERATURE));
+  EXPECT_FALSE(j["isPrimary"].get<bool>());
   EXPECT_EQ(j["readings"]["times"].get<std::size_t>(), 1u);
-  EXPECT_DOUBLE_EQ(j["readings"]["value"].get<float>(), 45.0f);
+  EXPECT_DOUBLE_EQ(j["readings"]["value"].get<double>(), 45.0);
+}
+
+TEST_F(SensorFileTest, SetPrimaryIsReflectedInSerialization) {
+  writeRaw("45000");
+  Sensor sensor = makeSensor<TransformScale>("core", SensorType::TEMPERATURE);
+  sensor.setPrimary(true);
+  EXPECT_TRUE(sensor.serialize()["isPrimary"].get<bool>());
 }
 
 TEST_F(SensorFileTest, ResetReadingsClearsAggregates) {
   writeRaw("30000");
-  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
+  Sensor sensor = makeSensor<TransformScale>("cpu", SensorType::TEMPERATURE);
   sensor.updateValue();
   writeRaw("31000");
   sensor.updateValue();
@@ -119,18 +145,18 @@ TEST_F(SensorFileTest, ResetReadingsClearsAggregates) {
   EXPECT_DOUBLE_EQ(sensor.getReadings().value, 32.0);
 }
 
-TEST_F(SensorFileTest, DeltaSensorFirstReadProducesNoSample) {
+TEST_F(SensorFileTest, DeltaFirstReadProducesNoSample) {
   writeRaw("1000000");
-  DeltaSensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  Sensor sensor = makeSensor<TransformDelta>("rapl", SensorType::ENERGY);
   sensor.updateValue();
 
   // The first reading only establishes a baseline; nothing is recorded yet.
   EXPECT_EQ(sensor.getReadings().times, 0u);
 }
 
-TEST_F(SensorFileTest, DeltaSensorComputesPositivePowerFromDelta) {
+TEST_F(SensorFileTest, DeltaComputesPositivePowerFromDelta) {
   writeRaw("1000000");
-  DeltaSensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  Sensor sensor = makeSensor<TransformDelta>("rapl", SensorType::ENERGY);
   sensor.updateValue(); // baseline
 
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
@@ -141,12 +167,12 @@ TEST_F(SensorFileTest, DeltaSensorComputesPositivePowerFromDelta) {
   EXPECT_EQ(r.times, 1u);
   EXPECT_FALSE(std::isnan(r.value));
   EXPECT_TRUE(std::isfinite(r.value));
-  EXPECT_GT(r.value, 0.0f);
+  EXPECT_GT(r.value, 0.0);
 }
 
-TEST_F(SensorFileTest, DeltaSensorReportsNegativePowerOnCounterReset) {
+TEST_F(SensorFileTest, DeltaReportsNegativePowerOnCounterReset) {
   writeRaw("1000000");
-  DeltaSensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  Sensor sensor = makeSensor<TransformDelta>("rapl", SensorType::ENERGY);
   sensor.updateValue(); // baseline
 
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
@@ -157,26 +183,33 @@ TEST_F(SensorFileTest, DeltaSensorReportsNegativePowerOnCounterReset) {
   EXPECT_EQ(r.times, 1u);
   EXPECT_TRUE(std::isfinite(r.value));
   // Current behaviour: negative delta is reported as negative power.
-  EXPECT_LT(r.value, 0.0f);
+  EXPECT_LT(r.value, 0.0);
 }
 
 TEST_F(SensorFileTest, SurvivesEmptySensorRead) {
   writeRaw(""); // empty read, e.g. transient sysfs state
-  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
+  Sensor sensor = makeSensor<TransformScale>("cpu", SensorType::TEMPERATURE);
   EXPECT_NO_THROW(sensor.updateValue());
   EXPECT_EQ(sensor.getReadings().times, 0u);
 }
 
 TEST_F(SensorFileTest, SurvivesNonNumericSensorRead) {
   writeRaw("garbage");
-  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
+  Sensor sensor = makeSensor<TransformScale>("cpu", SensorType::TEMPERATURE);
   EXPECT_NO_THROW(sensor.updateValue());
+  EXPECT_EQ(sensor.getReadings().times, 0u);
+}
+
+TEST_F(SensorFileTest, RejectsTrailingGarbageAfterNumber) {
+  writeRaw("30000abc");
+  Sensor sensor = makeSensor<TransformScale>("cpu", SensorType::TEMPERATURE);
+  sensor.updateValue();
   EXPECT_EQ(sensor.getReadings().times, 0u);
 }
 
 TEST_F(SensorFileTest, BadReadDoesNotClobberPreviousAggregates) {
   writeRaw("30000");
-  Sensor sensor{std::move(file), "cpu", SensorType::TEMPERATURE};
+  Sensor sensor = makeSensor<TransformScale>("cpu", SensorType::TEMPERATURE);
   sensor.updateValue(); // good sample: 30.0
 
   writeRaw("not_a_number");
@@ -184,25 +217,26 @@ TEST_F(SensorFileTest, BadReadDoesNotClobberPreviousAggregates) {
 
   const SensorReading r = sensor.getReadings();
   EXPECT_EQ(r.times, 1u);
-  EXPECT_DOUBLE_EQ(r.value, 30.0f);
+  EXPECT_DOUBLE_EQ(r.value, 30.0);
 }
 
-TEST_F(SensorFileTest, DeltaSensorSurvivesNonNumericRead) {
+TEST_F(SensorFileTest, DeltaSurvivesNonNumericRead) {
   writeRaw("garbage");
-  DeltaSensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  Sensor sensor = makeSensor<TransformDelta>("rapl", SensorType::ENERGY);
   EXPECT_NO_THROW(sensor.updateValue());
+  EXPECT_EQ(sensor.getReadings().times, 0u);
 }
 
-TEST_F(SensorFileTest, DeltaSensorResetClearsAggregatesAndBaseline) {
+TEST_F(SensorFileTest, DeltaResetClearsAggregatesAndBaseline) {
   writeRaw("1000000");
-  DeltaSensor sensor{std::move(file), "rapl", SensorType::ENERGY};
+  Sensor sensor = makeSensor<TransformDelta>("rapl", SensorType::ENERGY);
   sensor.updateValue(); // baseline
 
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
   writeRaw("3000000");
   sensor.updateValue();
   ASSERT_EQ(sensor.getReadings().times, 1u);
-  const float valueBeforeReset = sensor.getReadings().value;
+  const double valueBeforeReset = sensor.getReadings().value;
 
   sensor.resetReadings();
   const SensorReading cleared = sensor.getReadings();
@@ -219,6 +253,25 @@ TEST_F(SensorFileTest, DeltaSensorResetClearsAggregatesAndBaseline) {
   writeRaw("5000000");
   sensor.updateValue();
   EXPECT_EQ(sensor.getReadings().times, 1u);
-  EXPECT_GT(sensor.getReadings().value, 0.0f);
+  EXPECT_GT(sensor.getReadings().value, 0.0);
   EXPECT_NE(sensor.getReadings().value, valueBeforeReset);
+}
+
+TEST_F(SensorFileTest, SourceFileThrowsOnMissingPath) {
+  EXPECT_THROW(SourceFile{path / "does_not_exist"}, std::runtime_error);
+}
+
+TEST_F(SensorFileTest, SourceFileThrowsOnDirectory) {
+  EXPECT_THROW(SourceFile{fs::temp_directory_path()}, std::runtime_error);
+}
+
+TEST_F(SensorFileTest, MakeFileSensorAppendsToVector) {
+  writeRaw("42000");
+  std::vector<std::unique_ptr<Sensor>> sensors;
+  Sensor::makeFileSensor<TransformScale>(sensors, path, {"edge", SensorType::TEMPERATURE});
+
+  ASSERT_EQ(sensors.size(), 1u);
+  sensors.front()->updateValue();
+  EXPECT_EQ(sensors.front()->getName(), "edge");
+  EXPECT_DOUBLE_EQ(sensors.front()->getReadings().value, 42.0);
 }

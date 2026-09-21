@@ -12,8 +12,8 @@ struct SharedState;
 
 class Runner {
 public:
-  explicit Runner(SharedState &state, helpers::fs::path hwmonPath, bool doSpecializedDevices,
-                  helpers::fs::path drmPath = "/sys/class/drm");
+  explicit Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpecializedDevices,
+                  std::filesystem::path drmPath = "/sys/class/drm");
 
 
 #ifdef DEBUG
@@ -25,13 +25,13 @@ public:
 
 private:
   const bool doSpecializedDevices;
-  const helpers::fs::path hwmonPath;
-  const helpers::fs::path drmPath;
+  const std::filesystem::path hwmonPath;
+  const std::filesystem::path drmPath;
   SharedState &state;
   std::vector<std::unique_ptr<Device>> devices;
 
   void resetReadings();
-  void setupGpuDevices(std::set<helpers::fs::path> &hwmonPaths);
+  void setupGpuDevices(std::set<std::filesystem::path> &hwmonPaths);
   void setupNetworkDevice();
   static long getUnixTimestamp();
 };

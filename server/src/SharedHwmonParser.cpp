@@ -6,15 +6,16 @@
 #include <unordered_map>
 #include <vector>
 
-#include "DeltaSensor.hpp"
-#include "SensorType.hpp"
-#include "SensorWhitelist.hpp"
+#include "Sensor/Sensor.hpp"
+#include "Sensor/SensorType.hpp"
+#include "Sensor/SensorWhitelist.hpp"
 #include "SharedHwmonParser.hpp"
 #include "helpers.hpp"
 
-helpers::AvailableSensorsMap SharedHwmonParser::parseHwmonDirectory(const helpers::fs::path &path) {
+helpers::AvailableSensorsMap
+SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
   helpers::AvailableSensorsMap available_sensors;
-  for (const auto &entry : helpers::fs::directory_iterator(path)) {
+  for (const auto &entry : std::filesystem::directory_iterator(path)) {
     if (!entry.is_regular_file()) {
       spdlog::trace("{} is not a regular file", entry.path().string());
       continue;
@@ -56,7 +57,7 @@ helpers::AvailableSensorsMap SharedHwmonParser::parseHwmonDirectory(const helper
 
   return available_sensors;
 }
-void SharedHwmonParser::createSensors(const helpers::fs::path &path,
+void SharedHwmonParser::createSensors(const std::filesystem::path &path,
                                       const helpers::AvailableSensorsMap &availableSensors,
                                       helpers::SensorVec &sensors) {
   for (const auto &[sensorBase, extensions] : availableSensors) {
@@ -64,7 +65,7 @@ void SharedHwmonParser::createSensors(const helpers::fs::path &path,
     bool hasInput = false;
     bool hasAverage = false;
 
-    helpers::fs::path valueSrcPath;
+    std::filesystem::path valueSrcPath;
     std::string label = sensorBase;
     for (const auto &ext : extensions) {
       if (ext == "input") {
@@ -100,24 +101,16 @@ void SharedHwmonParser::createSensors(const helpers::fs::path &path,
       spdlog::warn("unable to find type for sensor {}", sensorBase);
     }
 
-    auto valueSrc_ptr = std::make_unique<std::ifstream>(valueSrcPath);
-    if (!valueSrc_ptr->is_open()) {
-      spdlog::critical("unable to open file {}\n", valueSrcPath.string());
-      // throw std::runtime_error(std::format("unable to open file {}\n", valueSrcPath));
-      throw std::runtime_error(std::format("unable to open file {}\n", valueSrcPath.c_str()));
-    };
-
     if (type == SensorType::ENERGY) {
-      sensors.emplace_back(
-          // energy sensors return power
-          std::make_unique<DeltaSensor>(std::move(valueSrc_ptr), label, SensorType::POWER, 1e3));
+      // energy sensors return power
+      Sensor::makeFileSensor<TransformDelta>(sensors, valueSrcPath, {label, SensorType::POWER});
     } else {
-      sensors.emplace_back(std::make_unique<Sensor>(std::move(valueSrc_ptr), label, type));
+      Sensor::makeFileSensor<TransformScale>(sensors, valueSrcPath, {label, type});
     }
   }
 }
 helpers::SensorVec
-SharedHwmonParser::returnSensors(const helpers::fs::path &path,
+SharedHwmonParser::returnSensors(const std::filesystem::path &path,
                                  const helpers::AvailableSensorsMap &available_sensors) {
   helpers::SensorVec sensors;
   createSensors(path, available_sensors, sensors);

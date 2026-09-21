@@ -6,16 +6,15 @@
 #include <unordered_map>
 
 #include "../Device.hpp"
-#include "../ValueSensor.hpp"
 #include "../helpers.hpp"
 
 
 class CpuDevice : public Device {
 public:
-  CpuDevice(std::set<helpers::fs::path> &hwmonPaths);
-  CpuDevice(std::set<helpers::fs::path> &hwmonPaths, helpers::fs::path cpufreq_path,
-            helpers::fs::path cpuinfo_path, helpers::fs::path cpuutil_path,
-            helpers::fs::path intelrapl_path);
+  CpuDevice(std::set<std::filesystem::path> &hwmonPaths);
+  CpuDevice(std::set<std::filesystem::path> &hwmonPaths, std::filesystem::path cpufreq_path,
+            std::filesystem::path cpuinfo_path, std::filesystem::path cpuutil_path,
+            std::filesystem::path intelrapl_path);
   ~CpuDevice();
 
   void initialize() override;
@@ -31,20 +30,20 @@ private:
   };
 
   struct utilSensorData { // cpu time
-    ValueSensor *sensor;
+    SourcePush *src;
     lastReading utilOld;
   };
 
   const struct CpuPaths {
-    helpers::fs::path cpufreq;
-    helpers::fs::path cpuinfo;
-    helpers::fs::path cpuutil;
-    helpers::fs::path intelrapl;
+    std::filesystem::path cpufreq;
+    std::filesystem::path cpuinfo;
+    std::filesystem::path cpuutil;
+    std::filesystem::path intelrapl;
   } cpuPaths;
 
   std::unordered_map<std::string, utilSensorData> utilSensorsPrivate;
 
-  std::set<helpers::fs::path> &hwmonPaths;
+  std::set<std::filesystem::path> &hwmonPaths;
   std::ifstream cpuutil_fd;
 
   void getTemperature();

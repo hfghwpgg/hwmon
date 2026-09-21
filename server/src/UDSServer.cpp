@@ -63,8 +63,8 @@ void FdGuard::reset() noexcept {
 // ---------------------------------------------------------------------------
 // UDSServer
 // ---------------------------------------------------------------------------
-UDSServer::UDSServer(helpers::fs::path udsPath, int backlog, size_t maxClients, SharedState &state,
-                     SocketOps ops) :
+UDSServer::UDSServer(std::filesystem::path udsPath, int backlog, size_t maxClients,
+                     SharedState &state, SocketOps ops) :
     udsPath(std::move(udsPath)),
     backlog(backlog),
     maxClients(maxClients),
@@ -82,7 +82,7 @@ UDSServer::~UDSServer() {
   }
 }
 
-std::optional<std::string> UDSServer::ValidateSocketPath(const helpers::fs::path &path) {
+std::optional<std::string> UDSServer::ValidateSocketPath(const std::filesystem::path &path) {
   if (path.empty()) {
     return "path is empty";
   }
@@ -104,20 +104,20 @@ std::optional<std::string> UDSServer::ValidateSocketPath(const helpers::fs::path
     return "path is longer than " + std::to_string(sizeof(addr.sun_path) - 1) + " characters";
   }
 
-  const helpers::fs::path parent = path.parent_path();
+  const std::filesystem::path parent = path.parent_path();
   if (parent == path.root_path()) {
     // We create and remove the parent directory, so it has to be our own.
     return "path must live in a dedicated directory, not directly in " + parent.string();
   }
 
   std::error_code ec;
-  if (helpers::fs::is_symlink(parent, ec)) {
+  if (std::filesystem::is_symlink(parent, ec)) {
     return "parent directory is a symlink";
   }
-  if (helpers::fs::exists(parent, ec) && !helpers::fs::is_directory(parent, ec)) {
+  if (std::filesystem::exists(parent, ec) && !std::filesystem::is_directory(parent, ec)) {
     return "parent path exists but is not a directory";
   }
-  if (helpers::fs::is_symlink(path, ec)) {
+  if (std::filesystem::is_symlink(path, ec)) {
     return "path is a symlink";
   }
 
@@ -130,7 +130,7 @@ bool UDSServer::setup() {
     return false;
   }
 
-  if (helpers::fs::exists(udsPath)) {
+  if (std::filesystem::exists(udsPath)) {
     spdlog::error("socket already exists, exiting...");
     spdlog::info("it probably means that that other instance is running in the background");
     spdlog::info("or that you pointed socket at a regular file");

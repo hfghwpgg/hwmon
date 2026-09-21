@@ -5,8 +5,8 @@
 
 struct Config {
   unsigned int debuglevel;
-  helpers::fs::path sockPath;
-  helpers::fs::path hwmonPath;
+  std::filesystem::path sockPath;
+  std::filesystem::path hwmonPath;
   unsigned int initialIntervalMs;
   int backlog;
   size_t maxClients;

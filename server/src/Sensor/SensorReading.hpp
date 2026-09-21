@@ -5,7 +5,7 @@ struct SensorReading {
   double value;
   double min_value;
   double max_value;
-  long double sum;
+  double sum;
   size_t times;
 
   nlohmann::json serialize();

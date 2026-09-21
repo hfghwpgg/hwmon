@@ -64,7 +64,7 @@ public:
   // Largest request a single client may buffer before it gets disconnected.
   static constexpr size_t maxRequestBytes = 64 * 1024;
 
-  UDSServer(helpers::fs::path udsPath, int backlog, size_t maxClients, SharedState &state,
+  UDSServer(std::filesystem::path udsPath, int backlog, size_t maxClients, SharedState &state,
             SocketOps ops = {});
   ~UDSServer();
 
@@ -77,7 +77,7 @@ public:
 
   // Rejects socket paths we refuse to create or delete files at. Returns the
   // reason when the path is unsafe, std::nullopt when it is fine.
-  static std::optional<std::string> ValidateSocketPath(const helpers::fs::path &path);
+  static std::optional<std::string> ValidateSocketPath(const std::filesystem::path &path);
 
 private:
   // A running client connection plus a flag it sets when it finishes,
@@ -96,7 +96,7 @@ private:
   // Best-effort "go away" line for a connection we are not going to serve.
   static void RejectClient(const FdGuard &clientFd, std::string_view reason);
 
-  const helpers::fs::path udsPath;
+  const std::filesystem::path udsPath;
   const int backlog;
   const size_t maxClients;
   SharedState &state;

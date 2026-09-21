@@ -11,7 +11,7 @@
 
 #include "../DeviceType.hpp"
 #include "../Devices/NetworkDevice.hpp"
-#include "../SensorType.hpp"
+#include "../Sensor/SensorType.hpp"
 
 namespace fs = std::filesystem;
 

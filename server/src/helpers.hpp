@@ -1,11 +1,11 @@
 #pragma once
-#include <Sensor.hpp>
+#include "Sensor/Sensor.hpp"
 #include <filesystem>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace helpers {
-namespace fs = std::filesystem;
 using AvailableSensorsMap = std::unordered_map<std::string, std::vector<std::string>>;
 using SensorVec = std::vector<std::unique_ptr<Sensor>>;
 

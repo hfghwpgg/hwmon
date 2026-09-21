@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "../Sensor.hpp"
-#include "../SensorType.hpp"
+#include "../Sensor/Sensor.hpp"
+#include "../Sensor/SensorType.hpp"
 #include <string>
 #include <vector>
 

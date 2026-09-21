@@ -18,20 +18,20 @@ bool isCardNode(const std::string &filename) {
                      [](char c) { return c >= '0' && c <= '9'; });
 }
 
-helpers::fs::path findHwmon(const helpers::fs::path &devicePath) {
+std::filesystem::path findHwmon(const std::filesystem::path &devicePath) {
   const auto hwmonRoot = devicePath / "hwmon";
   std::error_code ec;
-  if (!helpers::fs::is_directory(hwmonRoot, ec))
+  if (!std::filesystem::is_directory(hwmonRoot, ec))
     return {};
-  for (const auto &entry : helpers::fs::directory_iterator(hwmonRoot, ec)) {
+  for (const auto &entry : std::filesystem::directory_iterator(hwmonRoot, ec)) {
     if (entry.is_directory(ec))
-      return helpers::fs::canonical(entry.path(), ec);
+      return std::filesystem::canonical(entry.path(), ec);
   }
   return {};
 }
 
 // sysfs id nodes hold values like "0x1002\n"; base 0 autodetects the prefix
-unsigned int readHexId(const helpers::fs::path &path) {
+unsigned int readHexId(const std::filesystem::path &path) {
   const std::string raw = helpers::readFileFirstLine(path);
   try {
     return static_cast<unsigned int>(std::stoul(raw, nullptr, 0));
@@ -42,21 +42,21 @@ unsigned int readHexId(const helpers::fs::path &path) {
 
 } // namespace
 
-std::vector<GpuCardInfo> GpuDetector::detect(const helpers::fs::path &drmRoot) {
+std::vector<GpuCardInfo> GpuDetector::detect(const std::filesystem::path &drmRoot) {
   std::vector<GpuCardInfo> cards;
 
   std::error_code ec;
-  if (!helpers::fs::is_directory(drmRoot, ec)) {
+  if (!std::filesystem::is_directory(drmRoot, ec)) {
     spdlog::debug("{} is not a directory, no GPUs will be detected", drmRoot.string());
     return cards;
   }
 
-  for (const auto &entry : helpers::fs::directory_iterator(drmRoot, ec)) {
+  for (const auto &entry : std::filesystem::directory_iterator(drmRoot, ec)) {
     if (!isCardNode(entry.path().filename().string()))
       continue;
 
     const auto devicePath = entry.path() / "device";
-    if (!helpers::fs::exists(devicePath / "vendor"))
+    if (!std::filesystem::exists(devicePath / "vendor"))
       continue;
 
     GpuCardInfo card{};
@@ -72,11 +72,11 @@ std::vector<GpuCardInfo> GpuDetector::detect(const helpers::fs::path &drmRoot) {
     }
 
     // device is a symlink into /sys/devices/..., its name is the PCI address
-    const auto deviceTarget = helpers::fs::read_symlink(devicePath, ec);
+    const auto deviceTarget = std::filesystem::read_symlink(devicePath, ec);
     if (!ec)
       card.pciAddress = deviceTarget.filename().string();
 
-    const auto driverTarget = helpers::fs::read_symlink(devicePath / "driver", ec);
+    const auto driverTarget = std::filesystem::read_symlink(devicePath / "driver", ec);
     if (!ec)
       card.driver = driverTarget.filename().string();
 

@@ -30,8 +30,8 @@
 
 using nlohmann::json;
 
-Runner::Runner(SharedState &state, helpers::fs::path hwmonPath, bool doSpecializedDevices,
-               helpers::fs::path drmPath) :
+Runner::Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpecializedDevices,
+               std::filesystem::path drmPath) :
     doSpecializedDevices(doSpecializedDevices),
     hwmonPath(hwmonPath),
     drmPath(drmPath),
@@ -51,15 +51,19 @@ long Runner::getUnixTimestamp() {
              std::chrono::system_clock::now().time_since_epoch())
       .count();
 }
+
+//  ===============
+//  ==== SETUP ====
+//  ===============
 void Runner::setup() {
-  if (!helpers::fs::exists(hwmonPath) || access(hwmonPath.c_str(), R_OK) == -1) {
+  if (!std::filesystem::exists(hwmonPath) || access(hwmonPath.c_str(), R_OK) == -1) {
     spdlog::critical("no access to hwmon interface, aborting");
     throw std::runtime_error("no access to hwmon interface");
   }
 
-  std::set<helpers::fs::path> hwmonPaths;
-  for (const auto &entry : helpers::fs::directory_iterator(hwmonPath)) {
-    hwmonPaths.insert(helpers::fs::canonical(entry.path()));
+  std::set<std::filesystem::path> hwmonPaths;
+  for (const auto &entry : std::filesystem::directory_iterator(hwmonPath)) {
+    hwmonPaths.insert(std::filesystem::canonical(entry.path()));
   }
 
   spdlog::trace("hwmon length: {}", hwmonPaths.size());
@@ -86,7 +90,7 @@ void Runner::setup() {
 // One device per physical card, created only for GPUs that are actually
 // present. A card that fails to initialize is skipped rather than aborting
 // startup, so a single broken GPU can't take the whole server down.
-void Runner::setupGpuDevices(std::set<helpers::fs::path> &hwmonPaths) {
+void Runner::setupGpuDevices(std::set<std::filesystem::path> &hwmonPaths) {
   bool intelPmuClaimed = false;
 
   for (const auto &card : GpuDetector::detect(drmPath)) {
@@ -117,8 +121,8 @@ void Runner::setupGpuDevices(std::set<helpers::fs::path> &hwmonPaths) {
 }
 
 void Runner::setupNetworkDevice() {
-  const helpers::fs::path netDev = "/proc/net/dev";
-  if (!helpers::fs::exists(netDev) || access(netDev.c_str(), R_OK) == -1) {
+  const std::filesystem::path netDev = "/proc/net/dev";
+  if (!std::filesystem::exists(netDev) || access(netDev.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible; skipping networking", netDev.string());
     return;
   }
@@ -126,6 +130,10 @@ void Runner::setupNetworkDevice() {
   net->initialize();
   devices.push_back(std::move(net));
 }
+
+//  ================
+//  = END OF SETUP =
+//  ================
 
 void Runner::run() {
   auto timestamp = getUnixTimestamp();

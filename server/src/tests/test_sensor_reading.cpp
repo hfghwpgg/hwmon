@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../SensorReading.hpp"
+#include "../Sensor/SensorReading.hpp"
 
 TEST(SensorReadingSerialize, EmitsAllFields) {
   SensorReading reading{};

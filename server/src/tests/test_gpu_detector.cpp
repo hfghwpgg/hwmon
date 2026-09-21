@@ -6,7 +6,7 @@
 #include <string>
 #include <unistd.h>
 
-#include "../Devices/GpuDetector.hpp"
+#include "../Devices/GPU/GpuDetector.hpp"
 
 namespace fs = std::filesystem;
 

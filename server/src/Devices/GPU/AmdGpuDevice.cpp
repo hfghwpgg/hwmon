@@ -15,16 +15,16 @@
 #include "Device.hpp"
 #include "GpuDetector.hpp"
 #include "Libraries/RsmiLibrary.hpp"
-#include "Sensor.hpp"
-#include "SensorType.hpp"
+#include "Sensor/Sensor.hpp"
+#include "Sensor/SensorType.hpp"
+#include "Sensor/TransformScale.hpp"
 #include "SharedHwmonParser.hpp"
-#include "ValueSensor.hpp"
 #include "helpers.hpp"
 
-AmdGpuDevice::AmdGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths) :
+AmdGpuDevice::AmdGpuDevice(GpuCardInfo card, std::set<std::filesystem::path> &hwmonPaths) :
     AmdGpuDevice(std::move(card), hwmonPaths, true) {}
 
-AmdGpuDevice::AmdGpuDevice(GpuCardInfo card, std::set<helpers::fs::path> &hwmonPaths,
+AmdGpuDevice::AmdGpuDevice(GpuCardInfo card, std::set<std::filesystem::path> &hwmonPaths,
                            bool allowRsmi) :
     Device(card.cardPath.filename().string(), DeviceType::GPU),
     card(std::move(card)),
@@ -96,61 +96,72 @@ bool AmdGpuDevice::setupRsmi() {
   int64_t temp = 0;
   if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_EDGE, RSMI_TEMP_CURRENT, &temp) ==
       RSMI_STATUS_SUCCESS) {
-    rsmiSensors.temp_edge = addValueSensor(sensors, "GPU core", SensorType::TEMPERATURE);
+    rsmiSensors.temp_edge =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU core", SensorType::TEMPERATURE});
   }
 
   if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_JUNCTION, RSMI_TEMP_CURRENT,
                                      &temp) == RSMI_STATUS_SUCCESS) {
     rsmiSensors.temp_junction =
-        addValueSensor(sensors, "GPU hotspot", SensorType::TEMPERATURE, true, true);
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU hotspot", SensorType::TEMPERATURE});
   }
 
   if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_MEMORY, RSMI_TEMP_CURRENT, &temp) ==
       RSMI_STATUS_SUCCESS) {
-    rsmiSensors.temp_vram = addValueSensor(sensors, "GPU memory", SensorType::TEMPERATURE);
+    rsmiSensors.temp_vram =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU memory", SensorType::TEMPERATURE});
   }
 
   uint32_t utilization = 0;
   if (rsmi->rsmi_dev_busy_percent_get(rsmiIndex, &utilization) == RSMI_STATUS_SUCCESS) {
-    rsmiSensors.gpuBusy = addValueSensor(sensors, "GPU utilization", SensorType::UTILIZATION);
+    rsmiSensors.gpuBusy = Sensor::addPushSensor<TransformScale>(
+        sensors, {"GPU utilization", SensorType::UTILIZATION});
   }
   if (rsmi->rsmi_dev_memory_busy_percent_get(rsmiIndex, &utilization) == RSMI_STATUS_SUCCESS) {
-    rsmiSensors.memBusy = addValueSensor(sensors, "VRAM utilization", SensorType::UTILIZATION);
+    rsmiSensors.memBusy = Sensor::addPushSensor<TransformScale>(
+        sensors, {"VRAM utilization", SensorType::UTILIZATION});
   }
 
   if (rsmi->getCurrentClockMhz(rsmiIndex, RSMI_CLK_TYPE_SYS) >= 0) {
-    rsmiSensors.sclk = addValueSensor(sensors, "GPU core", SensorType::FREQUENCY);
+    rsmiSensors.sclk =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU core", SensorType::FREQUENCY, 1});
   }
   if (rsmi->getCurrentClockMhz(rsmiIndex, RSMI_CLK_TYPE_MEM) >= 0) {
-    rsmiSensors.mclk = addValueSensor(sensors, "GPU memory", SensorType::FREQUENCY);
+    rsmiSensors.mclk =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU memory", SensorType::FREQUENCY, 1});
   }
 
   uint64_t power = 0;
   if (rsmi->rsmi_dev_power_ave_get(rsmiIndex, 0, &power) == RSMI_STATUS_SUCCESS) {
-    rsmiSensors.power = addValueSensor(sensors, "GPU power draw", SensorType::POWER, true, true);
+    rsmiSensors.power =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU power draw", SensorType::POWER});
   }
 
   uint64_t powerCap = 0;
   if (rsmi->rsmi_dev_power_cap_get(rsmiIndex, 0, &powerCap) == RSMI_STATUS_SUCCESS) {
-    rsmiSensors.powerCap = addValueSensor(sensors, "GPU power cap", SensorType::POWER, false);
+    rsmiSensors.powerCap =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU power cap", SensorType::POWER});
   }
 
   uint64_t vram = 0;
   if (rsmi->rsmi_dev_memory_total_get(rsmiIndex, RSMI_MEM_TYPE_VRAM, &vram) ==
       RSMI_STATUS_SUCCESS) {
-    rsmiSensors.vramTotal = addValueSensor(sensors, "GPU total memory", SensorType::MEMORY, false);
+    rsmiSensors.vramTotal =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU total memory", SensorType::MEMORY});
   }
   if (rsmi->rsmi_dev_memory_usage_get(rsmiIndex, RSMI_MEM_TYPE_VRAM, &vram) ==
       RSMI_STATUS_SUCCESS) {
     rsmiSensors.vramUsed =
-        addValueSensor(sensors, "GPU used memory", SensorType::MEMORY, true, true);
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU used memory", SensorType::MEMORY});
   }
 
   uint64_t tx = 0;
   uint64_t rx = 0;
   if (rsmi->rsmi_dev_pci_throughput_get(rsmiIndex, &tx, &rx, nullptr) == RSMI_STATUS_SUCCESS) {
-    rsmiSensors.pcieTx = addValueSensor(sensors, "pcie_tx", SensorType::THROUGHPUT);
-    rsmiSensors.pcieRx = addValueSensor(sensors, "pcie_rx", SensorType::THROUGHPUT);
+    rsmiSensors.pcieTx =
+        Sensor::addPushSensor<TransformScale>(sensors, {"pcie_tx", SensorType::THROUGHPUT});
+    rsmiSensors.pcieRx =
+        Sensor::addPushSensor<TransformScale>(sensors, {"pcie_rx", SensorType::THROUGHPUT});
   }
 
   spdlog::info("using ROCm SMI for {} (index {})", name, rsmiIndex);
@@ -165,21 +176,21 @@ void AmdGpuDevice::readRsmi() {
     int64_t temp = 0;
     if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_EDGE, RSMI_TEMP_CURRENT, &temp) ==
         RSMI_STATUS_SUCCESS)
-      rsmiSensors.temp_edge->setValue(static_cast<long double>(temp) / 1'000); // millidegrees
+      rsmiSensors.temp_edge->setValue(static_cast<double>(temp)); // millidegrees
   }
 
   if (rsmiSensors.temp_junction != nullptr) {
     int64_t temp = 0;
     if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_JUNCTION, RSMI_TEMP_CURRENT,
                                        &temp) == RSMI_STATUS_SUCCESS)
-      rsmiSensors.temp_junction->setValue(static_cast<long double>(temp) / 1'000); // millidegrees
+      rsmiSensors.temp_junction->setValue(static_cast<double>(temp)); // millidegrees
   }
 
   if (rsmiSensors.temp_vram != nullptr) {
     int64_t temp = 0;
     if (rsmi->rsmi_dev_temp_metric_get(rsmiIndex, RSMI_TEMP_TYPE_MEMORY, RSMI_TEMP_CURRENT,
                                        &temp) == RSMI_STATUS_SUCCESS)
-      rsmiSensors.temp_vram->setValue(static_cast<long double>(temp) / 1'000); // millidegrees
+      rsmiSensors.temp_vram->setValue(static_cast<double>(temp)); // millidegrees
   }
 
   if (rsmiSensors.gpuBusy != nullptr) {
@@ -209,35 +220,35 @@ void AmdGpuDevice::readRsmi() {
   if (rsmiSensors.power != nullptr) {
     uint64_t power = 0;
     if (rsmi->rsmi_dev_power_ave_get(rsmiIndex, 0, &power) == RSMI_STATUS_SUCCESS)
-      rsmiSensors.power->setValue(static_cast<long double>(power) / 1'000'000); // microwatts
+      rsmiSensors.power->setValue(static_cast<double>(power)); // microwatts
   }
 
   if (rsmiSensors.powerCap != nullptr) {
     uint64_t powerCap = 0;
     if (rsmi->rsmi_dev_power_cap_get(rsmiIndex, 0, &powerCap) == RSMI_STATUS_SUCCESS)
-      rsmiSensors.powerCap->setValue(static_cast<long double>(powerCap) / 1'000'000); // microwatts
+      rsmiSensors.powerCap->setValue(static_cast<double>(powerCap)); // microwatts
   }
 
   if (rsmiSensors.vramTotal != nullptr) {
     uint64_t total = 0;
     if (rsmi->rsmi_dev_memory_total_get(rsmiIndex, RSMI_MEM_TYPE_VRAM, &total) ==
         RSMI_STATUS_SUCCESS)
-      rsmiSensors.vramTotal->setValue(static_cast<long double>(total));
+      rsmiSensors.vramTotal->setValue(static_cast<double>(total));
   }
 
   if (rsmiSensors.vramUsed != nullptr) {
     uint64_t used = 0;
     if (rsmi->rsmi_dev_memory_usage_get(rsmiIndex, RSMI_MEM_TYPE_VRAM, &used) ==
         RSMI_STATUS_SUCCESS)
-      rsmiSensors.vramUsed->setValue(static_cast<long double>(used));
+      rsmiSensors.vramUsed->setValue(static_cast<double>(used));
   }
 
   if (rsmiSensors.pcieTx != nullptr) {
     uint64_t tx = 0;
     uint64_t rx = 0;
     if (rsmi->rsmi_dev_pci_throughput_get(rsmiIndex, &tx, &rx, nullptr) == RSMI_STATUS_SUCCESS) {
-      rsmiSensors.pcieTx->setValue(static_cast<long double>(tx));
-      rsmiSensors.pcieRx->setValue(static_cast<long double>(rx));
+      rsmiSensors.pcieTx->setValue(static_cast<double>(tx));
+      rsmiSensors.pcieRx->setValue(static_cast<double>(rx));
     }
   }
 }
@@ -278,19 +289,14 @@ void AmdGpuDevice::addHwmonSensors(bool onlyUncoveredMetrics) {
   SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sensors);
 }
 
-void AmdGpuDevice::addSysfsSensor(helpers::SensorVec &sensors, const helpers::fs::path &path,
+void AmdGpuDevice::addSysfsSensor(helpers::SensorVec &sensors, const std::filesystem::path &path,
                                   const std::string &sensorName, SensorType type,
                                   unsigned int divider, bool aggregateData, bool isPrimary) {
-  if (!helpers::fs::exists(path))
+  if (!std::filesystem::exists(path))
     return;
 
-  auto stream = std::make_shared<std::ifstream>(path);
-  if (!stream->is_open()) {
-    spdlog::warn("unable to open {}", path.string());
-    return;
-  }
-  sensors.emplace_back(std::make_unique<Sensor>(std::move(stream), sensorName, type, divider,
-                                                aggregateData, isPrimary));
+  Sensor::makeFileSensor<TransformScale>(sensors, path,
+                                         {sensorName, type, divider, aggregateData, isPrimary});
 }
 
 std::string AmdGpuDevice::sysfsName() const {

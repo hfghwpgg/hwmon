@@ -12,9 +12,9 @@
 #include <unistd.h>
 #include <vector>
 
-#include "../Devices/SharedHwmonParser.hpp"
-#include "../Sensor.hpp"
-#include "../SensorType.hpp"
+#include "../Sensor/Sensor.hpp"
+#include "../Sensor/SensorType.hpp"
+#include "../SharedHwmonParser.hpp"
 
 namespace fs = std::filesystem;
 

@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 #include "../Runner.hpp"
-#include "../SensorType.hpp"
+#include "../Sensor/SensorType.hpp"
 #include "../SharedState.hpp"
 
 namespace fs = std::filesystem;

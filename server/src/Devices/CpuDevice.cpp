@@ -15,22 +15,22 @@
 #include <vector>
 
 #include "../Device.hpp"
-#include "../Sensor.hpp"
-#include "../SensorType.hpp"
+#include "../Sensor/Sensor.hpp"
+#include "../Sensor/SensorType.hpp"
 #include "CpuDevice.hpp"
-#include "DeltaSensor.hpp"
 #include "DeviceType.hpp"
+#include "Sensor/TransformDelta.hpp"
+#include "Sensor/TransformScale.hpp"
 #include "SharedHwmonParser.hpp"
-#include "ValueSensor.hpp"
 #include "helpers.hpp"
 
-CpuDevice::CpuDevice(std::set<helpers::fs::path> &hwmonPaths) :
+CpuDevice::CpuDevice(std::set<std::filesystem::path> &hwmonPaths) :
     CpuDevice(hwmonPaths, "/sys/devices/system/cpu/cpufreq/", "/proc/cpuinfo", "/proc/stat",
               "/sys/class/powercap/intel-rapl:0/energy_uj") {}
 
-CpuDevice::CpuDevice(std::set<helpers::fs::path> &hwmonPaths, helpers::fs::path cpufreq_path,
-                     helpers::fs::path cpuinfo_path, helpers::fs::path cpuutil_path,
-                     helpers::fs::path intelrapl_path) :
+CpuDevice::CpuDevice(std::set<std::filesystem::path> &hwmonPaths,
+                     std::filesystem::path cpufreq_path, std::filesystem::path cpuinfo_path,
+                     std::filesystem::path cpuutil_path, std::filesystem::path intelrapl_path) :
     Device("SAMPLE CPU NAME", DeviceType::CPU),
     cpuPaths(CpuPaths{.cpufreq = cpufreq_path,
                       .cpuinfo = cpuinfo_path,
@@ -59,13 +59,12 @@ void CpuDevice::read() {
 }
 
 void CpuDevice::resetReadings() {
-  for (auto &entry : utilSensorsPrivate) {
-    auto &e = entry.second;
-    e.utilOld.hasRead = false;
-    e.utilOld.totalTime = 0;
-    e.utilOld.idleTime = 0;
-    // e.utilSensor->resetReadings();
-  }
+  // for (auto &entry : utilSensorsPrivate) {
+  //   auto &e = entry.second;
+  //   e.utilOld.hasRead = false;
+  //   e.utilOld.totalTime = 0;
+  //   e.utilOld.idleTime = 0;
+  // }
   for (const auto &sensor : sensors) {
     sensor->resetReadings();
   }
@@ -83,10 +82,10 @@ nlohmann::json CpuDevice::serialize() {
 
 void CpuDevice::getTemperature() {
   // placeholders
-  helpers::fs::path coretempDriver = "";
-  helpers::fs::path cpuTemp = "";
+  std::filesystem::path coretempDriver = "";
+  std::filesystem::path cpuTemp = "";
 
-  for (const helpers::fs::path &dir : hwmonPaths) {
+  for (const std::filesystem::path &dir : hwmonPaths) {
     if (dir.string().contains("nvme"))
       continue;
 
@@ -95,7 +94,7 @@ void CpuDevice::getTemperature() {
       break;
     }
 
-    for (const auto &file : helpers::fs::directory_iterator(dir)) {
+    for (const auto &file : std::filesystem::directory_iterator(dir)) {
       const auto filename = file.path().stem().string();
       if (!filename.contains("label"))
         continue;
@@ -123,28 +122,27 @@ void CpuDevice::getTemperature() {
 
 // this interface returns frequency in kHz, not Hz.
 void CpuDevice::getCoreFrequency() {
-  if (!helpers::fs::exists(cpuPaths.cpufreq) || access(cpuPaths.cpufreq.c_str(), R_OK) == -1) {
+  if (!std::filesystem::exists(cpuPaths.cpufreq) || access(cpuPaths.cpufreq.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible", cpuPaths.cpufreq.string());
     return;
   }
-  for (const auto &policy : helpers::fs::directory_iterator(cpuPaths.cpufreq)) {
+  for (const auto &policy : std::filesystem::directory_iterator(cpuPaths.cpufreq)) {
     const std::string filename = policy.path().stem().string();
     if (!filename.starts_with("policy"))
       continue;
 
-    auto fd = std::make_unique<std::ifstream>(policy.path() / "scaling_cur_freq");
+    auto path = policy.path() / "scaling_cur_freq";
     // we know that file starts with 'policy', and thats 6 letters.
     // we only want core number, so we substr the beginning
     const std::string suffix = filename.substr(6);
     const std::string label = suffix.length() > 0 ? "CPU core " + suffix : "CPU";
-    sensors.emplace_back(
-        std::make_unique<Sensor>(std::move(fd), label, SensorType::FREQUENCY, 1000));
+    Sensor::makeFileSensor<TransformScale>(sensors, path, {label, SensorType::FREQUENCY, 1000});
   }
 }
 
 std::string CpuDevice::getName() {
   std::string name = "cpumodel"; // placeholder
-  if (!helpers::fs::exists(cpuPaths.cpuinfo) || access(cpuPaths.cpuinfo.c_str(), R_OK) == -1) {
+  if (!std::filesystem::exists(cpuPaths.cpuinfo) || access(cpuPaths.cpuinfo.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible; setting general name for cpu", cpuPaths.cpuinfo.string());
     return name;
   }
@@ -173,7 +171,7 @@ std::string CpuDevice::getName() {
 // this is just creating right amount of
 // valueSensors for cpu + each core
 void CpuDevice::initUtilization() {
-  if (!helpers::fs::exists(cpuPaths.cpuutil) || access(cpuPaths.cpuutil.c_str(), R_OK) == -1) {
+  if (!std::filesystem::exists(cpuPaths.cpuutil) || access(cpuPaths.cpuutil.c_str(), R_OK) == -1) {
     spdlog::error("{} inaccessible", cpuPaths.cpuutil.string());
     return;
   }
@@ -192,10 +190,11 @@ void CpuDevice::initUtilization() {
     const std::string suffix = cpuCoreNum.substr(3);
     const std::string label = suffix.length() > 0 ? "CPU core " + suffix : "CPU";
     const bool primary = label == "CPU";
+
     utilSensorsPrivate.emplace(
-        cpuCoreNum,
-        utilSensorData{addValueSensor(sensors, label, SensorType::UTILIZATION, true, primary),
-                       {0, 0, false}});
+        cpuCoreNum, utilSensorData{Sensor::addPushSensor<TransformScale>(
+                                       sensors, {label, SensorType::UTILIZATION, 1, true, primary}),
+                                   {0, 0, false}});
   }
 }
 
@@ -223,9 +222,9 @@ void CpuDevice::readUtilization() {
     std::string cpuCoreNum;
     ss >> cpuCoreNum; // cpu or cpuN
 
-    unsigned long long number;        // placeholder for readings
-    unsigned long long totalTime = 0; // cpu time
-    unsigned long long idleTime = 0;  // cpu time
+    unsigned long number;        // placeholder for readings
+    unsigned long totalTime = 0; // cpu time
+    unsigned long idleTime = 0;  // cpu time
     unsigned short column = 0;
     try {
       while (ss >> number) {
@@ -249,24 +248,20 @@ void CpuDevice::readUtilization() {
       auto &utilEntry = utilSensorsPrivate.at(cpuCoreNum);
       if (utilEntry.utilOld.hasRead) {
         // calculations
-        const long long calc_totalTime = totalTime - utilEntry.utilOld.totalTime;
-        const long long calc_idleTime = idleTime - utilEntry.utilOld.idleTime;
+        // time there corresponds to cpu time
+        const long calc_totalTime = totalTime - utilEntry.utilOld.totalTime;
+        const long calc_idleTime = idleTime - utilEntry.utilOld.idleTime;
         utilEntry.utilOld.totalTime = totalTime;
         utilEntry.utilOld.idleTime = idleTime;
 
-        // auto &coreStringStream = utilEntry.dataStream;
-        // coreStringStream->str("");
-        // coreStringStream->clear();
-        // *coreStringStream << 100 * (calc_totalTime - calc_idleTime) /
-        //                          static_cast<long double>(calc_totalTime);
-
-        const long double value =
-            100 * (calc_totalTime - calc_idleTime) / static_cast<long double>(calc_totalTime);
-        utilEntry.sensor->setValue(value);
+        const double value =
+            100 * (calc_totalTime - calc_idleTime) / static_cast<double>(calc_totalTime);
+        utilEntry.src->setValue(value);
       } else {
         utilEntry.utilOld.totalTime = totalTime;
         utilEntry.utilOld.idleTime = idleTime;
         utilEntry.utilOld.hasRead = true;
+        utilEntry.src->setValue(NAN); // follow convention
       }
     } catch (const std::out_of_range &) {
       spdlog::critical("somehow, amount of cores read is invalid. aborting");
@@ -284,10 +279,10 @@ void CpuDevice::getPowerDraw() {
   // to use intel rapl
 
   // intel rapl requires root to be read
-  const bool intelRaplAccessible =
-      (helpers::fs::exists(cpuPaths.intelrapl) && access(cpuPaths.intelrapl.c_str(), R_OK) != -1);
+  const bool intelRaplAccessible = (std::filesystem::exists(cpuPaths.intelrapl) &&
+                                    access(cpuPaths.intelrapl.c_str(), R_OK) != -1);
 
-  helpers::fs::path zenergyPath = "";
+  std::filesystem::path zenergyPath = "";
   for (const auto &dir : hwmonPaths) {
     if (dir.string().contains("zenergy")) {
       zenergyPath = dir;
@@ -314,7 +309,7 @@ void CpuDevice::getPowerDraw() {
         const auto num = name.substr(7);
         const int number = std::stoi(num);
         sensor->setName(std::format("Socket {} power draw", number));
-        sensor->switchPrimary();
+        sensor->setPrimary(true);
       }
       if (name.contains("core")) {
         // Ecore has 5 letters
@@ -325,9 +320,8 @@ void CpuDevice::getPowerDraw() {
     }
   } else if (intelRaplAccessible) {
     spdlog::info("using intel rapl interface for cpu power draw");
-    auto fd = std::make_unique<std::ifstream>(cpuPaths.intelrapl);
-    powerSensors.emplace_back(
-        std::make_unique<DeltaSensor>(std::move(fd), "Socket power draw", SensorType::POWER, 1e3));
+    Sensor::makeFileSensor<TransformDelta>(powerSensors, cpuPaths.intelrapl,
+                                           {"Socket power draw", SensorType::POWER});
   } else {
     spdlog::error("couldn't read cpu power draw. Try running with sudo");
   }
