@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <optional>
+
 class Transform {
 public:
   virtual ~Transform() = default;

@@ -15,7 +15,6 @@
 #include <QJsonObject>
 #include <QMimeData>
 #include <QPainter>
-#include <QPair>
 #include <QPixmap>
 #include <QSettings>
 #include <QSvgRenderer>
@@ -27,8 +26,13 @@
 
 namespace {
 
-constexpr auto kMimeType = "application/x-hwmon-item";
 constexpr quintptr kSectionMask = 0xFFFF;
+constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
+
+const QString &mimeType() {
+  static const QString type = QStringLiteral("application/x-hwmon-item");
+  return type;
+}
 
 quintptr makeSectionId(int deviceIndex) {
   return quintptr(deviceIndex + 1) << 16;
@@ -46,6 +50,24 @@ int sectionIndexFromId(quintptr id) {
   return int(id & kSectionMask) - 1;
 }
 
+qint64 nowMs() {
+  return QDateTime::currentMSecsSinceEpoch();
+}
+
+QSet<QString> toSet(const QStringList &list) {
+  return QSet<QString>(list.cbegin(), list.cend());
+}
+
+int visibleSensors(const SectionData &section) {
+  return static_cast<int>(std::count_if(section.sensors.cbegin(), section.sensors.cend(),
+                                        [](const SensorData &s) { return !s.hidden; }));
+}
+
+bool anyHidden(const SectionData &section) {
+  return std::any_of(section.sensors.cbegin(), section.sensors.cend(),
+                     [](const SensorData &s) { return s.hidden; });
+}
+
 QString formatBytes(double bytes) {
   static const char *units[] = {"B", "KiB", "MiB", "GiB", "TiB"};
   int unit = 0;
@@ -53,111 +75,94 @@ QString formatBytes(double bytes) {
     bytes /= 1024.0;
     ++unit;
   }
-  const int precision = unit == 0 ? 0 : 2;
-  return QString::number(bytes, 'f', precision) + QLatin1Char(' ') + QLatin1String(units[unit]);
+  return QString::number(bytes, 'f', unit == 0 ? 0 : 2) + QLatin1Char(' ') +
+         QLatin1String(units[unit]);
 }
 
 QString formatValue(int type, double value) {
   if (!std::isfinite(value)) {
     return QStringLiteral("—");
   }
-
-  switch (type) {
-  case 0:
-    return QString::number(value, 'f', 1) + QStringLiteral(" °C");
-  case 1:
-    return QString::number(value, 'f', 0) + QStringLiteral(" RPM");
-  case 2:
-    return QString::number(value, 'f', 1) + QStringLiteral(" MHz");
-  case 3:
-    return QString::number(value, 'f', 1) + QStringLiteral(" W");
-  case 4:
-    return QString::number(value, 'f', 3) + QStringLiteral(" V");
-  case 5:
-    return QString::number(value, 'f', 3) + QStringLiteral(" A");
-  case 6:
-    return QString::number(value, 'f', 3) + QStringLiteral(" W");
-  case 7:
-    return QString::number(value, 'f', 1) + QStringLiteral(" %");
-  case 8:
-    return formatBytes(value);
-  case 9:
-    return formatBytes(value) + QStringLiteral("/s");
-  default:
+  if (type == kMemorySensorType || type == kThroughputSensorType) {
+    return formatBytes(value) + sensorTypeInfo(type).unit.toString();
+  }
+  if (type < 0 || type >= kUnknownSensorType) {
     return QString::number(value, 'g', 4);
   }
+  const SensorTypeInfo &info = sensorTypeInfo(type);
+  return QString::number(value, 'f', info.precision) + info.unit.toString();
 }
 
-QString formatAverage(const SensorData &sensor) {
-  if (sensor.times <= 0) {
-    return QStringLiteral("—");
-  }
-  return formatValue(sensor.type, sensor.sum / static_cast<double>(sensor.times));
-}
-
-QSet<QString> toSet(const QStringList &list) {
-  return QSet<QString>(list.cbegin(), list.cend());
-}
-
-qint64 nowMs() {
-  return QDateTime::currentMSecsSinceEpoch();
-}
-
-struct SectionSummary {
+// Value/flash state for one row (sensor or a section's primary sensor).
+struct Readings {
   bool valid = false;
-  int type = 10;
+  int type = kUnknownSensorType;
   double current = 0.0;
   double min = 0.0;
   double max = 0.0;
-  double avg = 0.0;
-  bool hasAvg = false;
+  double avg = kNaN;
   bool flashCurrent = false;
   bool flashMin = false;
   bool flashMax = false;
+
+  double forColumn(int column) const {
+    switch (column) {
+    case MonitorModel::CurrentColumn:
+      return current;
+    case MonitorModel::MinColumn:
+      return min;
+    case MonitorModel::MaxColumn:
+      return max;
+    case MonitorModel::AvgColumn:
+      return avg;
+    default:
+      return kNaN;
+    }
+  }
+
+  bool flashForColumn(int column) const {
+    switch (column) {
+    case MonitorModel::CurrentColumn:
+      return flashCurrent;
+    case MonitorModel::MinColumn:
+      return flashMin;
+    case MonitorModel::MaxColumn:
+      return flashMax;
+    default:
+      return false;
+    }
+  }
 };
 
-SectionSummary primaryForSection(const SectionData &section) {
-  SectionSummary summary;
-  const qint64 now = nowMs();
+Readings readingsFor(const SensorData &sensor, qint64 now) {
+  Readings r;
+  r.valid = true;
+  r.type = sensor.type;
+  r.current = sensor.value;
+  r.min = sensor.min;
+  r.max = sensor.max;
+  r.avg = sensor.times > 0 ? sensor.sum / static_cast<double>(sensor.times) : kNaN;
+  r.flashCurrent = sensor.flashCurrentUntil > now;
+  r.flashMin = sensor.flashMinUntil > now;
+  r.flashMax = sensor.flashMaxUntil > now;
+  return r;
+}
+
+Readings primaryReadings(const SectionData &section, qint64 now) {
   for (const SensorData &sensor : section.sensors) {
-    if (!sensor.primary || sensor.hidden) {
-      continue;
+    if (sensor.primary && !sensor.hidden) {
+      return readingsFor(sensor, now);
     }
-    summary.valid = true;
-    summary.type = sensor.type;
-    summary.current = sensor.value;
-    summary.min = sensor.min;
-    summary.max = sensor.max;
-    if (sensor.times > 0) {
-      summary.avg = sensor.sum / static_cast<double>(sensor.times);
-      summary.hasAvg = true;
-    }
-    summary.flashCurrent = sensor.flashCurrentUntil > now;
-    summary.flashMin = sensor.flashMinUntil > now;
-    summary.flashMax = sensor.flashMaxUntil > now;
-    break;
   }
-  return summary;
+  return {};
 }
 
 bool isHotTemperature(int type, double value) {
   return type == 0 && std::isfinite(value) && value >= kHotTemperatureC;
 }
 
-double readingForColumn(int column, double current, double min, double max, double avg,
-                        bool hasAvg) {
-  switch (column) {
-  case MonitorModel::CurrentColumn:
-    return current;
-  case MonitorModel::MinColumn:
-    return min;
-  case MonitorModel::MaxColumn:
-    return max;
-  case MonitorModel::AvgColumn:
-    return hasAvg ? avg : std::numeric_limits<double>::quiet_NaN();
-  default:
-    return std::numeric_limits<double>::quiet_NaN();
-  }
+QString labelledName(const QString &iconPath, const QString &label, const QString &name) {
+  return iconPath.isEmpty() ? QStringLiteral("[%1]  %2").arg(label, name) : name;
 }
 
 QIcon tintedSvgIcon(const QString &path, bool dark) {
@@ -181,7 +186,7 @@ QIcon tintedSvgIcon(const QString &path, bool dark) {
     return {};
   }
 
-  const QColor color = dark ? QColor("#6cb6ff") : QColor("#1565c0");
+  const QColor color = accentColor(dark);
   QIcon icon;
   for (const int size : {16, 32, 48}) {
     QPixmap pixmap(size, size);
@@ -198,6 +203,86 @@ QIcon tintedSvgIcon(const QString &path, bool dark) {
   return icon;
 }
 
+void sortSensorsByName(QVector<SensorData> &sensors) {
+  QCollator collator;
+  collator.setNumericMode(true);
+  collator.setCaseSensitivity(Qt::CaseInsensitive);
+  std::sort(sensors.begin(), sensors.end(), [&](const SensorData &left, const SensorData &right) {
+    const int compared = collator.compare(left.name, right.name);
+    return compared != 0 ? compared < 0 : left.key < right.key;
+  });
+}
+
+// Reorders items so that those listed in `order` (by key) come first, in that
+// order; the rest keep their relative order at the end.
+template <typename T>
+QVector<T> reorderByKey(QVector<T> items, const QStringList &order) {
+  QHash<QString, int> indexByKey;
+  indexByKey.reserve(items.size());
+  for (int i = 0; i < items.size(); ++i) {
+    indexByKey.insert(items[i].key, i);
+  }
+
+  QVector<T> ordered;
+  ordered.reserve(items.size());
+  QVector<bool> used(items.size(), false);
+  for (const QString &key : order) {
+    const auto it = indexByKey.constFind(key);
+    if (it == indexByKey.cend() || used[it.value()]) {
+      continue;
+    }
+    ordered.push_back(std::move(items[it.value()]));
+    used[it.value()] = true;
+  }
+  for (int i = 0; i < items.size(); ++i) {
+    if (!used[i]) {
+      ordered.push_back(std::move(items[i]));
+    }
+  }
+  return ordered;
+}
+
+// Carries UI-only state (hidden flag, flash timers) from the previous snapshot.
+void carryState(const SensorData &old, SensorData &next, qint64 flashUntil) {
+  next.hidden = old.hidden;
+  next.flashCurrentUntil = next.value != old.value ? flashUntil : old.flashCurrentUntil;
+  next.flashMinUntil = next.min != old.min ? flashUntil : old.flashMinUntil;
+  next.flashMaxUntil = next.max != old.max ? flashUntil : old.flashMaxUntil;
+}
+
+SensorData parseSensor(const QString &deviceKey, QHash<QString, int> &sensorCounts,
+                       const QJsonObject &sensorObject) {
+  SensorData sensor;
+  sensor.name = sensorObject.value(QLatin1String("name")).toString();
+  sensor.type = sensorObject.value(QLatin1String("type")).toInt(kUnknownSensorType);
+  const QString identity = QString::number(sensor.type) + QLatin1Char('|') + sensor.name;
+  const int occurrence = sensorCounts[identity]++;
+  sensor.key =
+      QStringLiteral("%1/%2:%3#%4").arg(deviceKey).arg(sensor.type).arg(sensor.name).arg(occurrence);
+
+  const QJsonObject readings = sensorObject.value(QLatin1String("readings")).toObject();
+  sensor.value = readings.value(QLatin1String("value")).toDouble();
+  sensor.min = readings.value(QLatin1String("min_value")).toDouble();
+  sensor.max = readings.value(QLatin1String("max_value")).toDouble();
+  sensor.sum = readings.value(QLatin1String("sum")).toDouble();
+  sensor.times = readings.value(QLatin1String("times")).toVariant().toLongLong();
+  const QJsonValue primary = sensorObject.value(QLatin1String("isPrimary"));
+  sensor.primary = primary.toBool() || primary.toInt() != 0;
+  return sensor;
+}
+
+QVector<SensorData> parseSensorArray(const QString &deviceKey, QHash<QString, int> &sensorCounts,
+                                     const QJsonArray &sensorArray) {
+  QVector<SensorData> sensors;
+  sensors.reserve(sensorArray.size());
+  for (const QJsonValue &sensorValue : sensorArray) {
+    if (sensorValue.isObject()) {
+      sensors.push_back(parseSensor(deviceKey, sensorCounts, sensorValue.toObject()));
+    }
+  }
+  return sensors;
+}
+
 } // namespace
 
 MonitorModel::MonitorModel(QObject *parent) :
@@ -210,16 +295,12 @@ QModelIndex MonitorModel::index(int row, int column, const QModelIndex &parent) 
     return {};
   }
   if (!parent.isValid()) {
-    if (row >= m_devices.size()) {
-      return {};
-    }
-    return createIndex(row, column, quintptr(0));
+    return row < m_devices.size() ? createIndex(row, column, quintptr(0)) : QModelIndex();
   }
   if (isDevice(parent)) {
-    if (row >= visibleSectionCount(parent.row())) {
-      return {};
-    }
-    return createIndex(row, column, makeSectionId(parent.row()));
+    return row < visibleSectionCount(parent.row())
+               ? createIndex(row, column, makeSectionId(parent.row()))
+               : QModelIndex();
   }
   if (isSection(parent)) {
     const int deviceIndex = deviceIndexFromId(parent.internalId());
@@ -236,16 +317,12 @@ QModelIndex MonitorModel::parent(const QModelIndex &child) const {
   if (!child.isValid() || isDevice(child)) {
     return {};
   }
-  if (isSection(child)) {
-    return createIndex(deviceIndexFromId(child.internalId()), 0, quintptr(0));
-  }
   const int deviceIndex = deviceIndexFromId(child.internalId());
-  const int sectionIndex = sectionIndexFromId(child.internalId());
-  const int visible = sectionToVisible(deviceIndex, sectionIndex);
-  if (visible < 0) {
-    return {};
+  if (isSection(child)) {
+    return createIndex(deviceIndex, 0, quintptr(0));
   }
-  return createIndex(visible, 0, makeSectionId(deviceIndex));
+  const int visible = sectionToVisible(deviceIndex, sectionIndexFromId(child.internalId()));
+  return visible < 0 ? QModelIndex() : createIndex(visible, 0, makeSectionId(deviceIndex));
 }
 
 int MonitorModel::rowCount(const QModelIndex &parent) const {
@@ -257,8 +334,7 @@ int MonitorModel::rowCount(const QModelIndex &parent) const {
   }
   if (isSection(parent)) {
     const int deviceIndex = deviceIndexFromId(parent.internalId());
-    const int sectionIndex = visibleToSection(deviceIndex, parent.row());
-    return visibleSensorCount(deviceIndex, sectionIndex);
+    return visibleSensorCount(deviceIndex, visibleToSection(deviceIndex, parent.row()));
   }
   return 0;
 }
@@ -275,162 +351,98 @@ QVariant MonitorModel::data(const QModelIndex &index, int role) const {
   const DeviceData *device = deviceFromIndex(index);
   const SectionData *section = isSection(index) ? sectionFromIndex(index) : nullptr;
   const SensorData *sensor = isSensor(index) ? sensorFromIndex(index) : nullptr;
-  if (device == nullptr) {
-    return {};
-  }
-  if (isSection(index) && section == nullptr) {
-    return {};
-  }
-  if (isSensor(index) && sensor == nullptr) {
+  if (device == nullptr || (isSection(index) && section == nullptr) ||
+      (isSensor(index) && sensor == nullptr)) {
     return {};
   }
 
-  const SectionSummary summary =
-      section != nullptr ? primaryForSection(*section) : SectionSummary{};
-  const qint64 now = nowMs();
+  const bool deviceRow = isDevice(index);
+  const int column = index.column();
+  const ThemeColors &theme = themeColors(m_darkTheme);
+  const auto readings = [&]() -> Readings {
+    if (sensor != nullptr) {
+      return readingsFor(*sensor, nowMs());
+    }
+    return section != nullptr ? primaryReadings(*section, nowMs()) : Readings{};
+  };
 
-  if (role == Qt::DisplayRole) {
-    if (index.column() == NameColumn) {
-      if (isDevice(index)) {
-        if (!deviceIconPath(device->type).isEmpty()) {
-          return device->name;
-        }
-        return QStringLiteral("[%1]  %2").arg(deviceTypeLabel(device->type), device->name);
+  switch (role) {
+  case Qt::DisplayRole: {
+    if (column == NameColumn) {
+      if (deviceRow) {
+        return labelledName(deviceIconPath(device->type), deviceTypeLabel(device->type),
+                            device->name);
       }
-      if (isSection(index)) {
+      if (section != nullptr) {
         return section->name;
       }
-      if (sensorIconPath(sensor->type).isEmpty()) {
-        return QStringLiteral("[%1]  %2").arg(sensorTypeLabel(sensor->type), sensor->name);
-      }
-      return sensor->name;
+      return labelledName(sensorIconPath(sensor->type), sensorTypeLabel(sensor->type),
+                          sensor->name);
     }
-    if (isDevice(index)) {
+    if (deviceRow) {
       return {};
     }
-    if (isSection(index)) {
-      if (!summary.valid) {
-        return {};
-      }
-      switch (index.column()) {
-      case CurrentColumn:
-        return formatValue(summary.type, summary.current);
-      case MinColumn:
-        return formatValue(summary.type, summary.min);
-      case MaxColumn:
-        return formatValue(summary.type, summary.max);
-      case AvgColumn:
-        return summary.hasAvg ? formatValue(summary.type, summary.avg) : QStringLiteral("—");
-      default:
-        return {};
-      }
-    }
-    switch (index.column()) {
-    case CurrentColumn:
-      return formatValue(sensor->type, sensor->value);
-    case MinColumn:
-      return formatValue(sensor->type, sensor->min);
-    case MaxColumn:
-      return formatValue(sensor->type, sensor->max);
-    case AvgColumn:
-      return formatAverage(*sensor);
-    default:
+    const Readings r = readings();
+    if (!r.valid || column < CurrentColumn || column > AvgColumn) {
       return {};
     }
+    return formatValue(r.type, r.forColumn(column));
   }
 
-  if (role == Qt::DecorationRole && index.column() == NameColumn) {
-    if (isDevice(index)) {
-      return tintedSvgIcon(deviceIconPath(device->type), m_darkTheme);
+  case Qt::DecorationRole: {
+    if (column != NameColumn) {
+      return {};
     }
-    if (isSection(index)) {
-      return tintedSvgIcon(sensorIconPath(section->type), m_darkTheme);
-    }
-    if (isSensor(index)) {
-      return tintedSvgIcon(sensorIconPath(sensor->type), m_darkTheme);
-    }
-    return {};
+    const QString path = deviceRow             ? deviceIconPath(device->type)
+                         : section != nullptr ? sensorIconPath(section->type)
+                                              : sensorIconPath(sensor->type);
+    return tintedSvgIcon(path, m_darkTheme);
   }
 
-  if (role == Qt::FontRole) {
+  case Qt::FontRole: {
     QFont font;
-    if (isDevice(index)) {
+    if (deviceRow || section != nullptr) {
       font.setBold(true);
-      return sizedFont(font, kFontDeviceName);
+      return sizedFont(font, deviceRow ? kFontDeviceName : kFontSectionName);
     }
-    if (isSection(index)) {
-      font.setBold(true);
-      return sizedFont(font, kFontSectionName);
-    }
-    if (index.column() != NameColumn) {
+    if (column != NameColumn) {
       font.setFamilies({QStringLiteral("monospace"), QStringLiteral("Noto Sans Mono")});
       return sizedFont(font, kFontSensorReading);
     }
     return sizedFont(font, kFontSensorName);
   }
 
-  if (role == Qt::TextAlignmentRole && index.column() != NameColumn) {
-    return QVariant::fromValue(Qt::AlignRight | Qt::AlignVCenter);
-  }
-
-  if (role == Qt::ForegroundRole) {
-    if (index.column() == NameColumn) {
-      return m_darkTheme ? QColor("#6cb6ff") : QColor("#1565c0");
-    }
-    const bool hotReading =
-        (isSensor(index) &&
-         isHotTemperature(sensor->type,
-                          readingForColumn(index.column(), sensor->value, sensor->min, sensor->max,
-                                           sensor->times > 0
-                                               ? sensor->sum / static_cast<double>(sensor->times)
-                                               : std::numeric_limits<double>::quiet_NaN(),
-                                           sensor->times > 0))) ||
-        (isSection(index) && summary.valid &&
-         isHotTemperature(summary.type,
-                          readingForColumn(index.column(), summary.current, summary.min,
-                                           summary.max, summary.avg, summary.hasAvg)));
-    if (hotReading) {
-      return warningColor(m_darkTheme);
-    }
-    return m_darkTheme ? QColor("#ececec") : QColor("#1a1a1a");
-  }
-
-  if (role == Qt::BackgroundRole) {
-    if (isDevice(index)) {
-      return m_darkTheme ? QColor("#243140") : QColor("#d7e4f2");
-    }
-    if (isSection(index)) {
-      const QColor base = m_darkTheme ? QColor("#1e2a36") : QColor("#e4ecf4");
-      const QColor flash = m_darkTheme ? QColor(108, 182, 255, 26) : QColor(21, 101, 192, 13);
-      if (summary.valid) {
-        if (index.column() == CurrentColumn && summary.flashCurrent) {
-          return flash;
-        }
-        if (index.column() == MinColumn && summary.flashMin) {
-          return flash;
-        }
-        if (index.column() == MaxColumn && summary.flashMax) {
-          return flash;
-        }
-      }
-      return base;
-    }
-    if (sensor != nullptr) {
-      const QColor flash = m_darkTheme ? QColor(108, 182, 255, 26) : QColor(21, 101, 192, 13);
-      if (index.column() == CurrentColumn && sensor->flashCurrentUntil > now) {
-        return flash;
-      }
-      if (index.column() == MinColumn && sensor->flashMinUntil > now) {
-        return flash;
-      }
-      if (index.column() == MaxColumn && sensor->flashMaxUntil > now) {
-        return flash;
-      }
+  case Qt::TextAlignmentRole:
+    if (column != NameColumn) {
+      return QVariant::fromValue(Qt::AlignRight | Qt::AlignVCenter);
     }
     return {};
+
+  case Qt::ForegroundRole: {
+    if (column == NameColumn) {
+      return theme.accent;
+    }
+    const Readings r = readings();
+    if (r.valid && isHotTemperature(r.type, r.forColumn(column))) {
+      return theme.warning;
+    }
+    return theme.text;
   }
 
-  return {};
+  case Qt::BackgroundRole: {
+    if (deviceRow) {
+      return theme.deviceRow;
+    }
+    const Readings r = readings();
+    if (r.valid && r.flashForColumn(column)) {
+      return theme.flash;
+    }
+    return section != nullptr ? QVariant(theme.sectionRow) : QVariant();
+  }
+
+  default:
+    return {};
+  }
 }
 
 QVariant MonitorModel::headerData(int section, Qt::Orientation orientation, int role) const {
@@ -465,7 +477,7 @@ Qt::DropActions MonitorModel::supportedDropActions() const {
 }
 
 QStringList MonitorModel::mimeTypes() const {
-  return {QString::fromLatin1(kMimeType)};
+  return {mimeType()};
 }
 
 QMimeData *MonitorModel::mimeData(const QModelIndexList &indexes) const {
@@ -473,59 +485,46 @@ QMimeData *MonitorModel::mimeData(const QModelIndexList &indexes) const {
     return nullptr;
   }
   const QModelIndex index = indexes.front().siblingAtColumn(0);
-  auto *mime = new QMimeData;
-  if (isDevice(index)) {
-    mime->setData(QString::fromLatin1(kMimeType),
-                  QByteArray("D\n") + deviceFromIndex(index)->key.toUtf8());
-  } else if (isSection(index)) {
-    const DeviceData *device = deviceFromIndex(index);
-    const SectionData *section = sectionFromIndex(index);
-    mime->setData(QString::fromLatin1(kMimeType),
-                  QByteArray("G\n") + device->key.toUtf8() + '\n' + section->key.toUtf8());
-  } else {
-    const DeviceData *device = deviceFromIndex(index);
-    const SectionData *section = sectionFromIndex(index);
-    const SensorData *sensor = sensorFromIndex(index);
-    mime->setData(QString::fromLatin1(kMimeType), QByteArray("S\n") + device->key.toUtf8() + '\n' +
-                                                      section->key.toUtf8() + '\n' +
-                                                      sensor->key.toUtf8());
+  const DeviceData *device = deviceFromIndex(index);
+  if (device == nullptr) {
+    return nullptr;
   }
+
+  QByteArray payload;
+  if (isDevice(index)) {
+    payload = "D\n" + device->key.toUtf8();
+  } else if (isSection(index)) {
+    payload = "G\n" + device->key.toUtf8() + '\n' + sectionFromIndex(index)->key.toUtf8();
+  } else {
+    payload = "S\n" + device->key.toUtf8() + '\n' + sectionFromIndex(index)->key.toUtf8() + '\n' +
+              sensorFromIndex(index)->key.toUtf8();
+  }
+  auto *mime = new QMimeData;
+  mime->setData(mimeType(), payload);
   return mime;
 }
 
 bool MonitorModel::canDropMimeData(const QMimeData *data, Qt::DropAction, int, int,
                                    const QModelIndex &parent) const {
-  if (data == nullptr || !data->hasFormat(QString::fromLatin1(kMimeType))) {
+  if (data == nullptr || !data->hasFormat(mimeType())) {
     return false;
   }
-  const QByteArray raw = data->data(QString::fromLatin1(kMimeType));
-  if (raw.startsWith("D\n")) {
+  const QList<QByteArray> parts = data->data(mimeType()).split('\n');
+  const QByteArray kind = parts.value(0);
+  if (kind == "D") {
     return true;
   }
-  const QList<QByteArray> parts = raw.split('\n');
-  if (raw.startsWith("G\n") && parts.size() >= 3) {
-    const QString deviceKey = QString::fromUtf8(parts.at(1));
-    const DeviceData *device = nullptr;
-    if (!parent.isValid()) {
-      return false;
-    }
-    device = deviceFromIndex(isDevice(parent)            ? parent
-                             : parent.parent().isValid() ? parent.parent()
-                                                         : parent);
-    if (isSensor(parent)) {
-      device = deviceFromIndex(parent.parent().parent());
-    } else if (isSection(parent)) {
-      device = deviceFromIndex(parent.parent());
-    }
-    return device != nullptr && device->key == deviceKey;
+  // deviceFromIndex / sectionFromIndex resolve any node level via the internal id.
+  const DeviceData *device = deviceFromIndex(parent);
+  if (device == nullptr || device->key != QString::fromUtf8(parts.value(1))) {
+    return false;
   }
-  if (raw.startsWith("S\n") && parts.size() >= 4) {
-    const QString deviceKey = QString::fromUtf8(parts.at(1));
-    const QString sectionKey = QString::fromUtf8(parts.at(2));
-    const SectionData *section = sectionFromIndex(isSensor(parent) ? parent.parent() : parent);
-    const DeviceData *device = deviceFromIndex(parent);
-    return device != nullptr && section != nullptr && device->key == deviceKey &&
-           section->key == sectionKey;
+  if (kind == "G" && parts.size() >= 3) {
+    return true;
+  }
+  if (kind == "S" && parts.size() >= 4) {
+    const SectionData *section = sectionFromIndex(parent);
+    return section != nullptr && section->key == QString::fromUtf8(parts.at(2));
   }
   return false;
 }
@@ -536,65 +535,36 @@ bool MonitorModel::dropMimeData(const QMimeData *data, Qt::DropAction action, in
     return false;
   }
 
-  const QList<QByteArray> parts = data->data(QString::fromLatin1(kMimeType)).split('\n');
-  if (parts.isEmpty()) {
-    return false;
-  }
+  const QList<QByteArray> parts = data->data(mimeType()).split('\n');
+  const QByteArray kind = parts.value(0);
+  const QString deviceKey = QString::fromUtf8(parts.value(1));
 
-  if (parts.front() == "D") {
-    const QString key = QString::fromUtf8(parts.value(1));
-    int from = -1;
-    for (int i = 0; i < m_devices.size(); ++i) {
-      if (m_devices[i].key == key) {
-        from = i;
-        break;
-      }
-    }
+  if (kind == "D") {
     int to = row;
     if (parent.isValid()) {
-      if (isDevice(parent)) {
-        to = parent.row();
-      } else if (isSection(parent)) {
-        to = parent.parent().row();
-      } else {
-        to = parent.parent().parent().row();
-      }
+      to = isDevice(parent) ? parent.row() : deviceIndexFromId(parent.internalId());
     }
     if (to < 0) {
       to = m_devices.size();
     }
-    return moveDevice(from, to);
+    return moveDevice(findDeviceIndex(deviceKey), to);
   }
 
-  if (parts.front() == "G") {
-    const QString deviceKey = QString::fromUtf8(parts.value(1));
-    const QString sectionKey = QString::fromUtf8(parts.value(2));
-    int deviceIndex = -1;
-    for (int i = 0; i < m_devices.size(); ++i) {
-      if (m_devices[i].key == deviceKey) {
-        deviceIndex = i;
-        break;
-      }
-    }
-    if (deviceIndex < 0) {
-      return false;
-    }
-    int fromVisible = -1;
+  const int deviceIndex = findDeviceIndex(deviceKey);
+  if (deviceIndex < 0) {
+    return false;
+  }
+  const QString sectionKey = QString::fromUtf8(parts.value(2));
+
+  if (kind == "G") {
     const int visible = visibleSectionCount(deviceIndex);
-    for (int i = 0; i < visible; ++i) {
-      const int sectionIndex = visibleToSection(deviceIndex, i);
-      if (m_devices[deviceIndex].sections[sectionIndex].key == sectionKey) {
-        fromVisible = i;
-        break;
-      }
-    }
+    const int fromVisible =
+        sectionToVisible(deviceIndex, findSectionIndex(deviceIndex, sectionKey));
     int toVisible = row;
-    if (isDevice(parent)) {
-      toVisible = row < 0 ? visible : row;
-    } else if (isSection(parent)) {
+    if (isSection(parent)) {
       toVisible = parent.row();
     } else if (isSensor(parent)) {
-      toVisible = parent.parent().row();
+      toVisible = sectionToVisible(deviceIndex, sectionIndexFromId(parent.internalId()));
     }
     if (toVisible < 0) {
       toVisible = visible;
@@ -602,42 +572,27 @@ bool MonitorModel::dropMimeData(const QMimeData *data, Qt::DropAction action, in
     return moveSection(deviceIndex, fromVisible, toVisible);
   }
 
-  const QString deviceKey = QString::fromUtf8(parts.value(1));
-  const QString sectionKey = QString::fromUtf8(parts.value(2));
-  const QString sensorKey = QString::fromUtf8(parts.value(3));
-  int deviceIndex = -1;
-  for (int i = 0; i < m_devices.size(); ++i) {
-    if (m_devices[i].key == deviceKey) {
-      deviceIndex = i;
-      break;
-    }
-  }
-  if (deviceIndex < 0) {
-    return false;
-  }
-  int sectionIndex = -1;
-  for (int i = 0; i < m_devices[deviceIndex].sections.size(); ++i) {
-    if (m_devices[deviceIndex].sections[i].key == sectionKey) {
-      sectionIndex = i;
-      break;
-    }
-  }
+  const int sectionIndex = findSectionIndex(deviceIndex, sectionKey);
   if (sectionIndex < 0) {
     return false;
   }
-
-  int fromVisible = -1;
+  const QString sensorKey = QString::fromUtf8(parts.value(3));
   const int visible = visibleSensorCount(deviceIndex, sectionIndex);
-  for (int i = 0; i < visible; ++i) {
-    const int sensorIndex = visibleToSensor(deviceIndex, sectionIndex, i);
-    if (m_devices[deviceIndex].sections[sectionIndex].sensors[sensorIndex].key == sensorKey) {
-      fromVisible = i;
+  int fromVisible = -1;
+  int seen = 0;
+  for (const SensorData &sensor : m_devices[deviceIndex].sections[sectionIndex].sensors) {
+    if (sensor.hidden) {
+      continue;
+    }
+    if (sensor.key == sensorKey) {
+      fromVisible = seen;
       break;
     }
+    ++seen;
   }
   int toVisible = row;
   if (isSection(parent)) {
-    toVisible = row < 0 ? 0 : row;
+    toVisible = qMax(0, row); // dropping onto the section header puts it first
   } else if (isSensor(parent)) {
     toVisible = parent.row();
   }
@@ -664,71 +619,66 @@ bool MonitorModel::applySnapshot(const QJsonDocument &document, qint64 *timestam
     existingIndex.insert(m_devices[i].key, i);
   }
 
-  QVector<DeviceData> merged;
-  merged.reserve(incoming.size());
+  const qint64 flashUntil = nowMs() + m_flashDurationMs;
   for (DeviceData &device : incoming) {
-    if (existingIndex.contains(device.key)) {
-      const DeviceData &old = m_devices[existingIndex.value(device.key)];
-      device.expanded = old.expanded;
-      QHash<QString, const SectionData *> oldSections;
-      QStringList oldSectionOrder;
-      oldSections.reserve(old.sections.size());
-      oldSectionOrder.reserve(old.sections.size());
-      for (const SectionData &section : old.sections) {
-        oldSections.insert(section.key, &section);
-        oldSectionOrder.push_back(section.key);
-      }
-      QHash<QString, SensorData> mergedByKey;
-      const QVector<SensorData> mergedFlat =
-          mergeSensors(flattenSensors(old), flattenSensors(device));
-      mergedByKey.reserve(mergedFlat.size());
-      for (const SensorData &sensor : mergedFlat) {
-        mergedByKey.insert(sensor.key, sensor);
-      }
-      for (SectionData &section : device.sections) {
-        const SectionData *previous = oldSections.value(section.key, nullptr);
-        if (previous != nullptr) {
-          section.expanded = previous->expanded;
-        }
-        QVector<SensorData> incomingSensors;
-        incomingSensors.reserve(section.sensors.size());
-        for (const SensorData &sensor : section.sensors) {
-          incomingSensors.push_back(mergedByKey.value(sensor.key, sensor));
-        }
-        QStringList previousOrder;
-        if (previous != nullptr) {
-          previousOrder.reserve(previous->sensors.size());
-          for (const SensorData &sensor : previous->sensors) {
-            previousOrder.push_back(sensor.key);
-          }
-        }
-        section.sensors = reorderSensors(std::move(incomingSensors), previousOrder);
-      }
-      device.sections = reorderSections(std::move(device.sections), oldSectionOrder);
-    } else {
+    const auto existing = existingIndex.constFind(device.key);
+    if (existing == existingIndex.cend()) {
+      // First time we see this device: apply persisted preferences.
       device.expanded = !m_collapsedKeys.contains(device.key);
+      const QStringList sensorOrder = m_sensorOrder.value(device.key);
       for (SectionData &section : device.sections) {
         for (SensorData &sensor : section.sensors) {
           sensor.hidden = m_hiddenKeys.contains(sensor.key);
         }
-      }
-      if (auto sectionOrder = m_sectionOrder.constFind(device.key);
-          sectionOrder != m_sectionOrder.cend()) {
-        device.sections = reorderSections(std::move(device.sections), sectionOrder.value());
-      }
-      if (auto order = m_sensorOrder.constFind(device.key);
-          order != m_sensorOrder.cend() && !order->isEmpty()) {
-        for (SectionData &section : device.sections) {
-          section.sensors = reorderSensors(std::move(section.sensors), order.value());
+        if (!sensorOrder.isEmpty()) {
+          section.sensors = reorderByKey(std::move(section.sensors), sensorOrder);
         }
       }
+      if (auto order = m_sectionOrder.constFind(device.key); order != m_sectionOrder.cend()) {
+        device.sections = reorderSections(std::move(device.sections), order.value());
+      }
+      continue;
     }
-    merged.push_back(std::move(device));
+
+    // Known device: carry over UI state and keep the user's current ordering.
+    const DeviceData &old = m_devices[existing.value()];
+    device.expanded = old.expanded;
+    QHash<QString, const SectionData *> oldSections;
+    QHash<QString, const SensorData *> oldSensors;
+    QStringList oldSectionOrder;
+    oldSections.reserve(old.sections.size());
+    oldSectionOrder.reserve(old.sections.size());
+    for (const SectionData &section : old.sections) {
+      oldSections.insert(section.key, &section);
+      oldSectionOrder.push_back(section.key);
+      for (const SensorData &sensor : section.sensors) {
+        oldSensors.insert(sensor.key, &sensor);
+      }
+    }
+    for (SectionData &section : device.sections) {
+      QStringList previousOrder;
+      if (const SectionData *previous = oldSections.value(section.key, nullptr)) {
+        section.expanded = previous->expanded;
+        previousOrder.reserve(previous->sensors.size());
+        for (const SensorData &sensor : previous->sensors) {
+          previousOrder.push_back(sensor.key);
+        }
+      }
+      for (SensorData &sensor : section.sensors) {
+        if (const SensorData *previous = oldSensors.value(sensor.key, nullptr)) {
+          carryState(*previous, sensor, flashUntil);
+        } else {
+          sensor.hidden = m_hiddenKeys.contains(sensor.key);
+        }
+      }
+      section.sensors = reorderByKey(std::move(section.sensors), previousOrder);
+    }
+    device.sections = reorderSections(std::move(device.sections), oldSectionOrder);
   }
 
   if (!m_initialized) {
     if (!m_deviceOrder.isEmpty()) {
-      merged = reorderDevices(std::move(merged), m_deviceOrder);
+      incoming = reorderByKey(std::move(incoming), m_deviceOrder);
     }
     m_initialized = true;
   } else if (!m_devices.isEmpty()) {
@@ -737,14 +687,14 @@ bool MonitorModel::applySnapshot(const QJsonDocument &document, qint64 *timestam
     for (const DeviceData &device : m_devices) {
       currentOrder.push_back(device.key);
     }
-    merged = reorderDevices(std::move(merged), currentOrder);
+    incoming = reorderByKey(std::move(incoming), currentOrder);
   }
 
-  const bool reset = !structureEquals(merged);
+  const bool reset = !structureEquals(incoming);
   if (reset) {
     beginResetModel();
   }
-  m_devices = std::move(merged);
+  m_devices = std::move(incoming);
   if (reset) {
     endResetModel();
   } else {
@@ -771,9 +721,6 @@ void MonitorModel::resetLocalReadings() {
 }
 
 void MonitorModel::hideSensor(const QModelIndex &index) {
-  if (!isSensor(index)) {
-    return;
-  }
   SensorData *sensor = sensorFromIndex(index);
   if (sensor == nullptr || sensor->hidden) {
     return;
@@ -813,8 +760,7 @@ void MonitorModel::showHiddenSensors(const QModelIndex &index) {
     }
   };
   if (isSection(index)) {
-    SectionData *section = sectionFromIndex(index);
-    if (section != nullptr) {
+    if (SectionData *section = sectionFromIndex(index)) {
       unhide(*section);
     }
   } else {
@@ -833,28 +779,11 @@ void MonitorModel::showHiddenSensors(const QModelIndex &index) {
 bool MonitorModel::hasHiddenSensors(const QModelIndex &index) const {
   if (isSection(index)) {
     const SectionData *section = sectionFromIndex(index);
-    if (section == nullptr) {
-      return false;
-    }
-    for (const SensorData &sensor : section->sensors) {
-      if (sensor.hidden) {
-        return true;
-      }
-    }
-    return false;
+    return section != nullptr && anyHidden(*section);
   }
   const DeviceData *device = deviceFromIndex(index);
-  if (device == nullptr) {
-    return false;
-  }
-  for (const SectionData &section : device->sections) {
-    for (const SensorData &sensor : section.sensors) {
-      if (sensor.hidden) {
-        return true;
-      }
-    }
-  }
-  return false;
+  return device != nullptr &&
+         std::any_of(device->sections.cbegin(), device->sections.cend(), anyHidden);
 }
 
 bool MonitorModel::isDevice(const QModelIndex &index) const {
@@ -870,33 +799,30 @@ bool MonitorModel::isSensor(const QModelIndex &index) const {
 }
 
 void MonitorModel::setNodeExpanded(const QModelIndex &index, bool expanded) {
+  QString key;
   if (isDevice(index)) {
     DeviceData *device = deviceFromIndex(index);
     if (device == nullptr) {
       return;
     }
     device->expanded = expanded;
-    if (expanded) {
-      m_collapsedKeys.remove(device->key);
-    } else {
-      m_collapsedKeys.insert(device->key);
-    }
-    saveSettings();
-    return;
-  }
-  if (isSection(index)) {
+    key = device->key;
+  } else if (isSection(index)) {
     SectionData *section = sectionFromIndex(index);
     if (section == nullptr) {
       return;
     }
     section->expanded = expanded;
-    if (expanded) {
-      m_collapsedKeys.remove(section->key);
-    } else {
-      m_collapsedKeys.insert(section->key);
-    }
-    saveSettings();
+    key = section->key;
+  } else {
+    return;
   }
+  if (expanded) {
+    m_collapsedKeys.remove(key);
+  } else {
+    m_collapsedKeys.insert(key);
+  }
+  saveSettings();
 }
 
 bool MonitorModel::isNodeExpanded(const QModelIndex &index) const {
@@ -934,23 +860,45 @@ void MonitorModel::resetSensorOrder() {
   saveSettings();
 }
 
+int MonitorModel::findDeviceIndex(const QString &key) const {
+  for (int i = 0; i < m_devices.size(); ++i) {
+    if (m_devices[i].key == key) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+int MonitorModel::findSectionIndex(int deviceIndex, const QString &key) const {
+  if (deviceIndex < 0 || deviceIndex >= m_devices.size()) {
+    return -1;
+  }
+  const auto &sections = m_devices[deviceIndex].sections;
+  for (int i = 0; i < sections.size(); ++i) {
+    if (sections[i].key == key) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 int MonitorModel::visibleSectionCount(int deviceIndex) const {
   if (deviceIndex < 0 || deviceIndex >= m_devices.size()) {
     return 0;
   }
-  int count = 0;
-  for (int i = 0; i < m_devices[deviceIndex].sections.size(); ++i) {
-    if (visibleSensorCount(deviceIndex, i) > 0) {
-      ++count;
-    }
-  }
-  return count;
+  const auto &sections = m_devices[deviceIndex].sections;
+  return static_cast<int>(std::count_if(sections.cbegin(), sections.cend(),
+                                        [](const SectionData &s) { return visibleSensors(s) > 0; }));
 }
 
 int MonitorModel::visibleToSection(int deviceIndex, int visibleRow) const {
+  if (deviceIndex < 0 || deviceIndex >= m_devices.size()) {
+    return -1;
+  }
   int seen = 0;
-  for (int i = 0; i < m_devices[deviceIndex].sections.size(); ++i) {
-    if (visibleSensorCount(deviceIndex, i) == 0) {
+  const auto &sections = m_devices[deviceIndex].sections;
+  for (int i = 0; i < sections.size(); ++i) {
+    if (visibleSensors(sections[i]) == 0) {
       continue;
     }
     if (seen == visibleRow) {
@@ -962,16 +910,13 @@ int MonitorModel::visibleToSection(int deviceIndex, int visibleRow) const {
 }
 
 int MonitorModel::sectionToVisible(int deviceIndex, int sectionIndex) const {
-  if (deviceIndex < 0 || deviceIndex >= m_devices.size() || sectionIndex < 0 ||
-      sectionIndex >= m_devices[deviceIndex].sections.size()) {
-    return -1;
-  }
   if (visibleSensorCount(deviceIndex, sectionIndex) == 0) {
     return -1;
   }
+  const auto &sections = m_devices[deviceIndex].sections;
   int visible = 0;
   for (int i = 0; i < sectionIndex; ++i) {
-    if (visibleSensorCount(deviceIndex, i) > 0) {
+    if (visibleSensors(sections[i]) > 0) {
       ++visible;
     }
   }
@@ -983,13 +928,7 @@ int MonitorModel::visibleSensorCount(int deviceIndex, int sectionIndex) const {
       sectionIndex >= m_devices[deviceIndex].sections.size()) {
     return 0;
   }
-  int count = 0;
-  for (const SensorData &sensor : m_devices[deviceIndex].sections[sectionIndex].sensors) {
-    if (!sensor.hidden) {
-      ++count;
-    }
-  }
-  return count;
+  return visibleSensors(m_devices[deviceIndex].sections[sectionIndex]);
 }
 
 int MonitorModel::visibleToSensor(int deviceIndex, int sectionIndex, int visibleRow) const {
@@ -1023,16 +962,12 @@ DeviceData *MonitorModel::deviceFromIndex(const QModelIndex &index) {
 }
 
 const SectionData *MonitorModel::sectionFromIndex(const QModelIndex &index) const {
-  if (isDevice(index)) {
+  if (!index.isValid() || isDevice(index)) {
     return nullptr;
   }
   const int deviceIndex = deviceIndexFromId(index.internalId());
-  int sectionIndex = -1;
-  if (isSection(index)) {
-    sectionIndex = visibleToSection(deviceIndex, index.row());
-  } else {
-    sectionIndex = sectionIndexFromId(index.internalId());
-  }
+  const int sectionIndex = isSection(index) ? visibleToSection(deviceIndex, index.row())
+                                            : sectionIndexFromId(index.internalId());
   if (deviceIndex < 0 || deviceIndex >= m_devices.size() || sectionIndex < 0 ||
       sectionIndex >= m_devices[deviceIndex].sections.size()) {
     return nullptr;
@@ -1050,6 +985,9 @@ const SensorData *MonitorModel::sensorFromIndex(const QModelIndex &index) const 
   }
   const int deviceIndex = deviceIndexFromId(index.internalId());
   const int sectionIndex = sectionIndexFromId(index.internalId());
+  if (visibleSensorCount(deviceIndex, sectionIndex) == 0) {
+    return nullptr;
+  }
   const int sensorIndex = visibleToSensor(deviceIndex, sectionIndex, index.row());
   if (sensorIndex < 0) {
     return nullptr;
@@ -1067,27 +1005,19 @@ void MonitorModel::loadSettings() {
   m_hiddenKeys = toSet(settings.value(QStringLiteral("hidden")).toStringList());
   m_deviceOrder = settings.value(QStringLiteral("deviceOrder")).toStringList();
 
-  const int sensorCount = settings.beginReadArray(QStringLiteral("sensorOrders"));
-  for (int i = 0; i < sensorCount; ++i) {
-    settings.setArrayIndex(i);
-    const QString key = settings.value(QStringLiteral("device")).toString();
-    const QStringList order = settings.value(QStringLiteral("order")).toStringList();
-    if (!key.isEmpty()) {
-      m_sensorOrder.insert(key, order);
+  const auto readOrders = [&settings](const QString &group, QHash<QString, QStringList> &out) {
+    const int count = settings.beginReadArray(group);
+    for (int i = 0; i < count; ++i) {
+      settings.setArrayIndex(i);
+      const QString key = settings.value(QStringLiteral("device")).toString();
+      if (!key.isEmpty()) {
+        out.insert(key, settings.value(QStringLiteral("order")).toStringList());
+      }
     }
-  }
-  settings.endArray();
-
-  const int sectionCount = settings.beginReadArray(QStringLiteral("sectionOrders"));
-  for (int i = 0; i < sectionCount; ++i) {
-    settings.setArrayIndex(i);
-    const QString key = settings.value(QStringLiteral("device")).toString();
-    const QStringList order = settings.value(QStringLiteral("order")).toStringList();
-    if (!key.isEmpty()) {
-      m_sectionOrder.insert(key, order);
-    }
-  }
-  settings.endArray();
+    settings.endArray();
+  };
+  readOrders(QStringLiteral("sensorOrders"), m_sensorOrder);
+  readOrders(QStringLiteral("sectionOrders"), m_sectionOrder);
 }
 
 void MonitorModel::saveSettings() const {
@@ -1107,31 +1037,32 @@ void MonitorModel::saveSettings() const {
   settings.setValue(QStringLiteral("hidden"), hidden);
   settings.setValue(QStringLiteral("deviceOrder"), deviceOrder);
 
-  settings.beginWriteArray(QStringLiteral("sensorOrders"), m_devices.size());
-  for (int i = 0; i < m_devices.size(); ++i) {
-    settings.setArrayIndex(i);
-    settings.setValue(QStringLiteral("device"), m_devices[i].key);
+  const auto writeOrders = [&](const QString &group, auto keysOf) {
+    settings.beginWriteArray(group, m_devices.size());
+    for (int i = 0; i < m_devices.size(); ++i) {
+      settings.setArrayIndex(i);
+      settings.setValue(QStringLiteral("device"), m_devices[i].key);
+      settings.setValue(QStringLiteral("order"), keysOf(m_devices[i]));
+    }
+    settings.endArray();
+  };
+  writeOrders(QStringLiteral("sensorOrders"), [](const DeviceData &device) {
     QStringList order;
-    for (const SectionData &section : m_devices[i].sections) {
+    for (const SectionData &section : device.sections) {
       for (const SensorData &sensor : section.sensors) {
         order.push_back(sensor.key);
       }
     }
-    settings.setValue(QStringLiteral("order"), order);
-  }
-  settings.endArray();
-
-  settings.beginWriteArray(QStringLiteral("sectionOrders"), m_devices.size());
-  for (int i = 0; i < m_devices.size(); ++i) {
-    settings.setArrayIndex(i);
-    settings.setValue(QStringLiteral("device"), m_devices[i].key);
+    return order;
+  });
+  writeOrders(QStringLiteral("sectionOrders"), [](const DeviceData &device) {
     QStringList order;
-    for (const SectionData &section : m_devices[i].sections) {
+    order.reserve(device.sections.size());
+    for (const SectionData &section : device.sections) {
       order.push_back(section.key);
     }
-    settings.setValue(QStringLiteral("order"), order);
-  }
-  settings.endArray();
+    return order;
+  });
 }
 
 void MonitorModel::notifyValues() {
@@ -1145,16 +1076,14 @@ void MonitorModel::notifyValues() {
     if (sections == 0) {
       continue;
     }
-    emit dataChanged(this->index(0, 0, device), this->index(sections - 1, ColumnCount - 1, device));
+    emit dataChanged(index(0, 0, device), index(sections - 1, ColumnCount - 1, device));
     for (int sectionVisible = 0; sectionVisible < sections; ++sectionVisible) {
-      const QModelIndex section = this->index(sectionVisible, 0, device);
-      const int sectionIndex = visibleToSection(deviceIndex, sectionVisible);
-      const int sensors = visibleSensorCount(deviceIndex, sectionIndex);
-      if (sensors == 0) {
-        continue;
+      const QModelIndex section = index(sectionVisible, 0, device);
+      const int sensors =
+          visibleSensorCount(deviceIndex, visibleToSection(deviceIndex, sectionVisible));
+      if (sensors > 0) {
+        emit dataChanged(index(0, 0, section), index(sensors - 1, ColumnCount - 1, section));
       }
-      emit dataChanged(this->index(0, 0, section),
-                       this->index(sensors - 1, ColumnCount - 1, section));
     }
   }
 }
@@ -1208,8 +1137,8 @@ QVector<DeviceData> MonitorModel::parseDevices(const QJsonArray &root, qint64 *t
     DeviceData device;
     device.name = object.value(QLatin1String("name")).toString();
     device.type = object.value(QLatin1String("type")).toInt(4);
-    const QString deviceIdentity = QString::number(device.type) + QLatin1Char('|') + device.name;
-    const int occurrence = deviceCounts[deviceIdentity]++;
+    const QString identity = QString::number(device.type) + QLatin1Char('|') + device.name;
+    const int occurrence = deviceCounts[identity]++;
     device.key = QStringLiteral("%1:%2#%3").arg(device.type).arg(device.name).arg(occurrence);
 
     QHash<QString, int> sensorCounts;
@@ -1217,8 +1146,8 @@ QVector<DeviceData> MonitorModel::parseDevices(const QJsonArray &root, qint64 *t
     if (sensorsValue.isObject()) {
       device.sections = parseCustomSections(device.key, sensorCounts, sensorsValue.toObject());
     } else if (sensorsValue.isArray()) {
-      device.sections = groupSensors(
-          device.key, parseSensorArray(device.key, sensorCounts, sensorsValue.toArray()), {});
+      device.sections =
+          groupSensors(device.key, parseSensorArray(device.key, sensorCounts, sensorsValue.toArray()));
     }
     devices.push_back(std::move(device));
   }
@@ -1226,104 +1155,38 @@ QVector<DeviceData> MonitorModel::parseDevices(const QJsonArray &root, qint64 *t
   return devices;
 }
 
+SectionData MonitorModel::makeSection(const QString &key, const QString &name, int type, bool custom,
+                                      QVector<SensorData> sensors) const {
+  SectionData section;
+  section.key = key;
+  section.name = name;
+  section.type = type;
+  section.custom = custom;
+  section.expanded = !m_collapsedKeys.contains(key);
+  section.sensors = std::move(sensors);
+  sortSensorsByName(section.sensors);
+  return section;
+}
+
 QVector<SectionData> MonitorModel::groupSensors(const QString &deviceKey,
-                                                QVector<SensorData> sensors,
-                                                const QList<int> &typeOrder) const {
-  QList<int> order = typeOrder;
+                                                QVector<SensorData> sensors) const {
+  QList<int> order;
   QHash<int, QVector<SensorData>> buckets;
   for (SensorData &sensor : sensors) {
-    if (!buckets.contains(sensor.type) && !order.contains(sensor.type)) {
+    if (!buckets.contains(sensor.type)) {
       order.push_back(sensor.type);
     }
     buckets[sensor.type].push_back(std::move(sensor));
   }
 
   QVector<SectionData> sections;
+  sections.reserve(order.size());
   for (int type : order) {
-    auto it = buckets.find(type);
-    if (it == buckets.end() || it->isEmpty()) {
-      continue;
-    }
-    SectionData section;
-    section.type = type;
-    section.name = sensorSectionName(type);
-    section.custom = false;
-    section.key = deviceKey + QStringLiteral("/sec/") + QString::number(type);
-    section.expanded = !m_collapsedKeys.contains(section.key);
-    section.sensors = std::move(it.value());
-    sortSensorsByName(section.sensors);
-    sections.push_back(std::move(section));
+    sections.push_back(makeSection(deviceKey + QStringLiteral("/sec/") + QString::number(type),
+                                   sensorSectionName(type), type, false,
+                                   std::move(buckets[type])));
   }
   return sections;
-}
-
-QVector<SectionData> MonitorModel::reorderSections(QVector<SectionData> sections,
-                                                   const QStringList &order) const {
-  auto matches = [](const SectionData &section, const QString &item) {
-    if (section.key == item || section.name == item) {
-      return true;
-    }
-    bool ok = false;
-    const int type = item.toInt(&ok);
-    return ok && !section.custom && section.type == type;
-  };
-
-  QVector<SectionData> ordered;
-  QVector<bool> used(sections.size(), false);
-  ordered.reserve(sections.size());
-  for (const QString &item : order) {
-    for (int i = 0; i < sections.size(); ++i) {
-      if (used[i] || !matches(sections[i], item)) {
-        continue;
-      }
-      ordered.push_back(std::move(sections[i]));
-      used[i] = true;
-      break;
-    }
-  }
-  for (int i = 0; i < sections.size(); ++i) {
-    if (!used[i]) {
-      ordered.push_back(std::move(sections[i]));
-    }
-  }
-  return ordered;
-}
-
-SensorData MonitorModel::parseSensor(const QString &deviceKey, QHash<QString, int> &sensorCounts,
-                                     const QJsonObject &sensorObject) const {
-  SensorData sensor;
-  sensor.name = sensorObject.value(QLatin1String("name")).toString();
-  sensor.type = sensorObject.value(QLatin1String("type")).toInt(10);
-  const QString sensorIdentity = QString::number(sensor.type) + QLatin1Char('|') + sensor.name;
-  const int sensorOccurrence = sensorCounts[sensorIdentity]++;
-  sensor.key = QStringLiteral("%1/%2:%3#%4")
-                   .arg(deviceKey)
-                   .arg(sensor.type)
-                   .arg(sensor.name)
-                   .arg(sensorOccurrence);
-
-  const QJsonObject readings = sensorObject.value(QLatin1String("readings")).toObject();
-  sensor.value = readings.value(QLatin1String("value")).toDouble();
-  sensor.min = readings.value(QLatin1String("min_value")).toDouble();
-  sensor.max = readings.value(QLatin1String("max_value")).toDouble();
-  sensor.sum = readings.value(QLatin1String("sum")).toDouble();
-  sensor.times = readings.value(QLatin1String("times")).toVariant().toLongLong();
-  const QJsonValue primary = sensorObject.value(QLatin1String("isPrimary"));
-  sensor.primary = primary.toBool() || primary.toInt() != 0;
-  return sensor;
-}
-
-QVector<SensorData> MonitorModel::parseSensorArray(const QString &deviceKey,
-                                                   QHash<QString, int> &sensorCounts,
-                                                   const QJsonArray &sensorArray) const {
-  QVector<SensorData> sensors;
-  sensors.reserve(sensorArray.size());
-  for (const QJsonValue &sensorValue : sensorArray) {
-    if (sensorValue.isObject()) {
-      sensors.push_back(parseSensor(deviceKey, sensorCounts, sensorValue.toObject()));
-    }
-  }
-  return sensors;
 }
 
 QVector<SectionData> MonitorModel::parseCustomSections(const QString &deviceKey,
@@ -1339,139 +1202,50 @@ QVector<SectionData> MonitorModel::parseCustomSections(const QString &deviceKey,
     if (sensors.isEmpty()) {
       continue;
     }
-    SectionData section;
-    section.name = it.key();
-    section.custom = true;
-    section.type = sensors.front().type;
-    section.key = deviceKey + QStringLiteral("/sec/") + it.key();
-    section.expanded = !m_collapsedKeys.contains(section.key);
-    section.sensors = std::move(sensors);
-    sortSensorsByName(section.sensors);
-    sections.push_back(std::move(section));
+    const int type = sensors.front().type;
+    sections.push_back(makeSection(deviceKey + QStringLiteral("/sec/") + it.key(), it.key(), type,
+                                   true, std::move(sensors)));
   }
   return sections;
 }
 
-QVector<SensorData> MonitorModel::flattenSensors(const DeviceData &device) const {
-  QVector<SensorData> sensors;
-  for (const SectionData &section : device.sections) {
-    for (const SensorData &sensor : section.sensors) {
-      sensors.push_back(sensor);
+QVector<SectionData> MonitorModel::reorderSections(QVector<SectionData> sections,
+                                                   const QStringList &order) const {
+  // Section order entries may be a key, a display name or (legacy) a numeric type.
+  const auto matches = [](const SectionData &section, const QString &item) {
+    if (section.key == item || section.name == item) {
+      return true;
+    }
+    bool ok = false;
+    const int type = item.toInt(&ok);
+    return ok && !section.custom && section.type == type;
+  };
+
+  QVector<SectionData> ordered;
+  QVector<bool> used(sections.size(), false);
+  ordered.reserve(sections.size());
+  for (const QString &item : order) {
+    for (int i = 0; i < sections.size(); ++i) {
+      if (!used[i] && matches(sections[i], item)) {
+        ordered.push_back(std::move(sections[i]));
+        used[i] = true;
+        break;
+      }
     }
   }
-  return sensors;
-}
-
-QVector<SensorData> MonitorModel::mergeSensors(const QVector<SensorData> &oldSensors,
-                                               const QVector<SensorData> &incoming) const {
-  QHash<QString, SensorData> incomingByKey;
-  incomingByKey.reserve(incoming.size());
-  for (const SensorData &sensor : incoming) {
-    incomingByKey.insert(sensor.key, sensor);
-  }
-
-  QVector<SensorData> merged;
-  QSet<QString> seen;
-  merged.reserve(incoming.size());
-  const qint64 until = nowMs() + m_flashDurationMs;
-
-  for (const SensorData &old : oldSensors) {
-    auto it = incomingByKey.constFind(old.key);
-    if (it == incomingByKey.cend()) {
-      continue;
-    }
-    SensorData next = it.value();
-    next.hidden = old.hidden;
-    next.flashCurrentUntil = next.value != old.value ? until : old.flashCurrentUntil;
-    next.flashMinUntil = next.min != old.min ? until : old.flashMinUntil;
-    next.flashMaxUntil = next.max != old.max ? until : old.flashMaxUntil;
-    merged.push_back(std::move(next));
-    seen.insert(old.key);
-  }
-
-  for (const SensorData &sensor : incoming) {
-    if (seen.contains(sensor.key)) {
-      continue;
-    }
-    SensorData next = sensor;
-    next.hidden = m_hiddenKeys.contains(sensor.key);
-    merged.push_back(std::move(next));
-  }
-  return merged;
-}
-
-QVector<DeviceData> MonitorModel::reorderDevices(QVector<DeviceData> devices,
-                                                 const QStringList &order) const {
-  QHash<QString, int> indexByKey;
-  for (int i = 0; i < devices.size(); ++i) {
-    indexByKey.insert(devices[i].key, i);
-  }
-
-  QVector<DeviceData> ordered;
-  QSet<int> used;
-  ordered.reserve(devices.size());
-  for (const QString &key : order) {
-    const auto it = indexByKey.constFind(key);
-    if (it == indexByKey.cend() || used.contains(it.value())) {
-      continue;
-    }
-    ordered.push_back(std::move(devices[it.value()]));
-    used.insert(it.value());
-  }
-  for (int i = 0; i < devices.size(); ++i) {
-    if (!used.contains(i)) {
-      ordered.push_back(std::move(devices[i]));
+  for (int i = 0; i < sections.size(); ++i) {
+    if (!used[i]) {
+      ordered.push_back(std::move(sections[i]));
     }
   }
   return ordered;
-}
-
-QVector<SensorData> MonitorModel::reorderSensors(QVector<SensorData> sensors,
-                                                 const QStringList &order) const {
-  QHash<QString, int> indexByKey;
-  for (int i = 0; i < sensors.size(); ++i) {
-    indexByKey.insert(sensors[i].key, i);
-  }
-
-  QVector<SensorData> ordered;
-  QSet<int> used;
-  ordered.reserve(sensors.size());
-  for (const QString &key : order) {
-    const auto it = indexByKey.constFind(key);
-    if (it == indexByKey.cend() || used.contains(it.value())) {
-      continue;
-    }
-    ordered.push_back(std::move(sensors[it.value()]));
-    used.insert(it.value());
-  }
-  for (int i = 0; i < sensors.size(); ++i) {
-    if (!used.contains(i)) {
-      ordered.push_back(std::move(sensors[i]));
-    }
-  }
-  return ordered;
-}
-
-void MonitorModel::sortSensorsByName(QVector<SensorData> &sensors) const {
-  QCollator collator;
-  collator.setNumericMode(true);
-  collator.setCaseSensitivity(Qt::CaseInsensitive);
-  std::sort(sensors.begin(), sensors.end(), [&](const SensorData &left, const SensorData &right) {
-    const int compared = collator.compare(left.name, right.name);
-    if (compared != 0) {
-      return compared < 0;
-    }
-    return left.key < right.key;
-  });
 }
 
 bool MonitorModel::moveDevice(int from, int to) {
   if (from < 0 || from >= m_devices.size()) {
     return false;
   }
-  if (to > m_devices.size()) {
-    to = m_devices.size();
-  }
+  to = qMin(to, static_cast<int>(m_devices.size()));
   if (to < 0 || to == from || to == from + 1) {
     return false;
   }
@@ -1496,9 +1270,7 @@ bool MonitorModel::moveSection(int deviceIndex, int fromVisible, int toVisible) 
   if (fromVisible < 0 || fromVisible >= visible) {
     return false;
   }
-  if (toVisible > visible) {
-    toVisible = visible;
-  }
+  toVisible = qMin(toVisible, visible);
   if (toVisible < 0 || toVisible == fromVisible || toVisible == fromVisible + 1) {
     return false;
   }
@@ -1506,32 +1278,26 @@ bool MonitorModel::moveSection(int deviceIndex, int fromVisible, int toVisible) 
   if (!beginMoveRows(parent, fromVisible, fromVisible, parent, toVisible)) {
     return false;
   }
+  auto &sections = m_devices[deviceIndex].sections;
   const int fromSection = visibleToSection(deviceIndex, fromVisible);
-  int toSection = toVisible >= visible ? m_devices[deviceIndex].sections.size()
-                                       : visibleToSection(deviceIndex, toVisible);
-  SectionData section = m_devices[deviceIndex].sections.takeAt(fromSection);
+  int toSection = toVisible >= visible ? sections.size() : visibleToSection(deviceIndex, toVisible);
+  SectionData section = sections.takeAt(fromSection);
   if (fromSection < toSection) {
     --toSection;
   }
-  toSection = qBound(0, toSection, static_cast<int>(m_devices[deviceIndex].sections.size()));
-  m_devices[deviceIndex].sections.insert(toSection, std::move(section));
+  toSection = qBound(0, toSection, static_cast<int>(sections.size()));
+  sections.insert(toSection, std::move(section));
   endMoveRows();
   saveSettings();
   return true;
 }
 
 bool MonitorModel::moveSensor(int deviceIndex, int sectionIndex, int fromVisible, int toVisible) {
-  if (deviceIndex < 0 || deviceIndex >= m_devices.size() || sectionIndex < 0 ||
-      sectionIndex >= m_devices[deviceIndex].sections.size()) {
-    return false;
-  }
   const int visible = visibleSensorCount(deviceIndex, sectionIndex);
   if (fromVisible < 0 || fromVisible >= visible) {
     return false;
   }
-  if (toVisible > visible) {
-    toVisible = visible;
-  }
+  toVisible = qMin(toVisible, visible);
   if (toVisible < 0 || toVisible == fromVisible || toVisible == fromVisible + 1) {
     return false;
   }

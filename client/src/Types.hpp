@@ -1,6 +1,52 @@
 #pragma once
 
+#include <QStringView>
 #include <QString>
+
+// Mirrors the server's SensorType enum (0..9 known, 10 unknown).
+inline constexpr int kUnknownSensorType = 10;
+inline constexpr int kMemorySensorType = 8;
+inline constexpr int kThroughputSensorType = 9;
+
+struct SensorTypeInfo {
+  QStringView label;
+  QStringView sectionName;
+  QStringView iconPath;
+  QStringView unit;
+  int precision;
+};
+
+inline constexpr SensorTypeInfo kSensorTypes[] = {
+    {u"TEMP", u"Temperatures", u":/icons/temperature.svg", u" °C", 1},
+    {u"FAN", u"Fans", u":/icons/fan.svg", u" RPM", 0},
+    {u"CLK", u"Clocks", u":/icons/clock.svg", u" MHz", 1},
+    {u"PWR", u"Power", u":/icons/voltage.svg", u" W", 1},
+    {u"VOLT", u"Voltages", u":/icons/voltage.svg", u" V", 3},
+    {u"CURR", u"Currents", u":/icons/voltage.svg", u" A", 3},
+    {u"ENRG", u"Energy", u":/icons/voltage.svg", u" W", 3},
+    {u"UTIL", u"Utilization", u":/icons/clock.svg", u" %", 1},
+    {u"MEM", u"Memory", u":/icons/clock.svg", u"", 0},
+    {u"THRU", u"Throughput", u":/icons/clock.svg", u"/s", 0},
+};
+
+inline constexpr SensorTypeInfo kUnknownSensorInfo{u"UNK", u"Other", u"", u"", 0};
+
+inline constexpr const SensorTypeInfo &sensorTypeInfo(int type) {
+  constexpr int count = static_cast<int>(sizeof(kSensorTypes) / sizeof(kSensorTypes[0]));
+  return type >= 0 && type < count ? kSensorTypes[type] : kUnknownSensorInfo;
+}
+
+inline QString sensorTypeLabel(int type) {
+  return sensorTypeInfo(type).label.toString();
+}
+
+inline QString sensorSectionName(int type) {
+  return sensorTypeInfo(type).sectionName.toString();
+}
+
+inline QString sensorIconPath(int type) {
+  return sensorTypeInfo(type).iconPath.toString();
+}
 
 inline QString deviceTypeLabel(int type) {
   switch (type) {
@@ -17,84 +63,6 @@ inline QString deviceTypeLabel(int type) {
   }
 }
 
-inline QString sensorTypeLabel(int type) {
-  switch (type) {
-  case 0:
-    return QStringLiteral("TEMP");
-  case 1:
-    return QStringLiteral("FAN");
-  case 2:
-    return QStringLiteral("CLK");
-  case 3:
-    return QStringLiteral("PWR");
-  case 4:
-    return QStringLiteral("VOLT");
-  case 5:
-    return QStringLiteral("CURR");
-  case 6:
-    return QStringLiteral("ENRG");
-  case 7:
-    return QStringLiteral("UTIL");
-  case 8:
-    return QStringLiteral("MEM");
-  case 9:
-    return QStringLiteral("THRU");
-  default:
-    return QStringLiteral("UNK");
-  }
-}
-
-inline QString sensorIconPath(int type) {
-  switch (type) {
-  case 0:
-    return QStringLiteral(":/icons/temperature.svg");
-  case 1:
-    return QStringLiteral(":/icons/fan.svg");
-  case 2:
-  case 7:
-  case 8:
-  case 9:
-    return QStringLiteral(":/icons/clock.svg");
-  case 3:
-  case 4:
-  case 5:
-  case 6:
-    return QStringLiteral(":/icons/voltage.svg");
-  default:
-    return {};
-  }
-}
-
 inline QString deviceIconPath(int type) {
-  if (type == 4) {
-    return QStringLiteral(":/icons/chip.svg");
-  }
-  return {};
-}
-
-inline QString sensorSectionName(int type) {
-  switch (type) {
-  case 0:
-    return QStringLiteral("Temperatures");
-  case 1:
-    return QStringLiteral("Fans");
-  case 2:
-    return QStringLiteral("Clocks");
-  case 3:
-    return QStringLiteral("Power");
-  case 4:
-    return QStringLiteral("Voltages");
-  case 5:
-    return QStringLiteral("Currents");
-  case 6:
-    return QStringLiteral("Energy");
-  case 7:
-    return QStringLiteral("Utilization");
-  case 8:
-    return QStringLiteral("Memory");
-  case 9:
-    return QStringLiteral("Throughput");
-  default:
-    return QStringLiteral("Other");
-  }
+  return type == 4 ? QStringLiteral(":/icons/chip.svg") : QString();
 }

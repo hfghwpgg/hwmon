@@ -81,6 +81,8 @@ public:
   void resetSensorOrder();
 
 private:
+  int findDeviceIndex(const QString &key) const;
+  int findSectionIndex(int deviceIndex, const QString &key) const;
   int visibleSectionCount(int deviceIndex) const;
   int visibleToSection(int deviceIndex, int visibleRow) const;
   int sectionToVisible(int deviceIndex, int sectionIndex) const;
@@ -97,23 +99,14 @@ private:
   void notifyValues();
   bool structureEquals(const QVector<DeviceData> &other) const;
   QVector<DeviceData> parseDevices(const QJsonArray &root, qint64 *timestampOut) const;
-  QVector<SectionData> groupSensors(const QString &deviceKey, QVector<SensorData> sensors,
-                                    const QList<int> &typeOrder) const;
-  QVector<SectionData> reorderSections(QVector<SectionData> sections,
-                                       const QStringList &order) const;
-  SensorData parseSensor(const QString &deviceKey, QHash<QString, int> &sensorCounts,
-                         const QJsonObject &sensorObject) const;
-  QVector<SensorData> parseSensorArray(const QString &deviceKey, QHash<QString, int> &sensorCounts,
-                                       const QJsonArray &sensorArray) const;
+  SectionData makeSection(const QString &key, const QString &name, int type, bool custom,
+                          QVector<SensorData> sensors) const;
+  QVector<SectionData> groupSensors(const QString &deviceKey, QVector<SensorData> sensors) const;
   QVector<SectionData> parseCustomSections(const QString &deviceKey,
                                            QHash<QString, int> &sensorCounts,
                                            const QJsonObject &sectionsObject) const;
-  QVector<SensorData> flattenSensors(const DeviceData &device) const;
-  QVector<SensorData> mergeSensors(const QVector<SensorData> &oldSensors,
-                                   const QVector<SensorData> &incoming) const;
-  QVector<DeviceData> reorderDevices(QVector<DeviceData> devices, const QStringList &order) const;
-  QVector<SensorData> reorderSensors(QVector<SensorData> sensors, const QStringList &order) const;
-  void sortSensorsByName(QVector<SensorData> &sensors) const;
+  QVector<SectionData> reorderSections(QVector<SectionData> sections,
+                                       const QStringList &order) const;
   bool moveDevice(int from, int to);
   bool moveSection(int deviceIndex, int fromVisible, int toVisible);
   bool moveSensor(int deviceIndex, int sectionIndex, int fromVisible, int toVisible);

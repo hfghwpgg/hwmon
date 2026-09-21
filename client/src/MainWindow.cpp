@@ -6,7 +6,6 @@
 
 #include <QAction>
 #include <QCloseEvent>
-#include <QColor>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -71,12 +70,8 @@ MainWindow::MainWindow(ClientBackend &backend, QWidget *parent) :
   QFont elapsedFont = m_elapsedLabel->font();
   elapsedFont.setBold(true);
   elapsedFont.setFamilies({QStringLiteral("monospace"), QStringLiteral("Noto Sans Mono")});
-  if (kFontElapsed > 0) {
-    elapsedFont.setPointSize(kFontElapsed);
-  } else {
-    elapsedFont.setPointSize(elapsedFont.pointSize() + 2);
-  }
-  m_elapsedLabel->setFont(elapsedFont);
+  m_elapsedLabel->setFont(
+      sizedFont(elapsedFont, kFontElapsed > 0 ? kFontElapsed : elapsedFont.pointSize() + 2));
 
   m_resetButton = new QPushButton(QStringLiteral("Reset"), m_footer);
   auto *settingsButton = new QPushButton(QStringLiteral("Settings"), m_footer);
@@ -89,8 +84,6 @@ MainWindow::MainWindow(ClientBackend &backend, QWidget *parent) :
 
   setCentralWidget(central);
 
-  m_model->setDarkTheme(m_backend.darkMode());
-  m_model->setFlashDurationMs(m_backend.intervalMs());
   restoreHeaderState();
   restoreWindowState();
   applyTheme();
@@ -108,11 +101,9 @@ MainWindow::MainWindow(ClientBackend &backend, QWidget *parent) :
   connect(&m_backend, &ClientBackend::elapsedTextChanged, this, &MainWindow::updateFooter);
   connect(&m_backend, &ClientBackend::connectedChanged, this, &MainWindow::updateFooter);
   connect(&m_backend, &ClientBackend::darkModeChanged, this, [this] {
-    m_model->setDarkTheme(m_backend.darkMode());
     applyTheme();
+    updateFooter();
   });
-  connect(&m_backend, &ClientBackend::intervalMsChanged, this,
-          [this] { m_model->setFlashDurationMs(m_backend.intervalMs()); });
   connect(m_tree->header(), &QHeaderView::sectionResized, this, [this] { saveHeaderState(); });
 }
 
@@ -123,61 +114,42 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 }
 
 void MainWindow::applyTheme() {
-  const bool dark = m_backend.darkMode();
-  const QString qss =
-      dark ? QStringLiteral(
-                 "QMainWindow { background: #141414; color: #ececec; }"
-                 "QDialog { background: #2a2a2a; color: #ececec; }"
-                 "QTreeView { background: #1b1b1b; alternate-background-color: #222222;"
-                 " color: #ececec; border: none; outline: none; }"
-                 "QHeaderView::section { background: #2a2a2a; color: #9aa3ad;"
-                 " padding: 6px; border: none; border-right: 1px solid #3a3a3a;"
-                 " font-weight: bold; }"
-                 "QTreeView::item:selected { background: #2d3d4e; color: #ececec; }"
-                 "QPushButton { background: #333333; color: #ececec; border: 1px solid #3a3a3a;"
-                 " border-radius: 4px; padding: 4px 12px; }"
-                 "QPushButton:hover { background: #404040; }"
-                 "QPushButton:disabled { color: #66707a; }"
-                 "QLabel { color: #ececec; background: transparent; }"
-                 "QMenu { background: #1e1e1e; color: #ececec; border: 1px solid #3a3a3a; }"
-                 "QMenu::item:selected { background: #2d3d4e; }"
-                 "QSpinBox { color: #ececec; background: #333333; }"
-                 "QRadioButton { color: #ececec; background: transparent; spacing: 8px; }"
-                 "QRadioButton::indicator { width: 16px; height: 16px; border-radius: 9px;"
-                 " border: 2px solid #8a8a8a; background: #1a1a1a; }"
-                 "QRadioButton::indicator:hover { border-color: #6cb6ff; }"
-                 "QRadioButton::indicator:checked { border: 2px solid #6cb6ff;"
-                 " background: qradialgradient(cx:0.5, cy:0.5, radius:0.55, fx:0.5, fy:0.5,"
-                 " stop:0 #6cb6ff, stop:0.42 #6cb6ff, stop:0.5 #1a1a1a, stop:1 #1a1a1a); }")
-           : QStringLiteral(
-                 "QMainWindow { background: #f4f4f4; color: #1a1a1a; }"
-                 "QDialog { background: #ffffff; color: #1a1a1a; }"
-                 "QTreeView { background: #fafafa; alternate-background-color: #f0f0f0;"
-                 " color: #1a1a1a; border: none; outline: none; }"
-                 "QHeaderView::section { background: #e6e6e6; color: #66707a;"
-                 " padding: 6px; border: none; border-right: 1px solid #cfcfcf;"
-                 " font-weight: bold; }"
-                 "QTreeView::item:selected { background: #c9dbeb; color: #1a1a1a; }"
-                 "QPushButton { background: #ffffff; color: #1a1a1a; border: 1px solid #cfcfcf;"
-                 " border-radius: 4px; padding: 4px 12px; }"
-                 "QPushButton:hover { background: #f0f0f0; }"
-                 "QPushButton:disabled { color: #9a9a9a; }"
-                 "QLabel { color: #1a1a1a; background: transparent; }"
-                 "QMenu { background: #ffffff; color: #1a1a1a; border: 1px solid #cfcfcf; }"
-                 "QMenu::item:selected { background: #d7e4f2; }"
-                 "QSpinBox { color: #1a1a1a; background: #ffffff; }"
-                 "QRadioButton { color: #1a1a1a; background: transparent; spacing: 8px; }"
-                 "QRadioButton::indicator { width: 16px; height: 16px; border-radius: 9px;"
-                 " border: 2px solid #6a6a6a; background: #ffffff; }"
-                 "QRadioButton::indicator:hover { border-color: #1565c0; }"
-                 "QRadioButton::indicator:checked { border: 2px solid #1565c0;"
-                 " background: qradialgradient(cx:0.5, cy:0.5, radius:0.55, fx:0.5, fy:0.5,"
-                 " stop:0 #1565c0, stop:0.42 #1565c0, stop:0.5 #ffffff, stop:1 #ffffff); }");
-  setStyleSheet(qss);
-  if (m_footer != nullptr) {
-    m_footer->setStyleSheet(dark ? QStringLiteral("background: #202020;")
-                                 : QStringLiteral("background: #ececec;"));
-  }
+  const ThemeColors &t = themeColors(m_backend.darkMode());
+  const auto hex = [](const QColor &color) { return color.name(); };
+  // Placeholders: %1 text, %2 mutedText, %3 disabledText, %4 accent, %5 mainWindow,
+  // %6 dialog, %7 treeBase, %8 alternateBase, %9 header, %10 border, %11 selection,
+  // %12 control, %13 buttonHover, %14 window, %15 menuSelection, %16 radioBorder, %17 radioBase.
+  static const QString qssTemplate =
+      QStringLiteral("QMainWindow { background: %5; color: %1; }"
+                     "QDialog { background: %6; color: %1; }"
+                     "QTreeView { background: %7; alternate-background-color: %8;"
+                     " color: %1; border: none; outline: none; }"
+                     "QHeaderView::section { background: %9; color: %2;"
+                     " padding: 6px; border: none; border-right: 1px solid %10;"
+                     " font-weight: bold; }"
+                     "QTreeView::item:selected { background: %11; color: %1; }"
+                     "QPushButton { background: %12; color: %1; border: 1px solid %10;"
+                     " border-radius: 4px; padding: 4px 12px; }"
+                     "QPushButton:hover { background: %13; }"
+                     "QPushButton:disabled { color: %3; }"
+                     "QLabel { color: %1; background: transparent; }"
+                     "QMenu { background: %14; color: %1; border: 1px solid %10; }"
+                     "QMenu::item:selected { background: %15; }"
+                     "QSpinBox { color: %1; background: %12; }"
+                     "QRadioButton { color: %1; background: transparent; spacing: 8px; }"
+                     "QRadioButton::indicator { width: 16px; height: 16px; border-radius: 9px;"
+                     " border: 2px solid %16; background: %17; }"
+                     "QRadioButton::indicator:hover { border-color: %4; }"
+                     "QRadioButton::indicator:checked { border: 2px solid %4;"
+                     " background: qradialgradient(cx:0.5, cy:0.5, radius:0.55, fx:0.5, fy:0.5,"
+                     " stop:0 %4, stop:0.42 %4, stop:0.5 %17, stop:1 %17); }");
+  setStyleSheet(
+      qssTemplate
+          .arg(hex(t.text), hex(t.mutedText), hex(t.disabledText), hex(t.accent), hex(t.mainWindow),
+               hex(t.dialog), hex(t.treeBase), hex(t.alternateBase), hex(t.header))
+          .arg(hex(t.border), hex(t.selection), hex(t.control), hex(t.buttonHover), hex(t.window),
+               hex(t.menuSelection), hex(t.radioBorder), hex(t.radioBase)));
+  m_footer->setStyleSheet(QStringLiteral("background: %1;").arg(hex(t.footer)));
 }
 
 void MainWindow::restoreExpandedState() {
@@ -192,14 +164,13 @@ void MainWindow::restoreExpandedState() {
 }
 
 void MainWindow::updateFooter() {
+  const bool active = m_backend.connected() || m_backend.fileMode();
+  const ThemeColors &theme = themeColors(m_backend.darkMode());
   m_statusLabel->setText(m_backend.statusText());
-  const QColor accent = m_backend.darkMode() ? QColor("#6cb6ff") : QColor("#1565c0");
-  const QColor statusColor =
-      m_backend.connected() || m_backend.fileMode() ? accent : warningColor(m_backend.darkMode());
-  m_statusLabel->setStyleSheet(
-      QStringLiteral("color: %1; background: transparent;").arg(statusColor.name()));
+  m_statusLabel->setStyleSheet(QStringLiteral("color: %1; background: transparent;")
+                                   .arg((active ? theme.accent : theme.warning).name()));
   m_elapsedLabel->setText(m_backend.elapsedText());
-  m_resetButton->setEnabled(m_backend.connected() || m_backend.fileMode());
+  m_resetButton->setEnabled(active);
 }
 
 void MainWindow::showContextMenu(const QPoint &pos) {
@@ -223,10 +194,9 @@ void MainWindow::showContextMenu(const QPoint &pos) {
 
     QAction *showHidden = menu.addAction(QStringLiteral("Show hidden sensors"));
     showHidden->setEnabled(m_model->hasHiddenSensors(index));
-    connect(showHidden, &QAction::triggered, this, [this, index] {
-      m_model->showHiddenSensors(index);
-      restoreExpandedState();
-    });
+    // showHiddenSensors resets the model; modelReset already restores expansion.
+    connect(showHidden, &QAction::triggered, this,
+            [this, index] { m_model->showHiddenSensors(index); });
   }
   menu.exec(m_tree->viewport()->mapToGlobal(pos));
 }
@@ -235,7 +205,7 @@ void MainWindow::openSettings() {
   QDialog dialog(this);
   dialog.setWindowTitle(QStringLiteral("Settings"));
   dialog.setModal(true);
-  dialog.resize(360, 280);
+  dialog.resize(360, 240);
 
   auto *layout = new QVBoxLayout(&dialog);
   auto *form = new QFormLayout();
@@ -267,16 +237,18 @@ void MainWindow::openSettings() {
                           &dialog);
   hint->setWordWrap(true);
   hint->setAutoFillBackground(true);
+  // Keep the box at its natural height; spare dialog space goes to the stretch below.
+  hint->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
   auto applyHintStyle = [this, hint] {
+    const ThemeColors &theme = themeColors(m_backend.darkMode());
     hint->setStyleSheet(
-        m_backend.darkMode()
-            ? QStringLiteral("QLabel { background: #3a3a3a; color: #d0d0d0; padding: 8px;"
-                             " border-radius: 4px; }")
-            : QStringLiteral("QLabel { background: #f3f3f3; color: #555555; padding: 8px;"
-                             " border-radius: 4px; }"));
+        QStringLiteral(
+            "QLabel { background: %1; color: %2; padding: 2px 8px; border-radius: 4px; }")
+            .arg(theme.hintBackground.name(), theme.hintText.name()));
   };
   applyHintStyle();
   layout->addWidget(hint);
+  layout->addStretch(1);
 
   auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
   layout->addWidget(buttons);
@@ -288,10 +260,7 @@ void MainWindow::openSettings() {
   connect(&m_backend, &ClientBackend::darkModeChanged, &dialog, applyHintStyle);
   connect(interval, &QSpinBox::valueChanged, this,
           [this](int value) { m_backend.setIntervalMs(value); });
-  connect(resetOrder, &QPushButton::clicked, this, [this] {
-    m_model->resetSensorOrder();
-    restoreExpandedState();
-  });
+  connect(resetOrder, &QPushButton::clicked, m_model, &MonitorModel::resetSensorOrder);
 
   dialog.exec();
 }
@@ -305,15 +274,12 @@ void MainWindow::restoreHeaderState() {
   const QByteArray state = QSettings().value(QStringLiteral("headerState")).toByteArray();
   if (!state.isEmpty()) {
     m_tree->header()->restoreState(state);
-  } else {
-    m_tree->setColumnWidth(0, 220);
-    m_tree->setColumnWidth(1, 100);
-    m_tree->setColumnWidth(2, 100);
-    m_tree->setColumnWidth(3, 100);
-    m_tree->setColumnWidth(4, 100);
+    return;
   }
-  m_tree->header()->setStretchLastSection(false);
-  m_tree->header()->setSectionResizeMode(QHeaderView::Interactive);
+  m_tree->setColumnWidth(MonitorModel::NameColumn, 220);
+  for (int column = MonitorModel::CurrentColumn; column < MonitorModel::ColumnCount; ++column) {
+    m_tree->setColumnWidth(column, 100);
+  }
 }
 
 void MainWindow::saveWindowState() const {

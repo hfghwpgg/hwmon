@@ -1,9 +1,9 @@
 #include "ClientBackend.hpp"
 
 #include "MonitorModel.hpp"
+#include "UiStyle.hpp"
 
 #include <QApplication>
-#include <QColor>
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QFile>
@@ -13,7 +13,6 @@
 #include <QLocalSocket>
 #include <QPalette>
 #include <QSettings>
-#include <QStyleFactory>
 #include <QTimer>
 #include <utility>
 
@@ -71,6 +70,7 @@ void ClientBackend::setDarkMode(bool dark) {
   m_darkMode = dark;
   QSettings settings;
   settings.setValue(QStringLiteral("darkMode"), m_darkMode);
+  m_model->setDarkTheme(m_darkMode);
   applyAppPalette();
   emit darkModeChanged();
 }
@@ -142,54 +142,26 @@ void ClientBackend::sendIntervalToServer() {
 }
 
 void ClientBackend::applyAppPalette() {
+  const ThemeColors &theme = themeColors(m_darkMode);
   QPalette palette;
-  if (m_darkMode) {
-    const QColor window("#1e1e1e");
-    const QColor text("#ececec");
-    const QColor button("#333333");
-    const QColor accent("#6cb6ff");
-    palette.setColor(QPalette::Window, window);
-    palette.setColor(QPalette::WindowText, text);
-    palette.setColor(QPalette::Base, QColor("#141414"));
-    palette.setColor(QPalette::AlternateBase, QColor("#222222"));
-    palette.setColor(QPalette::Text, text);
-    palette.setColor(QPalette::Button, button);
-    palette.setColor(QPalette::ButtonText, text);
-    palette.setColor(QPalette::Light, QColor("#2a2a2a"));
-    palette.setColor(QPalette::Midlight, QColor("#2a2a2a"));
-    palette.setColor(QPalette::Mid, QColor("#3a3a3a"));
-    palette.setColor(QPalette::Dark, QColor("#3a3a3a"));
-    palette.setColor(QPalette::Shadow, QColor("#000000"));
-    palette.setColor(QPalette::Highlight, accent);
-    palette.setColor(QPalette::HighlightedText, QColor("#141414"));
-    palette.setColor(QPalette::ToolTipBase, QColor("#2a2a2a"));
-    palette.setColor(QPalette::ToolTipText, text);
-    palette.setColor(QPalette::PlaceholderText, QColor("#9aa3ad"));
-  } else {
-    const QColor window("#ffffff");
-    const QColor text("#1a1a1a");
-    const QColor button("#f4f4f4");
-    const QColor accent("#1565c0");
-    palette.setColor(QPalette::Window, window);
-    palette.setColor(QPalette::WindowText, text);
-    palette.setColor(QPalette::Base, QColor("#ffffff"));
-    palette.setColor(QPalette::AlternateBase, QColor("#f0f0f0"));
-    palette.setColor(QPalette::Text, text);
-    palette.setColor(QPalette::Button, button);
-    palette.setColor(QPalette::ButtonText, text);
-    palette.setColor(QPalette::Light, QColor("#ffffff"));
-    palette.setColor(QPalette::Midlight, QColor("#e6e6e6"));
-    palette.setColor(QPalette::Mid, QColor("#cfcfcf"));
-    palette.setColor(QPalette::Dark, QColor("#9a9a9a"));
-    palette.setColor(QPalette::Shadow, QColor("#b0b0b0"));
-    palette.setColor(QPalette::Highlight, accent);
-    palette.setColor(QPalette::HighlightedText, QColor("#ffffff"));
-    palette.setColor(QPalette::ToolTipBase, QColor("#ffffff"));
-    palette.setColor(QPalette::ToolTipText, text);
-    palette.setColor(QPalette::PlaceholderText, QColor("#66707a"));
-  }
+  palette.setColor(QPalette::Window, theme.window);
+  palette.setColor(QPalette::WindowText, theme.text);
+  palette.setColor(QPalette::Base, theme.base);
+  palette.setColor(QPalette::AlternateBase, theme.alternateBase);
+  palette.setColor(QPalette::Text, theme.text);
+  palette.setColor(QPalette::Button, theme.button);
+  palette.setColor(QPalette::ButtonText, theme.text);
+  palette.setColor(QPalette::Light, theme.light);
+  palette.setColor(QPalette::Midlight, theme.midlight);
+  palette.setColor(QPalette::Mid, theme.mid);
+  palette.setColor(QPalette::Dark, theme.dark);
+  palette.setColor(QPalette::Shadow, theme.shadow);
+  palette.setColor(QPalette::Highlight, theme.accent);
+  palette.setColor(QPalette::HighlightedText, theme.highlightedText);
+  palette.setColor(QPalette::ToolTipBase, theme.tooltipBase);
+  palette.setColor(QPalette::ToolTipText, theme.text);
+  palette.setColor(QPalette::PlaceholderText, theme.mutedText);
   if (auto *app = qobject_cast<QApplication *>(QCoreApplication::instance())) {
-    app->setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
     app->setPalette(palette);
   }
 }
@@ -268,10 +240,6 @@ void ClientBackend::applyPayload(const QByteArray &payload) {
     return;
   }
 
-  if (!document.isArray()) {
-    return;
-  }
-
   qint64 timestamp = 0;
   if (m_model->applySnapshot(document, &timestamp)) {
     if (timestamp > 0) {
@@ -291,15 +259,8 @@ void ClientBackend::loadFile() {
     return;
   }
 
-  QJsonParseError error;
-  const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
-  if (error.error != QJsonParseError::NoError || !document.isArray()) {
-    setStatus(QStringLiteral("Invalid data file"));
-    return;
-  }
-
   qint64 timestamp = 0;
-  if (m_model->applySnapshot(document, &timestamp)) {
+  if (m_model->applySnapshot(QJsonDocument::fromJson(file.readAll()), &timestamp)) {
     m_startTimestamp = timestamp;
     setStatus(QStringLiteral("File mode"));
   } else {
