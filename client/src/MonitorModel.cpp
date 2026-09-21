@@ -215,8 +215,7 @@ void sortSensorsByName(QVector<SensorData> &sensors) {
 
 // Reorders items so that those listed in `order` (by key) come first, in that
 // order; the rest keep their relative order at the end.
-template <typename T>
-QVector<T> reorderByKey(QVector<T> items, const QStringList &order) {
+template <typename T> QVector<T> reorderByKey(QVector<T> items, const QStringList &order) {
   QHash<QString, int> indexByKey;
   indexByKey.reserve(items.size());
   for (int i = 0; i < items.size(); ++i) {
@@ -257,8 +256,11 @@ SensorData parseSensor(const QString &deviceKey, QHash<QString, int> &sensorCoun
   sensor.type = sensorObject.value(QLatin1String("type")).toInt(kUnknownSensorType);
   const QString identity = QString::number(sensor.type) + QLatin1Char('|') + sensor.name;
   const int occurrence = sensorCounts[identity]++;
-  sensor.key =
-      QStringLiteral("%1/%2:%3#%4").arg(deviceKey).arg(sensor.type).arg(sensor.name).arg(occurrence);
+  sensor.key = QStringLiteral("%1/%2:%3#%4")
+                   .arg(deviceKey)
+                   .arg(sensor.type)
+                   .arg(sensor.name)
+                   .arg(occurrence);
 
   const QJsonObject readings = sensorObject.value(QLatin1String("readings")).toObject();
   sensor.value = readings.value(QLatin1String("value")).toDouble();
@@ -393,7 +395,7 @@ QVariant MonitorModel::data(const QModelIndex &index, int role) const {
     if (column != NameColumn) {
       return {};
     }
-    const QString path = deviceRow             ? deviceIconPath(device->type)
+    const QString path = deviceRow            ? deviceIconPath(device->type)
                          : section != nullptr ? sensorIconPath(section->type)
                                               : sensorIconPath(sensor->type);
     return tintedSvgIcon(path, m_darkTheme);
@@ -887,8 +889,9 @@ int MonitorModel::visibleSectionCount(int deviceIndex) const {
     return 0;
   }
   const auto &sections = m_devices[deviceIndex].sections;
-  return static_cast<int>(std::count_if(sections.cbegin(), sections.cend(),
-                                        [](const SectionData &s) { return visibleSensors(s) > 0; }));
+  return static_cast<int>(
+      std::count_if(sections.cbegin(), sections.cend(),
+                    [](const SectionData &s) { return visibleSensors(s) > 0; }));
 }
 
 int MonitorModel::visibleToSection(int deviceIndex, int visibleRow) const {
@@ -1146,8 +1149,8 @@ QVector<DeviceData> MonitorModel::parseDevices(const QJsonArray &root, qint64 *t
     if (sensorsValue.isObject()) {
       device.sections = parseCustomSections(device.key, sensorCounts, sensorsValue.toObject());
     } else if (sensorsValue.isArray()) {
-      device.sections =
-          groupSensors(device.key, parseSensorArray(device.key, sensorCounts, sensorsValue.toArray()));
+      device.sections = groupSensors(
+          device.key, parseSensorArray(device.key, sensorCounts, sensorsValue.toArray()));
     }
     devices.push_back(std::move(device));
   }
@@ -1155,8 +1158,8 @@ QVector<DeviceData> MonitorModel::parseDevices(const QJsonArray &root, qint64 *t
   return devices;
 }
 
-SectionData MonitorModel::makeSection(const QString &key, const QString &name, int type, bool custom,
-                                      QVector<SensorData> sensors) const {
+SectionData MonitorModel::makeSection(const QString &key, const QString &name, int type,
+                                      bool custom, QVector<SensorData> sensors) const {
   SectionData section;
   section.key = key;
   section.name = name;
@@ -1183,8 +1186,7 @@ QVector<SectionData> MonitorModel::groupSensors(const QString &deviceKey,
   sections.reserve(order.size());
   for (int type : order) {
     sections.push_back(makeSection(deviceKey + QStringLiteral("/sec/") + QString::number(type),
-                                   sensorSectionName(type), type, false,
-                                   std::move(buckets[type])));
+                                   sensorSectionName(type), type, false, std::move(buckets[type])));
   }
   return sections;
 }

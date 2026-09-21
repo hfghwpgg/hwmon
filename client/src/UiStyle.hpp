@@ -47,7 +47,7 @@ struct ThemeColors {
 
 inline const ThemeColors &themeColors(bool dark) {
   static const ThemeColors darkTheme{
-      .accent = QColor("#6cb6ff"),
+      .accent = QColor("#ececec"),
       .text = QColor("#ececec"),
       .mutedText = QColor("#9aa3ad"),
       .disabledText = QColor("#66707a"),
@@ -77,12 +77,12 @@ inline const ThemeColors &themeColors(bool dark) {
       .footer = QColor("#202020"),
       .hintBackground = QColor("#3a3a3a"),
       .hintText = QColor("#d0d0d0"),
-      .deviceRow = QColor("#243140"),
-      .sectionRow = QColor("#1e2a36"),
+      .deviceRow = QColor("#00000000"),
+      .sectionRow = QColor("#00000000"),
       .flash = QColor(108, 182, 255, 26),
   };
   static const ThemeColors lightTheme{
-      .accent = QColor("#1565c0"),
+      .accent = QColor("#1a1a1a"),
       .text = QColor("#1a1a1a"),
       .mutedText = QColor("#66707a"),
       .disabledText = QColor("#9a9a9a"),
@@ -112,9 +112,9 @@ inline const ThemeColors &themeColors(bool dark) {
       .footer = QColor("#ececec"),
       .hintBackground = QColor("#f3f3f3"),
       .hintText = QColor("#555555"),
-      .deviceRow = QColor("#d7e4f2"),
-      .sectionRow = QColor("#e4ecf4"),
-      .flash = QColor(21, 101, 192, 13),
+      .deviceRow = QColor("#00000000"),
+      .sectionRow = QColor("#00000000"),
+      .flash = QColor(21, 101, 192, 26),
   };
   return dark ? darkTheme : lightTheme;
 }
@@ -128,10 +128,10 @@ inline QColor warningColor(bool dark) {
 }
 
 // Point sizes for labels and readings. 0 keeps the Qt/application default.
-inline constexpr int kFontDeviceName = 11;
-inline constexpr int kFontSectionName = 11;
-inline constexpr int kFontSensorName = 11;
-inline constexpr int kFontSensorReading = 11;
+inline constexpr int kFontDeviceName = 10;
+inline constexpr int kFontSectionName = 10;
+inline constexpr int kFontSensorName = 10;
+inline constexpr int kFontSensorReading = 10;
 inline constexpr int kFontElapsed = 12; // 0 => default size + 2
 inline constexpr int kFontStatus = 12;
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <QStringView>
 #include <QString>
+#include <QStringView>
 
 // Mirrors the server's SensorType enum (0..9 known, 10 unknown).
 inline constexpr int kUnknownSensorType = 10;
