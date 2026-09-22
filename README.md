@@ -36,7 +36,8 @@ Other devices:
   - some sysfs paths
 
 ## AI usage
-I used AI when making this project, but it's not fully vibecoded :)
+I used AI when making this project, but it's not fully vibecoded :)  
+most notably:
 - server
   - UDSServer is fully vibecoded (communication protocol)
   - GPU reading is AI assisted
