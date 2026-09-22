@@ -37,8 +37,10 @@ Other devices:
 
 ## AI usage
 I used AI when making this project, but it's not fully vibecoded :)  
-most notably:
+vibecoded parts:
 - server
-  - UDSServer is fully vibecoded (communication protocol)
-  - GPU reading is AI assisted
-- client IS fully vibecoded
+  - UDSServer (communication protocol) - fully
+  - Unit tests - fully
+  - GPU reading - partially
+- client
+  - fully
