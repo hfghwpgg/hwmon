@@ -29,8 +29,15 @@ Other devices:
  - whatever is reported by sysfs hwmon interface
 
 ## Special thanks:
- - [btop](https://github.com/aristocratos/btop/) project
-    - fully skided gpu reading
+- [btop](https://github.com/aristocratos/btop/) project
+  - fully skided gpu reading
 
 - [Hwmon-python](https://github.com/guicalare/Hwmon-python)
-    - some sysfs paths
+  - some sysfs paths
+
+## AI usage
+I used AI when making this project, but it's not fully vibecoded :)
+- server
+  - UDSServer is fully vibecoded (communication protocol)
+  - GPU reading is AI assisted
+- client IS fully vibecoded
