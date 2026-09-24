@@ -12,3 +12,4 @@ output.json
 *.bak
 *.log
 out.json
+post.txt

@@ -205,7 +205,7 @@ void CpuDevice::readUtilization() {
     return;
   }
   if (!cpuutil_fd.is_open()) {
-    spdlog::critical("access to /proc/stat suddenly lost");
+    spdlog::critical("access to {} suddenly lost", cpuPaths.cpuutil.string());
     return;
   }
 

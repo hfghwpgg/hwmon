@@ -46,7 +46,7 @@ case "$cmd" in
     build_with_type Debug
     ;;
   release)
-    build_with_type Release
+    build_with_type MinSizeRel
     ;;
   clear)
     rm -rf "$BUILD"

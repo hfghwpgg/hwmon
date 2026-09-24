@@ -5,7 +5,7 @@
 - Linux (tested on Arch Linux)
 - g++ or clang++ with c++23 support (tested with g++ version 16.1.0)
   - Libraries:
-    - `Qt6` with 'Widgets', 'Network' components
+    - `Qt6` with 'Widgets', 'Network' and 'Svg' components
 - CMake (tested with version 4.3.2)
 - Make (tested with version 4.4.1)
 
