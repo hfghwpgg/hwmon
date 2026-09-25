@@ -11,20 +11,29 @@ SourceFile::SourceFile(const std::filesystem::path &streamPath) {
     throw std::runtime_error(
         std::format("SourceFile: path is invalid or inaccessible ({})", streamPath.string()));
   }
-  stream.open(streamPath);
+  fd = open(streamPath.c_str(), O_RDONLY | O_CLOEXEC);
+}
+
+SourceFile::~SourceFile() {
+  if (fd >= 0)
+    close(fd);
 }
 
 std::expected<double, Source::SourceStatus> SourceFile::read() {
-  stream.clear();
-  stream.seekg(0);
-  std::string str;
-  std::getline(stream, str);
-
-  double readData;
-  auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), readData);
-  if (ec != std::errc{} || ptr != str.data() + str.size()) {
+  char buf[64];
+  ssize_t n = pread(fd, buf, sizeof(buf) - 1, 0);
+  if (n <= 0)
     return std::unexpected(SourceStatus::Unreadable);
-  }
 
-  return readData;
+  long readData;
+  auto [ptr, ec] = std::from_chars(buf, buf + n, readData);
+  if (ec != std::errc{} || ptr == buf)
+    return std::unexpected(SourceStatus::Unreadable);
+
+  while (ptr != buf + n && (*ptr == '\n' || *ptr == '\r' || *ptr == ' ' || *ptr == '\t'))
+    ++ptr;
+  if (ptr != buf + n)
+    return std::unexpected(SourceStatus::Unreadable);
+
+  return static_cast<double>(readData);
 }

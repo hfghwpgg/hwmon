@@ -9,8 +9,9 @@
 class SourceFile : public Source {
 public:
   SourceFile(const std::filesystem::path &streamPath);
+  ~SourceFile();
   std::expected<double, SourceStatus> read() override;
 
 private:
-  std::ifstream stream;
+  int fd;
 };
