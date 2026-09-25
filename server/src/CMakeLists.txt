@@ -33,6 +33,8 @@ target_compile_definitions(hwmon_opts INTERFACE
 add_subdirectory(Libraries/intel_gpu_top)
 
 add_library(hwmonCore STATIC
+    "FdGuard.cpp"
+    "PreadFile.cpp"
     "helpers.cpp"
     "CliParser.cpp"
     "dropPrivileges.cpp"

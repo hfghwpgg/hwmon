@@ -1,8 +1,8 @@
 #include "helpers.hpp"
+#include "PreadFile.hpp"
 #include "Sensor/Sensor.hpp"
 #include <cmath>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <string>
 #include <sys/stat.h>
@@ -29,12 +29,11 @@ pathTypeEnum pathType(const std::filesystem::path &path) {
 }
 
 std::string readFileFirstLine(std::filesystem::path pathToFile) {
-  std::string content;
-  std::ifstream f{pathToFile};
-  f.clear();
-  f.seekg(0);
-  std::getline(f, content);
-  f.close();
-  return content;
+  PreadFile file{std::move(pathToFile)};
+  const auto line = file.readFirstLine();
+  if (!line) {
+    return {};
+  }
+  return std::string{*line};
 }
 } // namespace helpers

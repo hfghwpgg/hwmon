@@ -1,7 +1,6 @@
 #include <exception>
 #include <filesystem>
 #include <format>
-#include <fstream>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -37,11 +36,6 @@ CpuDevice::CpuDevice(std::set<std::filesystem::path> &hwmonPaths,
                       .cpuutil = cpuutil_path,
                       .intelrapl = intelrapl_path}),
     hwmonPaths(hwmonPaths) {}
-
-CpuDevice::~CpuDevice() {
-  if (cpuutil_fd.is_open())
-    cpuutil_fd.close();
-}
 
 void CpuDevice::initialize() {
   name = getName();
@@ -147,21 +141,24 @@ std::string CpuDevice::getName() {
     return name;
   }
 
-  std::ifstream cpuinfo_fd(cpuPaths.cpuinfo);
-  std::string line;
-  while (std::getline(cpuinfo_fd, line)) {
-    if (line.find("model name") == std::string::npos)
-      continue;
+  PreadFile cpuinfo{cpuPaths.cpuinfo, PreadFile::largeCapacity};
+  const auto text = cpuinfo.read();
+  if (text) {
+    std::size_t offset = 0;
+    while (const auto raw = PreadFile::nextLine(*text, offset)) {
+      std::string line{*raw};
+      if (line.find("model name") == std::string::npos)
+        continue;
 
-    const auto colonIdx = line.find(':');
-    if (colonIdx == std::string::npos)
-      continue;
+      const auto colonIdx = line.find(':');
+      if (colonIdx == std::string::npos)
+        continue;
 
-    line = line.substr(colonIdx + 1);
-    name = helpers::trim(line);
-    break;
+      line = line.substr(colonIdx + 1);
+      name = helpers::trim(line);
+      break;
+    }
   }
-  cpuinfo_fd.close();
 
   if (name == "cpumodel")
     spdlog::error("couldn't find cpu name in CPUINFO");
@@ -176,9 +173,16 @@ void CpuDevice::initUtilization() {
     return;
   }
 
-  cpuutil_fd.open(cpuPaths.cpuutil);
+  cpuutilFile.open(cpuPaths.cpuutil, PreadFile::largeCapacity);
+  const auto text = cpuutilFile.read();
+  if (!text) {
+    return;
+  }
+
+  std::size_t offset = 0;
   std::string line;
-  while (std::getline(cpuutil_fd, line)) {
+  while (const auto raw = PreadFile::nextLine(*text, offset)) {
+    line.assign(*raw);
     line = helpers::trim(line);
     if (!line.starts_with("cpu")) {
       continue;
@@ -204,16 +208,21 @@ void CpuDevice::readUtilization() {
     spdlog::critical("no cpu utilization sensors detected");
     return;
   }
-  if (!cpuutil_fd.is_open()) {
+  if (!cpuutilFile.isOpen()) {
     spdlog::critical("access to /proc/stat suddenly lost");
     return;
   }
 
-  cpuutil_fd.clear();
-  cpuutil_fd.seekg(0);
+  const auto text = cpuutilFile.read();
+  if (!text) {
+    spdlog::critical("access to /proc/stat suddenly lost");
+    return;
+  }
 
+  std::size_t offset = 0;
   std::string line;
-  while (std::getline(cpuutil_fd, line)) {
+  while (const auto raw = PreadFile::nextLine(*text, offset)) {
+    line.assign(*raw);
     // this shouldnt happen, but wont hurt i guess
     if (!line.starts_with("cpu"))
       continue;

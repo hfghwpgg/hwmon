@@ -5,6 +5,7 @@
 #include <map>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+#include <sstream>
 #include <string>
 
 #include "../DeviceType.hpp"
@@ -17,27 +18,26 @@ using ifaceMap = std::map<std::string, std::array<unsigned long long, 2>>;
 
 NetworkDevice::NetworkDevice(std::string name, std::filesystem::path netDev) :
     Device(name, DeviceType::NETWORK),
-    netDevFD(netDev) {}
+    netDevFile(std::move(netDev), PreadFile::largeCapacity) {}
 
 NetworkDevice::NetworkDevice(std::string name) :
     NetworkDevice(name, "/proc/net/dev") {}
 
-NetworkDevice::~NetworkDevice() {
-  if (netDevFD.is_open())
-    netDevFD.close();
-}
-
 ifaceMap NetworkDevice::parseData() {
-  netDevFD.clear();
-  netDevFD.seekg(0);
-  std::string line;
+  const auto text = netDevFile.read();
+  if (!text) {
+    return {};
+  }
+
+  std::size_t offset = 0;
   // skip 2 first lines
-  std::getline(netDevFD, line);
-  std::getline(netDevFD, line);
+  (void)PreadFile::nextLine(*text, offset);
+  (void)PreadFile::nextLine(*text, offset);
 
   ifaceMap ifaces;
-
-  while (std::getline(netDevFD, line)) {
+  std::string line;
+  while (const auto raw = PreadFile::nextLine(*text, offset)) {
+    line.assign(*raw);
     std::istringstream iss(line);
     std::string ifaceName;
 

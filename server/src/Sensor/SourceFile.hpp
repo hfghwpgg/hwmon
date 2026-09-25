@@ -2,8 +2,8 @@
 
 #include <expected>
 #include <filesystem>
-#include <fstream>
 
+#include "PreadFile.hpp"
 #include "Source.hpp"
 
 class SourceFile : public Source {
@@ -12,5 +12,5 @@ public:
   std::expected<double, SourceStatus> read() override;
 
 private:
-  std::ifstream stream;
+  PreadFile file;
 };

@@ -1,11 +1,11 @@
 #pragma once
 #include <filesystem>
-#include <fstream>
 #include <set>
 #include <string>
 #include <unordered_map>
 
 #include "../Device.hpp"
+#include "../PreadFile.hpp"
 #include "../helpers.hpp"
 
 
@@ -15,7 +15,6 @@ public:
   CpuDevice(std::set<std::filesystem::path> &hwmonPaths, std::filesystem::path cpufreq_path,
             std::filesystem::path cpuinfo_path, std::filesystem::path cpuutil_path,
             std::filesystem::path intelrapl_path);
-  ~CpuDevice();
 
   void initialize() override;
   void read() override;
@@ -44,7 +43,7 @@ private:
   std::unordered_map<std::string, utilSensorData> utilSensorsPrivate;
 
   std::set<std::filesystem::path> &hwmonPaths;
-  std::ifstream cpuutil_fd;
+  PreadFile cpuutilFile;
 
   void getTemperature();
   void getCoreFrequency();
