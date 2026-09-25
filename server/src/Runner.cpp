@@ -121,14 +121,18 @@ void Runner::setupGpuDevices(std::set<std::filesystem::path> &hwmonPaths) {
 }
 
 void Runner::setupNetworkDevice() {
-  const std::filesystem::path netDev = "/proc/net/dev";
-  if (!std::filesystem::exists(netDev) || access(netDev.c_str(), R_OK) == -1) {
-    spdlog::error("{} inaccessible; skipping networking", netDev.string());
+  const std::filesystem::path sysfs_net = "/sys/class/net";
+  if (!std::filesystem::exists(sysfs_net) || access(sysfs_net.c_str(), R_OK) == -1) {
+    spdlog::error("{} inaccessible; skipping networking", sysfs_net.string());
     return;
   }
-  auto net = std::make_unique<NetworkDevice>("Network speed");
-  net->initialize();
-  devices.push_back(std::move(net));
+
+  for (const auto &dir : std::filesystem::directory_iterator(sysfs_net)) {
+    const std::string devName = dir.path().stem().string();
+    auto net = std::make_unique<NetworkDevice>(devName, dir.path() / "statistics");
+    net->initialize();
+    devices.push_back(std::move(net));
+  }
 }
 
 //  ================

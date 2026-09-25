@@ -7,7 +7,6 @@
 
 class Device {
 public:
-  Device(std::string name, DeviceType type);
   virtual ~Device();
 
   virtual void initialize() = 0;
@@ -16,6 +15,8 @@ public:
   virtual void resetReadings() = 0;
 
 protected:
+  Device(std::string name, DeviceType type);
+
   std::string name;
   DeviceType type;
   helpers::SensorVec sensors;

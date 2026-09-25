@@ -58,11 +58,13 @@ inline QString deviceTypeLabel(int type) {
     return QStringLiteral("RAM");
   case 3:
     return QStringLiteral("STOR");
+  case 4:
+    return QStringLiteral("NET");
   default:
     return QStringLiteral("DEV");
   }
 }
 
 inline QString deviceIconPath(int type) {
-  return type == 4 ? QStringLiteral(":/icons/chip.svg") : QString();
+  return type == 5 ? QStringLiteral(":/icons/chip.svg") : QString();
 }

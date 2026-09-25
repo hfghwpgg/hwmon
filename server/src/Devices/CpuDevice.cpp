@@ -4,7 +4,6 @@
 #include <fstream>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
 #include <set>
 #include <spdlog/spdlog.h>
 #include <sstream>
@@ -164,7 +163,7 @@ std::string CpuDevice::getName() {
   cpuinfo_fd.close();
 
   if (name == "cpumodel")
-    spdlog::error("couldn't find cpu name in CPUINFO");
+    spdlog::warn("couldn't find cpu name in CPUINFO");
   return name;
 }
 
@@ -323,7 +322,7 @@ void CpuDevice::getPowerDraw() {
     Sensor::makeFileSensor<TransformDelta>(powerSensors, cpuPaths.intelrapl,
                                            {"Socket power draw", SensorType::POWER});
   } else {
-    spdlog::error("couldn't read cpu power draw. Try running with sudo");
+    spdlog::warn("couldn't read cpu power draw. Try running with sudo");
   }
 
   sensors.insert(sensors.end(), std::make_move_iterator(powerSensors.begin()),
