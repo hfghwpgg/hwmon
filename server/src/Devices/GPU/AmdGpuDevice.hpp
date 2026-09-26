@@ -34,6 +34,7 @@ private:
     SourcePush *gpuBusy = nullptr;
     SourcePush *memBusy = nullptr;
     SourcePush *sclk = nullptr;
+    SourcePush *socclk = nullptr;
     SourcePush *mclk = nullptr;
     SourcePush *power = nullptr;
     SourcePush *powerCap = nullptr;

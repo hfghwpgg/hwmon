@@ -111,6 +111,7 @@ bool IntelGpuDevice::setupPmu() {
 
   if (pmu_init(pmuEngines) != 0) {
     spdlog::warn("intel gpu: failed to initialize PMU, engine utilization unavailable");
+    spdlog::info("try running with sudo");
     free_engines(pmuEngines);
     pmuEngines = nullptr;
     return false;
@@ -119,22 +120,22 @@ bool IntelGpuDevice::setupPmu() {
   // establish the first sample so the next read has a delta to work with
   pmu_sample(pmuEngines);
 
-  gpuUtil =
-      Sensor::addPushSensor<TransformScale>(sensors, {"GPU utilization", SensorType::UTILIZATION});
+  gpuUtil = Sensor::addPushSensor<TransformScale>(sensors,
+                                                  {"GPU utilization", SensorType::UTILIZATION, 1});
 
   engineUtil.reserve(pmuEngines->num_engines);
   for (unsigned int i = 0; i < pmuEngines->num_engines; ++i) {
     const struct engine *engine = engine_ptr(pmuEngines, i);
     const char *engineName = engine->display_name != nullptr ? engine->display_name : engine->name;
     engineUtil.push_back(Sensor::addPushSensor<TransformScale>(
-        sensors, {std::format("{}_util", engineName), SensorType::UTILIZATION}));
+        sensors, {std::format("{}_util", engineName), SensorType::UTILIZATION, 1}));
   }
 
   if (pmuEngines->freq_act.present)
     frequency =
-        Sensor::addPushSensor<TransformScale>(sensors, {"GPU clock", SensorType::FREQUENCY});
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU clock", SensorType::FREQUENCY, 1});
   if (pmuEngines->num_rapl > 0)
-    power = Sensor::addPushSensor<TransformScale>(sensors, {"GPU power", SensorType::POWER});
+    power = Sensor::addPushSensor<TransformScale>(sensors, {"GPU power", SensorType::POWER, 1});
 
   spdlog::info("using i915 PMU for {} ({} engines)", name, pmuEngines->num_engines);
   return true;

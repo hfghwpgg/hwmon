@@ -126,6 +126,10 @@ bool AmdGpuDevice::setupRsmi() {
     rsmiSensors.sclk =
         Sensor::addPushSensor<TransformScale>(sensors, {"GPU core", SensorType::FREQUENCY, 1});
   }
+  if (rsmi->getCurrentClockMhz(rsmiIndex, RSMI_CLK_TYPE_SOC) >= 0) {
+    rsmiSensors.socclk =
+        Sensor::addPushSensor<TransformScale>(sensors, {"GPU SoC", SensorType::FREQUENCY, 1});
+  }
   if (rsmi->getCurrentClockMhz(rsmiIndex, RSMI_CLK_TYPE_MEM) >= 0) {
     rsmiSensors.mclk =
         Sensor::addPushSensor<TransformScale>(sensors, {"GPU memory", SensorType::FREQUENCY, 1});
@@ -209,6 +213,12 @@ void AmdGpuDevice::readRsmi() {
     const long long clock = rsmi->getCurrentClockMhz(rsmiIndex, RSMI_CLK_TYPE_SYS);
     if (clock >= 0)
       rsmiSensors.sclk->setValue(clock);
+  }
+
+  if (rsmiSensors.socclk != nullptr) {
+    const long long clock = rsmi->getCurrentClockMhz(rsmiIndex, RSMI_CLK_TYPE_SOC);
+    if (clock >= 0)
+      rsmiSensors.socclk->setValue(clock);
   }
 
   if (rsmiSensors.mclk != nullptr) {

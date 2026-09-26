@@ -16,6 +16,7 @@
 #define RSMI_TEMP_TYPE_JUNCTION 1
 #define RSMI_TEMP_TYPE_MEMORY 2
 #define RSMI_CLK_TYPE_SYS 0
+#define RSMI_CLK_TYPE_SOC 3
 #define RSMI_CLK_TYPE_MEM 4
 
 using rsmi_status_t = int;
