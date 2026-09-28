@@ -24,6 +24,7 @@
 #include "Devices/GPU/IntelGpuDevice.hpp"
 #include "Devices/GPU/NvidiaGpuDevice.hpp"
 #include "Devices/NetworkDevice.hpp"
+#include "Devices/RamDevice.hpp"
 #include "Devices/SysfsDevice.hpp"
 #include "SharedState.hpp"
 #include "helpers.hpp"
@@ -75,6 +76,10 @@ void Runner::setup() {
 
     setupGpuDevices(hwmonPaths);
     setupNetworkDevice();
+
+    auto ram = std::make_unique<RamDevice>();
+    ram->initialize();
+    devices.push_back(std::move(ram));
   }
 
   spdlog::trace("hwmon length: {}", hwmonPaths.size());

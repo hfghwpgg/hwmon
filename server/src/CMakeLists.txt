@@ -48,6 +48,7 @@ add_library(hwmonCore STATIC
     "Devices/SysfsDevice.cpp"
     "Devices/CpuDevice.cpp"
     "Devices/NetworkDevice.cpp"
+    "Devices/RamDevice.cpp"
     "Devices/GPU/GpuDetector.cpp"
     "Libraries/NvmlLibrary.cpp"
     "Libraries/RsmiLibrary.cpp"

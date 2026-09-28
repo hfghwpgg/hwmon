@@ -1,0 +1,23 @@
+#pragma once
+#include "Device.hpp"
+
+#include <filesystem>
+#include <string>
+
+class SourcePush;
+
+// Reads MemTotal and MemAvailable from /proc/meminfo (values in bytes).
+class RamDevice : public Device {
+public:
+  explicit RamDevice(std::filesystem::path meminfoPath = "/proc/meminfo");
+
+  void initialize() override;
+  void read() override;
+  void resetReadings() override;
+  nlohmann::json serialize() override;
+
+private:
+  const std::filesystem::path meminfoPath;
+  SourcePush *totalSrc = nullptr;
+  SourcePush *availableSrc = nullptr;
+};

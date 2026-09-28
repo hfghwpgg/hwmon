@@ -10,6 +10,7 @@ add_executable(hwmon_tests
     "test_push_sensor.cpp"
     "test_push_delta_sensor.cpp"
     "test_network_device.cpp"
+    "test_ram_device.cpp"
     "test_sysfs_device.cpp"
     "test_shared_hwmon_parser.cpp"
     "test_cpu_device.cpp"
