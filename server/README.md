@@ -206,7 +206,7 @@ It shouldn't be initialized directly, but rather through functions `makeFileSens
 Transform type: 
   - Scale: scales the sensor value by a given factor
   - Delta: calculates the difference between consecutive sensor readings and divides by time elapsed
-    > (`(currVal - lastVal) / (timeDelta * divider))
+    > ((currVal - lastVal) / (timeDelta * divider))  
 Source type: 
   - File: reads sensor value from a file. 
   - Push: Device pushes value to the sensor
