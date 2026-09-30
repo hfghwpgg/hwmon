@@ -173,7 +173,7 @@ There is no authentication token and no peer-credential check. Any local process
 </details>
 
 <details>
-  <summary> Architecture </summary>
+  <summary> <h2>Architecture</h2> </summary>
 
 ### Overview
 At first, main has 2 threads: one for the runner and one for the UDS server.
