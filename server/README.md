@@ -188,7 +188,7 @@ Runner is responsible for creating devices and reading their values, as well as 
 Device acts as a container for sensors of each peripheral. It is responsible for initializing and reading sensors, as well as sending reqests down to them (such as `reset`).
 Depending on the sensor type, it may also be responsible for pushing value to a sensor (see [AmdGpuDevice.cpp](./src/Devices/GPU/AmdGpuDevice.cpp)), or preparing it altogher (see utilization reading in [CpuDevice.cpp](./src/Devices/CpuDevice.cpp))
 Device itself is an interface.
-Each device takes at least `name`: (string) and `type`: (DeviceType) parameters
+Each device takes at least name: (string) and type: (DeviceType) parameters
 
 ### Sensor
 Sensor is responsible for reading a single sensor value from a device.
@@ -206,7 +206,8 @@ It shouldn't be initialized directly, but rather through functions `makeFileSens
 Transform type: 
   - Scale: scales the sensor value by a given factor
   - Delta: calculates the difference between consecutive sensor readings and divides by time elapsed
-    > ((currVal - lastVal) / (timeDelta * divider))  
+    > (currVal - lastVal) / (timeDelta * divider)  
+
 Source type: 
   - File: reads sensor value from a file. 
   - Push: Device pushes value to the sensor
@@ -221,9 +222,10 @@ Source type:
 ### SensorReading
 SensorReading is a struct that holds sensor reading data.
 Fields: value, min_value, max_value, sum, times.
- > average is calculated from sum / times
+ > average is calculated from sum / times  
+
 reset() sets the three values to NaN, sum to 0, and times to 0. 
-NaN is used when we dont have a valid value to return, but we expect that (such as DeltaTransform readings)
+NaN is used when we dont have a valid value to return, but we expect that (such as DeltaTransform readings)  
 SourceStatus is return when value is invalid and we didn't expect it to be such.
 
 </details>
