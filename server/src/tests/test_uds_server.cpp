@@ -5,15 +5,12 @@
 #include <cerrno>
 #include <chrono>
 #include <cstring>
-#include <filesystem>
-#include <fstream>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/un.h>
 #include <thread>
@@ -24,31 +21,26 @@
 #include "../UDSServer.hpp"
 
 using json = nlohmann::json;
-namespace fs = std::filesystem;
 using namespace std::chrono_literals;
 
 namespace {
 
-// Base fixture: owns a private directory per test and knows how to talk to a
-// server over a real socket. It deliberately does not start anything, so
-// tests can pick their own client limit or inject syscall failures.
+// Base fixture: owns a private abstract name per test and knows how to talk
+// to a server over a real socket. It deliberately does not start anything,
+// so tests can pick their own client limit or inject syscall failures.
 class UDSServerFixture : public ::testing::Test {
 protected:
   void SetUp() override {
     static std::atomic<unsigned> counter{0};
-    root = fs::temp_directory_path() / ("hwmon_uds_test_" + std::to_string(::getpid()) + "_" +
-                                        std::to_string(counter.fetch_add(1)));
-    path = (root / "hwmon.sock").string();
+    name = "hwmon-test-" + std::to_string(::getpid()) + "-" + std::to_string(counter.fetch_add(1));
   }
 
   void TearDown() override {
     stopServer();
-    std::error_code ec;
-    fs::remove_all(root, ec);
   }
 
   void startServer(size_t maxClients = 10, SocketOps ops = {}) {
-    server.emplace(path, 10, maxClients, state, std::move(ops));
+    server.emplace(name, 10, maxClients, state, std::move(ops));
     runThread = std::jthread([this] { serverRunResult = server->run(); });
   }
 
@@ -66,9 +58,8 @@ protected:
       return -1;
     }
     sockaddr_un addr{};
-    addr.sun_family = AF_UNIX;
-    std::memcpy(addr.sun_path, path.c_str(), path.size() + 1);
-    if (::connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) != 0) {
+    const socklen_t addrLen = initAbstractAddress(addr, name);
+    if (addrLen == 0 || ::connect(fd, reinterpret_cast<sockaddr *>(&addr), addrLen) != 0) {
       ::close(fd);
       return -1;
     }
@@ -152,8 +143,7 @@ protected:
   }
 
   SharedState state{1000};
-  fs::path root;
-  std::string path;
+  std::string name;
   std::optional<UDSServer> server;
   std::jthread runThread;
   bool serverRunResult{false};
@@ -559,7 +549,7 @@ TEST_F(UDSServerFixture, SocketFailureAbortsStartup) {
     return -1;
   };
 
-  UDSServer failing{path, 10, 10, state, ops};
+  UDSServer failing{name, 10, 10, state, ops};
   EXPECT_FALSE(failing.run());
   EXPECT_FALSE(state.running.load());
 }
@@ -571,10 +561,9 @@ TEST_F(UDSServerFixture, BindFailureAbortsStartup) {
     return -1;
   };
 
-  UDSServer failing{path, 10, 10, state, ops};
+  UDSServer failing{name, 10, 10, state, ops};
   EXPECT_FALSE(failing.run());
   EXPECT_FALSE(state.running.load());
-  EXPECT_FALSE(fs::exists(path));
 }
 
 TEST_F(UDSServerFixture, ListenFailureAbortsStartup) {
@@ -584,15 +573,19 @@ TEST_F(UDSServerFixture, ListenFailureAbortsStartup) {
     return -1;
   };
 
-  UDSServer failing{path, 10, 10, state, ops};
+  UDSServer failing{name, 10, 10, state, ops};
   EXPECT_FALSE(failing.run());
   EXPECT_FALSE(state.running.load());
 }
 
-// A real bind() failure, with no injection: /proc never lets us create the
-// socket directory, so bind() fails with ENOENT.
-TEST_F(UDSServerFixture, BindFailsWhenTheSocketDirectoryCannotBeCreated) {
-  UDSServer failing{"/proc/hwmon_uds_test/hwmon.sock", 10, 10, state};
+TEST_F(UDSServerFixture, RejectsEmptyAbstractName) {
+  UDSServer failing{"", 10, 10, state};
+  EXPECT_FALSE(failing.run());
+  EXPECT_FALSE(state.running.load());
+}
+
+TEST_F(UDSServerFixture, RejectsAbstractNameThatDoesNotFit) {
+  UDSServer failing{std::string(sizeof(sockaddr_un{}.sun_path), 'a'), 10, 10, state};
   EXPECT_FALSE(failing.run());
   EXPECT_FALSE(state.running.load());
 }
@@ -617,109 +610,4 @@ TEST_F(UDSServerFixture, TransientAcceptFailureDoesNotKillTheServer) {
   ASSERT_TRUE(resp.has_value());
   EXPECT_EQ(json::parse(*resp)["ok"], true);
   EXPECT_GE(failures->load(), 2);
-}
-
-// ---------------------------------------------------------------------------
-// Socket path validation
-// ---------------------------------------------------------------------------
-
-TEST(UDSServerPathTest, AcceptsAPlainAbsolutePath) {
-  EXPECT_FALSE(UDSServer::ValidateSocketPath("/tmp/hwmon/hwmon.sock").has_value());
-}
-
-TEST(UDSServerPathTest, RejectsEmptyPath) {
-  EXPECT_TRUE(UDSServer::ValidateSocketPath("").has_value());
-}
-
-TEST(UDSServerPathTest, RejectsRelativePath) {
-  EXPECT_TRUE(UDSServer::ValidateSocketPath("hwmon/hwmon.sock").has_value());
-  EXPECT_TRUE(UDSServer::ValidateSocketPath("./hwmon.sock").has_value());
-}
-
-TEST(UDSServerPathTest, RejectsParentDirectoryTraversal) {
-  EXPECT_TRUE(UDSServer::ValidateSocketPath("/tmp/hwmon/../../etc/hwmon.sock").has_value());
-}
-
-TEST(UDSServerPathTest, RejectsTrailingSeparator) {
-  EXPECT_TRUE(UDSServer::ValidateSocketPath("/tmp/hwmon/").has_value());
-}
-
-// sun_path is 108 bytes; anything longer would be silently truncated.
-TEST(UDSServerPathTest, RejectsOverlyLongPath) {
-  const std::string longPath = "/tmp/" + std::string(200, 'a') + "/hwmon.sock";
-  EXPECT_TRUE(UDSServer::ValidateSocketPath(longPath).has_value());
-}
-
-// The server creates and removes the parent directory, so it must own it.
-TEST(UDSServerPathTest, RejectsPathDirectlyInRoot) {
-  EXPECT_TRUE(UDSServer::ValidateSocketPath("/hwmon.sock").has_value());
-}
-
-TEST(UDSServerPathTest, RejectsSymlinkedParentDirectory) {
-  const fs::path base = fs::temp_directory_path() /
-                        ("hwmon_uds_symlink_" + std::to_string(::getpid()));
-  const fs::path target = base / "real";
-  const fs::path link = base / "link";
-  fs::create_directories(target);
-  std::error_code ec;
-  fs::create_directory_symlink(target, link, ec);
-  ASSERT_FALSE(ec) << ec.message();
-
-  EXPECT_TRUE(UDSServer::ValidateSocketPath(link / "hwmon.sock").has_value());
-  EXPECT_FALSE(UDSServer::ValidateSocketPath(target / "hwmon.sock").has_value());
-
-  fs::remove_all(base, ec);
-}
-
-TEST(UDSServerPathTest, RejectsSymlinkedSocketPath) {
-  const fs::path base = fs::temp_directory_path() /
-                        ("hwmon_uds_symlink_file_" + std::to_string(::getpid()));
-  fs::create_directories(base);
-  const fs::path victim = base / "victim";
-  std::ofstream{victim} << "precious";
-  const fs::path link = base / "hwmon.sock";
-  std::error_code ec;
-  fs::create_symlink(victim, link, ec);
-  ASSERT_FALSE(ec) << ec.message();
-
-  EXPECT_TRUE(UDSServer::ValidateSocketPath(link).has_value());
-
-  fs::remove_all(base, ec);
-}
-
-TEST(UDSServerPathTest, RejectsParentThatIsAFile) {
-  const fs::path base = fs::temp_directory_path() /
-                        ("hwmon_uds_fileparent_" + std::to_string(::getpid()));
-  fs::create_directories(base);
-  const fs::path file = base / "notadir";
-  std::ofstream{file} << "x";
-
-  EXPECT_TRUE(UDSServer::ValidateSocketPath(file / "hwmon.sock").has_value());
-
-  std::error_code ec;
-  fs::remove_all(base, ec);
-}
-
-TEST_F(UDSServerFixture, RefusesToStartOnAnUnsafePath) {
-  UDSServer unsafeServer{"relative/hwmon.sock", 10, 10, state};
-  EXPECT_FALSE(unsafeServer.run());
-  EXPECT_FALSE(state.running.load());
-}
-
-// An existing regular file at the socket path must never be bound over or
-// deleted, even when the server shuts down afterwards.
-TEST_F(UDSServerFixture, RefusesToBindOverAnExistingFileAndKeepsIt) {
-  fs::create_directories(root);
-  std::ofstream{path} << "important";
-
-  {
-    UDSServer blocked{path, 10, 10, state};
-    EXPECT_FALSE(blocked.run());
-  }
-
-  ASSERT_TRUE(fs::is_regular_file(path));
-  std::ifstream in{path};
-  std::string contents;
-  in >> contents;
-  EXPECT_EQ(contents, "important");
 }

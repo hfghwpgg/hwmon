@@ -8,8 +8,6 @@
 #include <stdexcept>
 #include <string>
 
-#include "Sensor/SourceFile.hpp"
-#include "Sensor/TransformScale.hpp"
 #include "SensorReading.hpp"
 #include "SensorType.hpp"
 #include "Source.hpp"

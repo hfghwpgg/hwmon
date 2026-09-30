@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cassert>
+#include <chrono>
+#include <cmath>
 #include <optional>
 
 class Transform {
@@ -15,4 +17,23 @@ protected:
     assert(divider != 0);
   }
   unsigned int divider;
+};
+
+
+class TransformDelta : public Transform {
+public:
+  TransformDelta(unsigned int divider);
+  std::optional<double> apply(double raw) override;
+  void reset() override;
+
+private:
+  double lastValue = NAN;
+  std::chrono::steady_clock::time_point lastTime;
+};
+
+
+class TransformScale : public Transform {
+public:
+  TransformScale(unsigned int divider);
+  std::optional<double> apply(double raw) override;
 };

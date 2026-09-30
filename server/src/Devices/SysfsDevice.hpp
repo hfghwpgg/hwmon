@@ -3,8 +3,8 @@
 #include <nlohmann/json_fwd.hpp>
 #include <string>
 
-#include "../Device.hpp"
 #include "../helpers.hpp"
+#include "Device.hpp"
 
 class SysfsDevice : public Device {
 public:

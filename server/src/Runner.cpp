@@ -7,7 +7,6 @@
 #include <limits>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
 #include <set>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
@@ -16,8 +15,8 @@
 #include <unistd.h>
 #include <vector>
 
-#include "Device.hpp"
-#include "DeviceType.hpp"
+#include "Devices/Device.hpp"
+#include "Devices/DeviceType.hpp"
 #include "Devices/CpuDevice.hpp"
 #include "Devices/GPU/AmdGpuDevice.hpp"
 #include "Devices/GPU/GpuDetector.hpp"

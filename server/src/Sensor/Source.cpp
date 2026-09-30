@@ -1,10 +1,14 @@
-#include "SourceFile.hpp"
-#include "helpers.hpp"
+#include "Source.hpp"
+
+#include "../helpers.hpp"
 #include <charconv>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <unistd.h>
 
+// **************
+// ***  File  ***
+// **************
 SourceFile::SourceFile(const std::filesystem::path &streamPath) {
   if (helpers::pathType(streamPath) != helpers::pathTypeEnum::FILE ||
       access(streamPath.c_str(), R_OK) == -1) {
@@ -27,4 +31,27 @@ std::expected<double, Source::SourceStatus> SourceFile::read() {
   }
 
   return readData;
+}
+
+
+// **************
+// ***  Push  ***
+// **************
+void SourcePush::setValue(double value) {
+  pending = value;
+}
+
+void SourcePush::invalidate() {
+  pending = NAN;
+}
+
+void SourcePush::reset() {
+  pending = NAN;
+}
+
+std::expected<double, Source::SourceStatus> SourcePush::read() {
+  if (std::isnan(pending))
+    return std::unexpected(Source::SourceStatus::NotReady);
+
+  return std::exchange(pending, NAN);
 }

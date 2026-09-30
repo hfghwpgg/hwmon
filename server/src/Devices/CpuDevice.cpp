@@ -13,13 +13,13 @@
 #include <utility>
 #include <vector>
 
-#include "../Device.hpp"
-#include "../Sensor/Sensor.hpp"
-#include "../Sensor/SensorType.hpp"
 #include "CpuDevice.hpp"
+#include "Device.hpp"
 #include "DeviceType.hpp"
-#include "Sensor/TransformDelta.hpp"
-#include "Sensor/TransformScale.hpp"
+#include "Sensor/Sensor.hpp"
+#include "Sensor/SensorType.hpp"
+#include "Sensor/Source.hpp"
+#include "Sensor/Transform.hpp"
 #include "SharedHwmonParser.hpp"
 #include "helpers.hpp"
 

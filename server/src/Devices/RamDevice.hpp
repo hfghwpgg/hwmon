@@ -1,6 +1,7 @@
 #pragma once
 #include "Device.hpp"
 
+#include "Sensor/Source.hpp"
 #include <filesystem>
 #include <string>
 

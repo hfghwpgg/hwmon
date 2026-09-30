@@ -7,10 +7,11 @@
 #include <string>
 #include <unistd.h>
 
-#include "../DeviceType.hpp"
+#include "DeviceType.hpp"
 #include "Sensor/Sensor.hpp"
 #include "Sensor/SensorType.hpp"
-#include "Sensor/TransformScale.hpp"
+#include "Sensor/Source.hpp"
+#include "Sensor/Transform.hpp"
 
 RamDevice::RamDevice(std::filesystem::path meminfoPath) :
     Device("System RAM", DeviceType::RAM),

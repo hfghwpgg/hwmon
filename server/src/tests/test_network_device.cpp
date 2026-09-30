@@ -9,7 +9,7 @@
 #include <thread>
 #include <unistd.h>
 
-#include "../DeviceType.hpp"
+#include "../Devices/DeviceType.hpp"
 #include "../Devices/NetworkDevice.hpp"
 #include "../Sensor/SensorType.hpp"
 
@@ -21,9 +21,8 @@ class NetworkDeviceTest : public ::testing::Test {
 protected:
   void SetUp() override {
     static std::atomic<unsigned> counter{0};
-    statsPath = fs::temp_directory_path() /
-                ("hwmon_netdev_test_" + std::to_string(::getpid()) + "_" +
-                 std::to_string(counter.fetch_add(1)));
+    statsPath = fs::temp_directory_path() / ("hwmon_netdev_test_" + std::to_string(::getpid()) +
+                                             "_" + std::to_string(counter.fetch_add(1)));
     fs::create_directory(statsPath);
     writeCounters(0, 0);
   }
@@ -136,7 +135,7 @@ TEST_F(NetworkDeviceTest, ResetClearsAggregatesAndReestablishesBaseline) {
   EXPECT_EQ(findSensor(device.serialize()["sensors"], "Recieve speed")["readings"]["times"]
                 .get<std::size_t>(),
             1u);
-  EXPECT_GT(findSensor(device.serialize()["sensors"], "Recieve speed")["readings"]["value"]
-                .get<double>(),
-            0.0);
+  EXPECT_GT(
+      findSensor(device.serialize()["sensors"], "Recieve speed")["readings"]["value"].get<double>(),
+      0.0);
 }

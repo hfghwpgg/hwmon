@@ -6,7 +6,7 @@
 #include <string>
 #include <unistd.h>
 
-#include "../DeviceType.hpp"
+#include "../Devices/DeviceType.hpp"
 #include "../Devices/RamDevice.hpp"
 #include "../Sensor/SensorType.hpp"
 
@@ -89,7 +89,10 @@ TEST_F(RamDeviceTest, EmptyFileProducesNoReadings) {
 }
 
 TEST_F(RamDeviceTest, MissingMemAvailableProducesNoReadings) {
-  { std::ofstream f{path, std::ios::trunc}; f << "MemTotal: 1000 kB\nMemFree: 5 kB\n"; }
+  {
+    std::ofstream f{path, std::ios::trunc};
+    f << "MemTotal: 1000 kB\nMemFree: 5 kB\n";
+  }
   RamDevice dev{path};
   dev.initialize();
   dev.read();
@@ -98,7 +101,10 @@ TEST_F(RamDeviceTest, MissingMemAvailableProducesNoReadings) {
 }
 
 TEST_F(RamDeviceTest, MissingMemTotalProducesNoReadings) {
-  { std::ofstream f{path, std::ios::trunc}; f << "MemAvailable: 400 kB\n"; }
+  {
+    std::ofstream f{path, std::ios::trunc};
+    f << "MemAvailable: 400 kB\n";
+  }
   RamDevice dev{path};
   dev.initialize();
   dev.read();
@@ -107,7 +113,10 @@ TEST_F(RamDeviceTest, MissingMemTotalProducesNoReadings) {
 }
 
 TEST_F(RamDeviceTest, GarbageValuesProduceNoReadings) {
-  { std::ofstream f{path, std::ios::trunc}; f << "MemTotal: abc kB\nMemAvailable: xyz kB\n"; }
+  {
+    std::ofstream f{path, std::ios::trunc};
+    f << "MemTotal: abc kB\nMemAvailable: xyz kB\n";
+  }
   RamDevice dev{path};
   dev.initialize();
   dev.read();
@@ -116,7 +125,10 @@ TEST_F(RamDeviceTest, GarbageValuesProduceNoReadings) {
 }
 
 TEST_F(RamDeviceTest, LinesWithoutColonAreIgnored) {
-  { std::ofstream f{path, std::ios::trunc}; f << "junk line\nMemTotal: 1000 kB\nmore junk\nMemAvailable: 400 kB\n"; }
+  {
+    std::ofstream f{path, std::ios::trunc};
+    f << "junk line\nMemTotal: 1000 kB\nmore junk\nMemAvailable: 400 kB\n";
+  }
   RamDevice dev{path};
   dev.initialize();
   dev.read();
@@ -151,8 +163,7 @@ TEST_F(RamDeviceTest, FileRemovedAfterInitializeDoesNotThrow) {
   dev.read();
   fs::remove(path);
   EXPECT_NO_THROW(dev.read());
-  EXPECT_EQ(find(dev.serialize()["sensors"], "Used memory")["readings"]["times"].get<size_t>(),
-            1u);
+  EXPECT_EQ(find(dev.serialize()["sensors"], "Used memory")["readings"]["times"].get<size_t>(), 1u);
 }
 
 TEST_F(RamDeviceTest, ResetClearsReadings) {
@@ -163,8 +174,7 @@ TEST_F(RamDeviceTest, ResetClearsReadings) {
   for (const auto &s : dev.serialize()["sensors"])
     EXPECT_EQ(s["readings"]["times"].get<size_t>(), 0u) << s["name"];
   dev.read();
-  EXPECT_EQ(find(dev.serialize()["sensors"], "Used memory")["readings"]["times"].get<size_t>(),
-            1u);
+  EXPECT_EQ(find(dev.serialize()["sensors"], "Used memory")["readings"]["times"].get<size_t>(), 1u);
 }
 
 TEST_F(RamDeviceTest, MissingFileYieldsNoSensors) {

@@ -5,8 +5,9 @@
 #include <string>
 #include <unordered_map>
 
-#include "../Device.hpp"
 #include "../helpers.hpp"
+#include "Device.hpp"
+#include "Sensor/Source.hpp"
 
 
 class CpuDevice : public Device {

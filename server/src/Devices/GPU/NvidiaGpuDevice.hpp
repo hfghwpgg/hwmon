@@ -4,10 +4,10 @@
 #include <set>
 #include <string>
 
-#include "Device.hpp"
+#include "Devices/Device.hpp"
 #include "GpuDetector.hpp"
 #include "Libraries/NvmlLibrary.hpp"
-#include "Sensor/SourcePush.hpp"
+#include "Sensor/Source.hpp"
 #include "helpers.hpp"
 
 class NvidiaGpuDevice : public Device {

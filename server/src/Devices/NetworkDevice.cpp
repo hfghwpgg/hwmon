@@ -4,10 +4,10 @@
 #include <spdlog/spdlog.h>
 #include <string>
 
-#include "../DeviceType.hpp"
+#include "DeviceType.hpp"
 #include "Sensor/Sensor.hpp"
 #include "Sensor/SensorType.hpp"
-#include "Sensor/TransformDelta.hpp"
+#include "Sensor/Transform.hpp"
 
 NetworkDevice::NetworkDevice(std::string name, std::filesystem::path statsPath) :
     Device(name, DeviceType::NETWORK),

@@ -7,8 +7,6 @@
 
 #include "../Sensor/Sensor.hpp"
 #include "../Sensor/SensorType.hpp"
-#include "../Sensor/SourcePush.hpp"
-#include "../Sensor/TransformScale.hpp"
 
 namespace {
 

@@ -4,7 +4,7 @@
 #include <set>
 #include <vector>
 
-#include "Device.hpp"
+#include "Devices/Device.hpp"
 #include "SharedState.hpp"
 #include "helpers.hpp"
 

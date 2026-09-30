@@ -38,8 +38,9 @@ def reset(sock):
     send_data(sock, '{"cmd": "reset"}')
 
 
+# Abstract-namespace address: a leading NUL plus the name the server binds.
 with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
-    sock.connect("/tmp/hwmon/hwmon.sock")
+    sock.connect("\0hwmon")
 
     get_data(sock)
     # set_interval(sock, 50)

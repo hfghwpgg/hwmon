@@ -1,9 +1,12 @@
-#include "TransformDelta.hpp"
-#include "Sensor/Transform.hpp"
+#include "Transform.hpp"
+
+#include <optional>
 #include <chrono>
 #include <cmath>
-#include <optional>
 
+// ***************
+// ***  Delta  ***
+// ***************
 TransformDelta::TransformDelta(unsigned int divider) :
     Transform(divider) {}
 
@@ -26,4 +29,16 @@ std::optional<double> TransformDelta::apply(double raw) {
 void TransformDelta::reset() {
   lastTime = std::chrono::steady_clock::now();
   lastValue = NAN;
+}
+
+
+// ***************
+// ***  Scale  ***
+// ***************
+TransformScale::TransformScale(unsigned int divider) :
+    Transform(divider) {}
+
+// this shouldnt break, so it never returns nullopt
+std::optional<double> TransformScale::apply(double raw) {
+  return raw / divider;
 }

@@ -1,14 +1,13 @@
 #pragma once
 #include <atomic>
 #include <cstddef>
-#include <filesystem>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <stop_token>
 #include <string>
 #include <string_view>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <thread>
 #include <vector>
 
@@ -57,14 +56,24 @@ struct SocketOps {
       [](int fd, sockaddr *addr, socklen_t *len) { return ::accept(fd, addr, len); };
 };
 
+// Abstract-namespace address, displayed as @hwmon. The leading NUL is added
+// by initAbstractAddress(); this is the name clients pass after that NUL.
+inline constexpr std::string_view abstractSocketName = "hwmon";
+
+// Fills an abstract-namespace sockaddr. `name` is the bytes after the leading
+// NUL. Returns the address length to pass to bind()/connect(), or 0 when the
+// name is empty or does not fit in sun_path.
+socklen_t initAbstractAddress(sockaddr_un &addr, std::string_view name);
+
 // Pull-based Unix domain socket server. Serves the latest sensor JSON
 // snapshot and accepts control commands. One jthread per client.
+// Listens in the abstract namespace, so the socket is not a filesystem path.
 class UDSServer {
 public:
   // Largest request a single client may buffer before it gets disconnected.
   static constexpr size_t maxRequestBytes = 64 * 1024;
 
-  UDSServer(std::filesystem::path udsPath, int backlog, size_t maxClients, SharedState &state,
+  UDSServer(std::string socketName, int backlog, size_t maxClients, SharedState &state,
             SocketOps ops = {});
   ~UDSServer();
 
@@ -74,10 +83,6 @@ public:
   // Runs the accept loop until shutdown is requested. False means the
   // server never got to listen (setup failed).
   bool run();
-
-  // Rejects socket paths we refuse to create or delete files at. Returns the
-  // reason when the path is unsafe, std::nullopt when it is fine.
-  static std::optional<std::string> ValidateSocketPath(const std::filesystem::path &path);
 
 private:
   // A running client connection plus a flag it sets when it finishes,
@@ -96,14 +101,12 @@ private:
   // Best-effort "go away" line for a connection we are not going to serve.
   static void RejectClient(const FdGuard &clientFd, std::string_view reason);
 
-  const std::filesystem::path udsPath;
+  const std::string socketName;
   const int backlog;
   const size_t maxClients;
   SharedState &state;
   SocketOps ops;
 
-  // Set once bind() succeeded, so we only ever unlink a socket we created.
-  bool bound{false};
   FdGuard listenFd;
   std::vector<ClientSlot> clients;
 };

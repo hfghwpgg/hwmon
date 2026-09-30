@@ -13,7 +13,7 @@ class ClientBackend : public QObject {
   Q_OBJECT
 
 public:
-  ClientBackend(QString socketPath, QString dataFile, QObject *parent = nullptr);
+  ClientBackend(QString dataFile, QObject *parent = nullptr);
 
   MonitorModel *model() const {
     return m_model;
@@ -70,7 +70,6 @@ private:
   QTimer *m_reconnectTimer = nullptr;
   QTimer *m_clockTimer = nullptr;
   QByteArray m_buffer;
-  QString m_socketPath;
   QString m_dataFile;
   QString m_statusText;
   QString m_elapsedText{QStringLiteral("00:00:00")};

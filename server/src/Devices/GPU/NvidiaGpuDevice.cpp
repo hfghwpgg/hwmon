@@ -9,11 +9,11 @@
 #include <string>
 #include <utility>
 
-#include "Device.hpp"
+#include "Devices/Device.hpp"
 #include "GpuDetector.hpp"
 #include "Libraries/NvmlLibrary.hpp"
-#include "Sensor/SourcePush.hpp"
-#include "Sensor/TransformScale.hpp"
+#include "Sensor/Source.hpp"
+#include "Sensor/Transform.hpp"
 #include "SharedHwmonParser.hpp"
 #include "helpers.hpp"
 

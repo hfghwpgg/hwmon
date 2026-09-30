@@ -34,14 +34,6 @@ Config CliParser(int argc, char *argv[]) {
         }
         return static_cast<unsigned int>(parsed);
       });
-  hwmon.add_argument("--sock-path")
-      .default_value(std::filesystem::path("/tmp/hwmon/hwmon.sock"))
-      .help("file path for socket")
-      .nargs(1)
-      .action([](const std::string &val) {
-        const auto retPath = std::filesystem::path(val);
-        return static_cast<std::filesystem::path>(retPath);
-      });
   hwmon.add_argument("--backlog")
       .default_value(6u)
       .help("max amount of client queries in queue")
@@ -77,10 +69,6 @@ Config CliParser(int argc, char *argv[]) {
         const std::filesystem::path retPath = std::filesystem::path(val);
         return static_cast<std::filesystem::path>(retPath);
       });
-  hwmon.add_argument("--refresh-socket")
-      .default_value(false)
-      .help("force remove socket file and its folder")
-      .flag();
   hwmon.add_argument("--dont-drop-root")
       .default_value(false)
       .help("dont drop root privileges (not recommended)\nmaybe useful if you're elevating with "
@@ -96,12 +84,10 @@ Config CliParser(int argc, char *argv[]) {
 
   Config config;
   config.debuglevel = hwmon.get<unsigned int>("--debug-level");
-  config.sockPath = hwmon.get<std::filesystem::path>("--sock-path");
   config.hwmonPath = hwmon.get<std::filesystem::path>("--hwmon-path");
   config.initialIntervalMs = hwmon.get<unsigned int>("--interval");
   config.backlog = hwmon.get<unsigned int>("--backlog");
   config.maxClients = hwmon.get<unsigned int>("--max-clients");
-  config.refreshSocket = hwmon.get<bool>("--refresh-socket");
   config.dontDropRoot = hwmon.get<bool>("--dont-drop-root");
 
   return config;

@@ -9,8 +9,8 @@
 
 #include "../Sensor/Sensor.hpp"
 #include "../Sensor/SensorType.hpp"
-#include "../Sensor/SourcePush.hpp"
-#include "../Sensor/TransformDelta.hpp"
+#include "../Sensor/Source.hpp"
+#include "../Sensor/Transform.hpp"
 
 namespace {
 

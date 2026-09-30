@@ -16,9 +16,8 @@
 #include "../Sensor/Sensor.hpp"
 #include "../Sensor/SensorReading.hpp"
 #include "../Sensor/SensorType.hpp"
-#include "../Sensor/SourceFile.hpp"
-#include "../Sensor/TransformDelta.hpp"
-#include "../Sensor/TransformScale.hpp"
+#include "../Sensor/Source.hpp"
+#include "../Sensor/Transform.hpp"
 #include "helpers.hpp"
 
 namespace fs = std::filesystem;

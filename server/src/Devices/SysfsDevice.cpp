@@ -5,8 +5,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "../Device.hpp"
 #include "../helpers.hpp"
+#include "Device.hpp"
 #include "SharedHwmonParser.hpp"
 #include "SysfsDevice.hpp"
 

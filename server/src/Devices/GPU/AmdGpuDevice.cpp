@@ -12,12 +12,13 @@
 #include <string>
 #include <utility>
 
-#include "Device.hpp"
+#include "Devices/Device.hpp"
 #include "GpuDetector.hpp"
 #include "Libraries/RsmiLibrary.hpp"
 #include "Sensor/Sensor.hpp"
 #include "Sensor/SensorType.hpp"
-#include "Sensor/TransformScale.hpp"
+#include "Sensor/Source.hpp"
+#include "Sensor/Transform.hpp"
 #include "SharedHwmonParser.hpp"
 #include "helpers.hpp"
 
@@ -137,8 +138,8 @@ bool AmdGpuDevice::setupRsmi() {
 
   uint64_t power = 0;
   if (rsmi->rsmi_dev_power_ave_get(rsmiIndex, 0, &power) == RSMI_STATUS_SUCCESS) {
-    rsmiSensors.power =
-        Sensor::addPushSensor<TransformScale>(sensors, {"GPU power draw", SensorType::POWER});
+    rsmiSensors.power = Sensor::addPushSensor<TransformScale>(
+        sensors, {"GPU power draw", SensorType::POWER, 0, true, true});
   }
 
   uint64_t powerCap = 0;
@@ -155,8 +156,8 @@ bool AmdGpuDevice::setupRsmi() {
   }
   if (rsmi->rsmi_dev_memory_usage_get(rsmiIndex, RSMI_MEM_TYPE_VRAM, &vram) ==
       RSMI_STATUS_SUCCESS) {
-    rsmiSensors.vramUsed =
-        Sensor::addPushSensor<TransformScale>(sensors, {"GPU used memory", SensorType::MEMORY});
+    rsmiSensors.vramUsed = Sensor::addPushSensor<TransformScale>(
+        sensors, {"GPU used memory", SensorType::MEMORY, 0, true, true});
   }
 
   uint64_t tx = 0;

@@ -5,17 +5,13 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstring>
-#include <filesystem>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <optional>
 #include <poll.h>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <string_view>
 #include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
 #include <utility>
@@ -63,9 +59,22 @@ void FdGuard::reset() noexcept {
 // ---------------------------------------------------------------------------
 // UDSServer
 // ---------------------------------------------------------------------------
-UDSServer::UDSServer(std::filesystem::path udsPath, int backlog, size_t maxClients,
-                     SharedState &state, SocketOps ops) :
-    udsPath(std::move(udsPath)),
+socklen_t initAbstractAddress(sockaddr_un &addr, std::string_view name) {
+  addr = {};
+  addr.sun_family = AF_UNIX;
+  // sun_path[0] stays NUL, which is what marks an abstract address. The
+  // length passed to bind/connect is the name only, so a trailing NUL is
+  // not part of the address.
+  if (name.empty() || name.size() >= sizeof(addr.sun_path)) {
+    return 0;
+  }
+  std::memcpy(addr.sun_path + 1, name.data(), name.size());
+  return static_cast<socklen_t>(offsetof(sockaddr_un, sun_path) + 1 + name.size());
+}
+
+UDSServer::UDSServer(std::string socketName, int backlog, size_t maxClients, SharedState &state,
+                     SocketOps ops) :
+    socketName(std::move(socketName)),
     backlog(backlog),
     maxClients(maxClients),
     state(state),
@@ -74,67 +83,13 @@ UDSServer::UDSServer(std::filesystem::path udsPath, int backlog, size_t maxClien
 UDSServer::~UDSServer() {
   StopAllClients();
   listenFd = FdGuard{};
-  // Only clean up files we actually created; a failed setup must not delete
-  // whatever happens to live at the configured path.
-  if (bound) {
-    ::unlink(udsPath.c_str());
-    ::rmdir(udsPath.parent_path().c_str());
-  }
-}
-
-std::optional<std::string> UDSServer::ValidateSocketPath(const std::filesystem::path &path) {
-  if (path.empty()) {
-    return "path is empty";
-  }
-  if (!path.is_absolute()) {
-    return "path must be absolute";
-  }
-  if (path.filename().empty()) {
-    return "path must not end with a separator";
-  }
-
-  for (const auto &component : path) {
-    if (component == "..") {
-      return "path must not contain '..'";
-    }
-  }
-
-  sockaddr_un addr{};
-  if (path.string().size() >= sizeof(addr.sun_path)) {
-    return "path is longer than " + std::to_string(sizeof(addr.sun_path) - 1) + " characters";
-  }
-
-  const std::filesystem::path parent = path.parent_path();
-  if (parent == path.root_path()) {
-    // We create and remove the parent directory, so it has to be our own.
-    return "path must live in a dedicated directory, not directly in " + parent.string();
-  }
-
-  std::error_code ec;
-  if (std::filesystem::is_symlink(parent, ec)) {
-    return "parent directory is a symlink";
-  }
-  if (std::filesystem::exists(parent, ec) && !std::filesystem::is_directory(parent, ec)) {
-    return "parent path exists but is not a directory";
-  }
-  if (std::filesystem::is_symlink(path, ec)) {
-    return "path is a symlink";
-  }
-
-  return std::nullopt;
 }
 
 bool UDSServer::setup() {
-  if (const auto problem = ValidateSocketPath(udsPath)) {
-    spdlog::error("refusing unsafe socket path {}: {}", udsPath.string(), *problem);
-    return false;
-  }
-
-  if (std::filesystem::exists(udsPath)) {
-    spdlog::error("socket already exists, exiting...");
-    spdlog::info("it probably means that that other instance is running in the background");
-    spdlog::info("or that you pointed socket at a regular file");
-    spdlog::info("run server with --refresh-socket to remove it");
+  sockaddr_un addr{};
+  const socklen_t addrLen = initAbstractAddress(addr, socketName);
+  if (addrLen == 0) {
+    spdlog::error("refusing abstract socket name '{}'", socketName);
     return false;
   }
 
@@ -144,18 +99,13 @@ bool UDSServer::setup() {
     return false;
   }
 
-  sockaddr_un addr{};
-  addr.sun_family = AF_UNIX;
-  std::memcpy(addr.sun_path, udsPath.c_str(), udsPath.string().size() + 1);
-
-  // Create socket folder with correct privileges
-  ::mkdir(udsPath.parent_path().c_str(), 0700);
-
-  if (ops.bind(fd.get(), reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) != 0) {
-    spdlog::error("couldn't bind socket: {}", std::strerror(errno));
+  if (ops.bind(fd.get(), reinterpret_cast<sockaddr *>(&addr), addrLen) != 0) {
+    spdlog::error("couldn't bind abstract socket @{}: {}", socketName, std::strerror(errno));
+    if (errno == EADDRINUSE) {
+      spdlog::info("another instance is already listening on @{}", socketName);
+    }
     return false;
   }
-  bound = true;
 
   if (ops.listen(fd.get(), backlog) != 0) {
     spdlog::error("listen failed: {}", std::strerror(errno));
@@ -172,7 +122,7 @@ bool UDSServer::run() {
     return false;
   }
 
-  spdlog::info("UDS server listening on {} (max {} concurrent clients)", udsPath.string(),
+  spdlog::info("UDS server listening on @{} (max {} concurrent clients)", socketName,
                maxClients);
 
   while (state.running.load(std::memory_order_relaxed)) {

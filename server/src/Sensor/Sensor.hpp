@@ -10,11 +10,7 @@
 #include "Sensor/Source.hpp"
 #include "SensorReading.hpp"
 #include "SensorType.hpp"
-#include "SourceFile.hpp"
-#include "SourcePush.hpp"
 #include "Transform.hpp"
-#include "TransformDelta.hpp"
-#include "TransformScale.hpp"
 
 struct SensorConfig {
   std::string name;

@@ -16,16 +16,17 @@
 #include <QTimer>
 #include <utility>
 
-ClientBackend::ClientBackend(QString socketPath, QString dataFile, QObject *parent) :
+ClientBackend::ClientBackend(QString dataFile, QObject *parent) :
     QObject(parent),
     m_model(new MonitorModel(this)),
     m_socket(new QLocalSocket(this)),
     m_pollTimer(new QTimer(this)),
     m_reconnectTimer(new QTimer(this)),
     m_clockTimer(new QTimer(this)),
-    m_socketPath(std::move(socketPath)),
     m_dataFile(std::move(dataFile)),
     m_fileMode(!m_dataFile.isEmpty()) {
+  // Same abstract name the server binds (leading NUL added by Qt).
+  m_socket->setSocketOptions(QLocalSocket::AbstractNamespaceOption);
   QSettings settings;
   m_darkMode = settings.value(QStringLiteral("darkMode"), true).toBool();
   m_intervalMs = qBound(50, settings.value(QStringLiteral("intervalMs"), 1000).toInt(), 60000);
@@ -117,7 +118,7 @@ void ClientBackend::connectToServer() {
   if (m_socket->state() != QLocalSocket::UnconnectedState) {
     return;
   }
-  m_socket->connectToServer(m_socketPath);
+  m_socket->connectToServer(QStringLiteral("hwmon"));
 }
 
 void ClientBackend::sendCommand(const QString &cmd) {
