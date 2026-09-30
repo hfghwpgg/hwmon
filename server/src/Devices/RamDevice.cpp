@@ -22,9 +22,9 @@ void RamDevice::initialize() {
     spdlog::error("{} inaccessible; skipping ram", meminfoPath.string());
     return;
   }
-  totalSrc = Sensor::addPushSensor<TransformScale>(
+  totalSrc = Sensor::addPushSensor<ScaleTransform>(
       sensors, {"Total memory", SensorType::MEMORY, 1, false, false});
-  availableSrc = Sensor::addPushSensor<TransformScale>(
+  availableSrc = Sensor::addPushSensor<ScaleTransform>(
       sensors, {"Used memory", SensorType::MEMORY, 1, true, true});
 }
 

@@ -14,9 +14,9 @@ public:
 };
 
 
-class SourceFile : public Source {
+class FileSource : public Source {
 public:
-  SourceFile(const std::filesystem::path &streamPath);
+  FileSource(const std::filesystem::path &streamPath);
   std::expected<double, SourceStatus> read() override;
 
 private:
@@ -24,7 +24,7 @@ private:
 };
 
 
-class SourcePush : public Source {
+class PushSource : public Source {
 public:
   void setValue(double value);
   void invalidate();

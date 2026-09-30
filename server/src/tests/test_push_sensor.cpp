@@ -17,10 +17,10 @@ struct PushSensorFixture {
   // sensors must outlive and be declared before source: addPushSensor appends
   // to the vector and hands back a pointer into the sensor it created
   std::vector<std::unique_ptr<Sensor>> sensors;
-  SourcePush *source;
+  PushSource *source;
 
   PushSensorFixture(std::string name, SensorType type, unsigned int rawDivider = 1) :
-      source(Sensor::addPushSensor<TransformScale>(sensors, {std::move(name), type, rawDivider})) {}
+      source(Sensor::addPushSensor<ScaleTransform>(sensors, {std::move(name), type, rawDivider})) {}
 
   Sensor &sensor() {
     return *sensors.front();
@@ -100,7 +100,7 @@ TEST(PushSensorTest, ResetClearsAggregatesAndPendingValue) {
 
 TEST(PushSensorTest, NonAggregatingSensorKeepsOnlyLatestSample) {
   std::vector<std::unique_ptr<Sensor>> sensors;
-  SourcePush *source = Sensor::addPushSensor<TransformScale>(
+  PushSource *source = Sensor::addPushSensor<ScaleTransform>(
       sensors, {"instant", SensorType::UTILIZATION, 1, /*aggregateData=*/false});
 
   for (const double value : {10.0, 90.0}) {
@@ -116,8 +116,8 @@ TEST(PushSensorTest, NonAggregatingSensorKeepsOnlyLatestSample) {
 TEST(AddPushSensorTest, AppendsSensorAndReturnsBorrowedPointer) {
   std::vector<std::unique_ptr<Sensor>> sensors;
 
-  SourcePush *source =
-      Sensor::addPushSensor<TransformScale>(sensors, {"vram_used", SensorType::MEMORY});
+  PushSource *source =
+      Sensor::addPushSensor<ScaleTransform>(sensors, {"vram_used", SensorType::MEMORY});
   source->setValue(1024);
   sensors.front()->updateValue();
 
@@ -131,7 +131,7 @@ TEST(AddPushSensorTest, AppendsSensorAndReturnsBorrowedPointer) {
 TEST(AddPushSensorTest, MarksPrimarySensor) {
   std::vector<std::unique_ptr<Sensor>> sensors;
 
-  Sensor::addPushSensor<TransformScale>(
+  Sensor::addPushSensor<ScaleTransform>(
       sensors, {"CPU", SensorType::UTILIZATION, 1, /*aggregateData=*/true, /*isPrimary=*/true});
 
   EXPECT_TRUE(sensors.front()->serialize()["isPrimary"].get<bool>());

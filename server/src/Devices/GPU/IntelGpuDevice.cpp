@@ -120,22 +120,22 @@ bool IntelGpuDevice::setupPmu() {
   // establish the first sample so the next read has a delta to work with
   pmu_sample(pmuEngines);
 
-  gpuUtil = Sensor::addPushSensor<TransformScale>(sensors,
+  gpuUtil = Sensor::addPushSensor<ScaleTransform>(sensors,
                                                   {"GPU utilization", SensorType::UTILIZATION, 1});
 
   engineUtil.reserve(pmuEngines->num_engines);
   for (unsigned int i = 0; i < pmuEngines->num_engines; ++i) {
     const struct engine *engine = engine_ptr(pmuEngines, i);
     const char *engineName = engine->display_name != nullptr ? engine->display_name : engine->name;
-    engineUtil.push_back(Sensor::addPushSensor<TransformScale>(
+    engineUtil.push_back(Sensor::addPushSensor<ScaleTransform>(
         sensors, {std::format("{}_util", engineName), SensorType::UTILIZATION, 1}));
   }
 
   if (pmuEngines->freq_act.present)
     frequency =
-        Sensor::addPushSensor<TransformScale>(sensors, {"GPU clock", SensorType::FREQUENCY, 1});
+        Sensor::addPushSensor<ScaleTransform>(sensors, {"GPU clock", SensorType::FREQUENCY, 1});
   if (pmuEngines->num_rapl > 0)
-    power = Sensor::addPushSensor<TransformScale>(sensors, {"GPU power", SensorType::POWER, 1});
+    power = Sensor::addPushSensor<ScaleTransform>(sensors, {"GPU power", SensorType::POWER, 1});
 
   spdlog::info("using i915 PMU for {} ({} engines)", name, pmuEngines->num_engines);
   return true;

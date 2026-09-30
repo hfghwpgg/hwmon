@@ -14,9 +14,9 @@ NetworkDevice::NetworkDevice(std::string name, std::filesystem::path statsPath) 
     statsPath(statsPath) {}
 
 void NetworkDevice::initialize() {
-  Sensor::makeFileSensor<TransformDelta>(sensors, statsPath / "rx_bytes",
+  Sensor::makeFileSensor<DeltaTransform>(sensors, statsPath / "rx_bytes",
                                          {"Recieve speed", SensorType::THROUGHPUT});
-  Sensor::makeFileSensor<TransformDelta>(sensors, statsPath / "tx_bytes",
+  Sensor::makeFileSensor<DeltaTransform>(sensors, statsPath / "tx_bytes",
                                          {"Transmit speed", SensorType::THROUGHPUT});
 }
 

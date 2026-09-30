@@ -19,10 +19,10 @@ struct PushDeltaFixture {
   // sensors must be declared before source: addPushSensor appends to the
   // vector and hands back a pointer into the sensor it created
   std::vector<std::unique_ptr<Sensor>> sensors;
-  SourcePush *source;
+  PushSource *source;
 
   explicit PushDeltaFixture(std::string name, SensorType type = SensorType::THROUGHPUT) :
-      source(Sensor::addPushSensor<TransformDelta>(sensors, {std::move(name), type})) {}
+      source(Sensor::addPushSensor<DeltaTransform>(sensors, {std::move(name), type})) {}
 
   Sensor &sensor() {
     return *sensors.front();
@@ -161,7 +161,7 @@ TEST(PushDeltaSensorTest, InvalidateDropsPendingButKeepsBaseline) {
 TEST(AddPushDeltaSensorTest, AppendsSensorAndReturnsBorrowedPointer) {
   std::vector<std::unique_ptr<Sensor>> sensors;
 
-  SourcePush *source = Sensor::addPushSensor<TransformDelta>(
+  PushSource *source = Sensor::addPushSensor<DeltaTransform>(
       sensors, {"eth0 download", SensorType::THROUGHPUT});
   source->setValue(1'000);
   sensors.front()->updateValue();

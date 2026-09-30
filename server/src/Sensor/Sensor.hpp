@@ -43,7 +43,7 @@ public:
   static void makeFileSensor(std::vector<std::unique_ptr<Sensor>> &sensors,
                              const std::filesystem::path &streamPath, SensorConfig config);
   template <std::derived_from<Transform> TTransform>
-  static SourcePush *addPushSensor(std::vector<std::unique_ptr<Sensor>> &sensors,
+  static PushSource *addPushSensor(std::vector<std::unique_ptr<Sensor>> &sensors,
                                    SensorConfig config);
 
 private:
@@ -61,17 +61,17 @@ private:
 template <std::derived_from<Transform> TTransform>
 void Sensor::makeFileSensor(std::vector<std::unique_ptr<Sensor>> &sensors,
                             const std::filesystem::path &streamPath, SensorConfig config) {
-  auto src = std::make_unique<SourceFile>(streamPath);
+  auto src = std::make_unique<FileSource>(streamPath);
   auto transform = std::unique_ptr<TTransform>(new TTransform(config.divider()));
   sensors.emplace_back(
       std::unique_ptr<Sensor>(new Sensor(std::move(src), std::move(transform), config)));
 }
 
 template <std::derived_from<Transform> TTransform>
-SourcePush *Sensor::addPushSensor(std::vector<std::unique_ptr<Sensor>> &sensors,
+PushSource *Sensor::addPushSensor(std::vector<std::unique_ptr<Sensor>> &sensors,
                                   SensorConfig config) {
-  auto src = std::make_unique<SourcePush>();
-  SourcePush *borrowed = src.get();
+  auto src = std::make_unique<PushSource>();
+  PushSource *borrowed = src.get();
   auto transform = std::unique_ptr<TTransform>(new TTransform(config.divider()));
   sensors.emplace_back(
       std::unique_ptr<Sensor>(new Sensor(std::move(src), std::move(transform), config)));

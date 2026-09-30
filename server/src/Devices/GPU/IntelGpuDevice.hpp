@@ -31,10 +31,10 @@ private:
   const bool allowPmu;
 
   struct engines *pmuEngines = nullptr;
-  SourcePush *gpuUtil = nullptr;
-  SourcePush *frequency = nullptr;
-  SourcePush *power = nullptr;
-  std::vector<SourcePush *> engineUtil; // indexed like engines->engine[]
+  PushSource *gpuUtil = nullptr;
+  PushSource *frequency = nullptr;
+  PushSource *power = nullptr;
+  std::vector<PushSource *> engineUtil; // indexed like engines->engine[]
 
   bool setupPmu();
   void readPmu();

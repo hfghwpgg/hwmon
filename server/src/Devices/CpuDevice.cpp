@@ -135,7 +135,7 @@ void CpuDevice::getCoreFrequency() {
     // we only want core number, so we substr the beginning
     const std::string suffix = filename.substr(6);
     const std::string label = suffix.length() > 0 ? "CPU core " + suffix : "CPU";
-    Sensor::makeFileSensor<TransformScale>(sensors, path, {label, SensorType::FREQUENCY, 1000});
+    Sensor::makeFileSensor<ScaleTransform>(sensors, path, {label, SensorType::FREQUENCY, 1000});
   }
 }
 
@@ -191,7 +191,7 @@ void CpuDevice::initUtilization() {
     const bool primary = label == "CPU";
 
     utilSensorsPrivate.emplace(
-        cpuCoreNum, utilSensorData{Sensor::addPushSensor<TransformScale>(
+        cpuCoreNum, utilSensorData{Sensor::addPushSensor<ScaleTransform>(
                                        sensors, {label, SensorType::UTILIZATION, 1, true, primary}),
                                    {0, 0, false}});
   }
@@ -319,7 +319,7 @@ void CpuDevice::getPowerDraw() {
     }
   } else if (intelRaplAccessible) {
     spdlog::info("using intel rapl interface for cpu power draw");
-    Sensor::makeFileSensor<TransformDelta>(powerSensors, cpuPaths.intelrapl,
+    Sensor::makeFileSensor<DeltaTransform>(powerSensors, cpuPaths.intelrapl,
                                            {"Socket power draw", SensorType::POWER});
   } else {
     spdlog::warn("couldn't read cpu power draw. Try running with sudo");

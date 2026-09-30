@@ -101,54 +101,54 @@ bool NvidiaGpuDevice::setupNvml() {
 
   unsigned int value = 0;
   if (nvml->nvmlDeviceGetTemperature(handle, NVML_TEMPERATURE_GPU, &value) == NVML_SUCCESS) {
-    nvmlSensors.temp = Sensor::addPushSensor<TransformScale>(
+    nvmlSensors.temp = Sensor::addPushSensor<ScaleTransform>(
         sensors, {"GPU core", SensorType::TEMPERATURE, 1, true, true});
   }
 
   nvmlUtilization_t utilization{};
   if (nvml->nvmlDeviceGetUtilizationRates(handle, &utilization) == NVML_SUCCESS) {
     nvmlSensors.gpuUtil =
-        Sensor::addPushSensor<TransformScale>(sensors, {"GPU core", SensorType::UTILIZATION, 1});
+        Sensor::addPushSensor<ScaleTransform>(sensors, {"GPU core", SensorType::UTILIZATION, 1});
     nvmlSensors.memUtil =
-        Sensor::addPushSensor<TransformScale>(sensors, {"GPU memory", SensorType::UTILIZATION, 1});
+        Sensor::addPushSensor<ScaleTransform>(sensors, {"GPU memory", SensorType::UTILIZATION, 1});
   }
 
   if (nvml->nvmlDeviceGetClockInfo(handle, NVML_CLOCK_GRAPHICS, &value) == NVML_SUCCESS) {
     nvmlSensors.gpuClock =
-        Sensor::addPushSensor<TransformScale>(sensors, {"GPU core", SensorType::FREQUENCY, 1});
+        Sensor::addPushSensor<ScaleTransform>(sensors, {"GPU core", SensorType::FREQUENCY, 1});
   }
   if (nvml->nvmlDeviceGetClockInfo(handle, NVML_CLOCK_MEM, &value) == NVML_SUCCESS) {
-    nvmlSensors.memClock = Sensor::addPushSensor<TransformScale>(
+    nvmlSensors.memClock = Sensor::addPushSensor<ScaleTransform>(
         sensors, {"GPU memory clock", SensorType::FREQUENCY, 1});
   }
 
   if (nvml->nvmlDeviceGetPowerUsage(handle, &value) == NVML_SUCCESS) {
     nvmlSensors.power =
-        Sensor::addPushSensor<TransformScale>(sensors, {"GPU power draw", SensorType::POWER, 1});
+        Sensor::addPushSensor<ScaleTransform>(sensors, {"GPU power draw", SensorType::POWER, 1});
   }
 
   nvmlMemory_t memory{};
   if (nvml->nvmlDeviceGetMemoryInfo(handle, &memory) == NVML_SUCCESS) {
     nvmlSensors.vramTotal =
-        Sensor::addPushSensor<TransformScale>(sensors, {"GPU total memory", SensorType::MEMORY, 1});
+        Sensor::addPushSensor<ScaleTransform>(sensors, {"GPU total memory", SensorType::MEMORY, 1});
     nvmlSensors.vramUsed =
-        Sensor::addPushSensor<TransformScale>(sensors, {"GPU used memory", SensorType::MEMORY, 1});
+        Sensor::addPushSensor<ScaleTransform>(sensors, {"GPU used memory", SensorType::MEMORY, 1});
   }
 
   if (nvml->nvmlDeviceGetPcieThroughput(handle, NVML_PCIE_UTIL_TX_BYTES, &value) == NVML_SUCCESS) {
     nvmlSensors.pcieTx =
-        Sensor::addPushSensor<TransformScale>(sensors, {"pcie_tx", SensorType::THROUGHPUT, 1});
+        Sensor::addPushSensor<ScaleTransform>(sensors, {"pcie_tx", SensorType::THROUGHPUT, 1});
     nvmlSensors.pcieRx =
-        Sensor::addPushSensor<TransformScale>(sensors, {"pcie_rx", SensorType::THROUGHPUT, 1});
+        Sensor::addPushSensor<ScaleTransform>(sensors, {"pcie_rx", SensorType::THROUGHPUT, 1});
   }
 
   unsigned int samplingPeriodUs = 0;
   if (nvml->nvmlDeviceGetEncoderUtilization(handle, &value, &samplingPeriodUs) == NVML_SUCCESS) {
-    nvmlSensors.encoderUtil = Sensor::addPushSensor<TransformScale>(
+    nvmlSensors.encoderUtil = Sensor::addPushSensor<ScaleTransform>(
         sensors, {"Encoder utilization", SensorType::UTILIZATION, 1});
   }
   if (nvml->nvmlDeviceGetDecoderUtilization(handle, &value, &samplingPeriodUs) == NVML_SUCCESS) {
-    nvmlSensors.decoderUtil = Sensor::addPushSensor<TransformScale>(
+    nvmlSensors.decoderUtil = Sensor::addPushSensor<ScaleTransform>(
         sensors, {"Decoder Utilization", SensorType::UTILIZATION, 1});
   }
 

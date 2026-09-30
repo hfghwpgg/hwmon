@@ -1,16 +1,16 @@
 #include "Transform.hpp"
 
-#include <optional>
 #include <chrono>
 #include <cmath>
+#include <optional>
 
 // ***************
 // ***  Delta  ***
 // ***************
-TransformDelta::TransformDelta(unsigned int divider) :
+DeltaTransform::DeltaTransform(unsigned int divider) :
     Transform(divider) {}
 
-std::optional<double> TransformDelta::apply(double raw) {
+std::optional<double> DeltaTransform::apply(double raw) {
   if (std::isnan(lastValue)) {
     lastValue = raw;
     lastTime = std::chrono::steady_clock::now();
@@ -26,7 +26,7 @@ std::optional<double> TransformDelta::apply(double raw) {
   return ret;
 }
 
-void TransformDelta::reset() {
+void DeltaTransform::reset() {
   lastTime = std::chrono::steady_clock::now();
   lastValue = NAN;
 }
@@ -35,10 +35,10 @@ void TransformDelta::reset() {
 // ***************
 // ***  Scale  ***
 // ***************
-TransformScale::TransformScale(unsigned int divider) :
+ScaleTransform::ScaleTransform(unsigned int divider) :
     Transform(divider) {}
 
 // this shouldnt break, so it never returns nullopt
-std::optional<double> TransformScale::apply(double raw) {
+std::optional<double> ScaleTransform::apply(double raw) {
   return raw / divider;
 }

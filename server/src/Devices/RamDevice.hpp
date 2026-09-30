@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <string>
 
-class SourcePush;
+class PushSource;
 
 // Reads MemTotal and MemAvailable from /proc/meminfo (values in bytes).
 class RamDevice : public Device {
@@ -19,6 +19,6 @@ public:
 
 private:
   const std::filesystem::path meminfoPath;
-  SourcePush *totalSrc = nullptr;
-  SourcePush *availableSrc = nullptr;
+  PushSource *totalSrc = nullptr;
+  PushSource *availableSrc = nullptr;
 };

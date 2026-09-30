@@ -27,18 +27,18 @@ private:
   // NVML reports everything through library calls, so each metric gets a
   // SourcePush; a null pointer means the card doesn't support that metric
   struct NvmlSensors {
-    SourcePush *temp = nullptr;
-    SourcePush *gpuUtil = nullptr;
-    SourcePush *memUtil = nullptr;
-    SourcePush *gpuClock = nullptr;
-    SourcePush *memClock = nullptr;
-    SourcePush *power = nullptr;
-    SourcePush *vramTotal = nullptr;
-    SourcePush *vramUsed = nullptr;
-    SourcePush *pcieTx = nullptr;
-    SourcePush *pcieRx = nullptr;
-    SourcePush *encoderUtil = nullptr;
-    SourcePush *decoderUtil = nullptr;
+    PushSource *temp = nullptr;
+    PushSource *gpuUtil = nullptr;
+    PushSource *memUtil = nullptr;
+    PushSource *gpuClock = nullptr;
+    PushSource *memClock = nullptr;
+    PushSource *power = nullptr;
+    PushSource *vramTotal = nullptr;
+    PushSource *vramUsed = nullptr;
+    PushSource *pcieTx = nullptr;
+    PushSource *pcieRx = nullptr;
+    PushSource *encoderUtil = nullptr;
+    PushSource *decoderUtil = nullptr;
   };
 
   const GpuCardInfo card;

@@ -103,9 +103,9 @@ void SharedHwmonParser::createSensors(const std::filesystem::path &path,
 
     if (type == SensorType::ENERGY) {
       // energy sensors return power
-      Sensor::makeFileSensor<TransformDelta>(sensors, valueSrcPath, {label, SensorType::POWER});
+      Sensor::makeFileSensor<DeltaTransform>(sensors, valueSrcPath, {label, SensorType::POWER});
     } else {
-      Sensor::makeFileSensor<TransformScale>(sensors, valueSrcPath, {label, type});
+      Sensor::makeFileSensor<ScaleTransform>(sensors, valueSrcPath, {label, type});
     }
   }
 }

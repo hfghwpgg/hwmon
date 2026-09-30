@@ -28,20 +28,20 @@ private:
   // ROCm SMI reports everything through library calls, so each metric gets a
   // SourcePush; a null pointer means the card doesn't support that metric
   struct RsmiSensors {
-    SourcePush *temp_edge = nullptr;
-    SourcePush *temp_junction = nullptr;
-    SourcePush *temp_vram = nullptr;
-    SourcePush *gpuBusy = nullptr;
-    SourcePush *memBusy = nullptr;
-    SourcePush *sclk = nullptr;
-    SourcePush *socclk = nullptr;
-    SourcePush *mclk = nullptr;
-    SourcePush *power = nullptr;
-    SourcePush *powerCap = nullptr;
-    SourcePush *vramTotal = nullptr;
-    SourcePush *vramUsed = nullptr;
-    SourcePush *pcieTx = nullptr;
-    SourcePush *pcieRx = nullptr;
+    PushSource *temp_edge = nullptr;
+    PushSource *temp_junction = nullptr;
+    PushSource *temp_vram = nullptr;
+    PushSource *gpuBusy = nullptr;
+    PushSource *memBusy = nullptr;
+    PushSource *sclk = nullptr;
+    PushSource *socclk = nullptr;
+    PushSource *mclk = nullptr;
+    PushSource *power = nullptr;
+    PushSource *powerCap = nullptr;
+    PushSource *vramTotal = nullptr;
+    PushSource *vramUsed = nullptr;
+    PushSource *pcieTx = nullptr;
+    PushSource *pcieRx = nullptr;
   };
 
   const GpuCardInfo card;

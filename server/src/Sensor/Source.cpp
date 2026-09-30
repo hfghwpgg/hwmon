@@ -9,7 +9,7 @@
 // **************
 // ***  File  ***
 // **************
-SourceFile::SourceFile(const std::filesystem::path &streamPath) {
+FileSource::FileSource(const std::filesystem::path &streamPath) {
   if (helpers::pathType(streamPath) != helpers::pathTypeEnum::FILE ||
       access(streamPath.c_str(), R_OK) == -1) {
     throw std::runtime_error(
@@ -18,7 +18,7 @@ SourceFile::SourceFile(const std::filesystem::path &streamPath) {
   stream.open(streamPath);
 }
 
-std::expected<double, Source::SourceStatus> SourceFile::read() {
+std::expected<double, Source::SourceStatus> FileSource::read() {
   stream.clear();
   stream.seekg(0);
   std::string str;
@@ -37,19 +37,19 @@ std::expected<double, Source::SourceStatus> SourceFile::read() {
 // **************
 // ***  Push  ***
 // **************
-void SourcePush::setValue(double value) {
+void PushSource::setValue(double value) {
   pending = value;
 }
 
-void SourcePush::invalidate() {
+void PushSource::invalidate() {
   pending = NAN;
 }
 
-void SourcePush::reset() {
+void PushSource::reset() {
   pending = NAN;
 }
 
-std::expected<double, Source::SourceStatus> SourcePush::read() {
+std::expected<double, Source::SourceStatus> PushSource::read() {
   if (std::isnan(pending))
     return std::unexpected(Source::SourceStatus::NotReady);
 

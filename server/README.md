@@ -173,6 +173,62 @@ There is no authentication token and no peer-credential check. Any local process
 </details>
 
 <details>
+  <summary> Architecture </summary>
+
+### Overview
+At first, main has 2 threads: one for the runner and one for the UDS server.
+UDS server creates a thread for each client connection, up to a configurable limit.
+If we are running as root, we let runner initialize all devices, and then we drop them
+before setting up UDS server
+
+### Runner
+Runner is responsible for creating devices and reading their values, as well as publishing a snapshot of them to the UDS server through SharedState.
+
+### Device
+Device acts as a container for sensors of each peripheral. It is responsible for initializing and reading sensors, as well as sending reqests down to them (such as `reset`).
+Depending on the sensor type, it may also be responsible for pushing value to a sensor (see [AmdGpuDevice.cpp](./src/Devices/GPU/AmdGpuDevice.cpp)), or preparing it altogher (see utilization reading in [CpuDevice.cpp](./src/Devices/CpuDevice.cpp))
+Device itself is an interface.
+Each device takes at least `name`: (string) and `type`: (DeviceType) parameters
+
+### Sensor
+Sensor is responsible for reading a single sensor value from a device.
+It shouldn't be initialized directly, but rather through functions `makeFileSensor` or `addPushSensor`.  
+ - `makeFileSensor` has `void` return type. Requires:
+   - `Transform` (see below)
+   - `sensors` (vector of unique pointers to sensors)
+   - `path` (file path)
+   - `SensorConfig` (sensor configuration)  
+ - `addPushSensor` returns `PushSource*`, which is used by device for pushing values to the sensor. Requires:
+   - `Transform` (see below)
+   - `sensors` (vector of unique pointers to sensors)
+   - `SensorConfig` (sensor configuration)  
+
+Transform type: 
+  - Scale: scales the sensor value by a given factor
+  - Delta: calculates the difference between consecutive sensor readings and divides by time elapsed
+    > (`(currVal - lastVal) / (timeDelta * divider))
+Source type: 
+  - File: reads sensor value from a file. 
+  - Push: Device pushes value to the sensor
+
+#### SensorConfig fields
+- name: (string) sensor name
+- type: (SensorType) sensor type
+- divider: (int) divider for the sensor value (0 means automatic, deduced from sensor type)
+- aggregateData: (bool) whether to aggregate data from multiple readings (optional, default true)
+- isPrimary: (bool) whether the sensor is a primary sensor (optional, default false)
+
+### SensorReading
+SensorReading is a struct that holds sensor reading data.
+Fields: value, min_value, max_value, sum, times.
+ > average is calculated from sum / times
+reset() sets the three values to NaN, sum to 0, and times to 0. 
+NaN is used when we dont have a valid value to return, but we expect that (such as DeltaTransform readings)
+SourceStatus is return when value is invalid and we didn't expect it to be such.
+
+</details>
+
+<details>
   <summary><h2>Server compilation</h2></summary>
 
 Recommended way of compiling server is using provided `build_server.sh` shell script  

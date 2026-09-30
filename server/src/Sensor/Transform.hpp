@@ -20,9 +20,9 @@ protected:
 };
 
 
-class TransformDelta : public Transform {
+class DeltaTransform : public Transform {
 public:
-  TransformDelta(unsigned int divider);
+  DeltaTransform(unsigned int divider);
   std::optional<double> apply(double raw) override;
   void reset() override;
 
@@ -32,8 +32,8 @@ private:
 };
 
 
-class TransformScale : public Transform {
+class ScaleTransform : public Transform {
 public:
-  TransformScale(unsigned int divider);
+  ScaleTransform(unsigned int divider);
   std::optional<double> apply(double raw) override;
 };

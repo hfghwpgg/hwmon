@@ -31,7 +31,7 @@ private:
   };
 
   struct utilSensorData { // cpu time
-    SourcePush *src;
+    PushSource *src;
     lastReading utilOld;
   };
 
