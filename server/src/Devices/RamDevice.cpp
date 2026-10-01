@@ -19,7 +19,7 @@ RamDevice::RamDevice(std::filesystem::path meminfoPath) :
 
 void RamDevice::initialize() {
   if (!std::filesystem::exists(meminfoPath) || access(meminfoPath.c_str(), R_OK) == -1) {
-    spdlog::error("{} inaccessible; skipping ram", meminfoPath.string());
+    SPDLOG_ERROR("{} inaccessible; skipping ram", meminfoPath.string());
     return;
   }
   totalSrc = Sensor::addPushSensor<ScaleTransform>(
@@ -34,7 +34,7 @@ void RamDevice::read() {
 
   std::ifstream file(meminfoPath);
   if (!file.is_open()) {
-    spdlog::error("{} suddenly inaccessible", meminfoPath.string());
+    SPDLOG_ERROR("{} suddenly inaccessible", meminfoPath.string());
     return;
   }
 
@@ -53,7 +53,7 @@ void RamDevice::read() {
     try {
       value = std::stod(line.substr(colon + 1));
     } catch (const std::exception &) {
-      spdlog::error("failed to parse {} in {}", key, meminfoPath.string());
+      SPDLOG_ERROR("failed to parse {} in {}", key, meminfoPath.string());
       continue;
     }
     // /proc/meminfo reports in KiB
@@ -69,7 +69,7 @@ void RamDevice::read() {
   }
 
   if (!gotTotal || !gotAvailable || availableValue > totalValue) {
-    spdlog::error("invalid or incomplete memory data in {}", meminfoPath.string());
+    SPDLOG_ERROR("invalid or incomplete memory data in {}", meminfoPath.string());
     return;
   }
 

@@ -17,9 +17,9 @@ using std::string;
 SysfsDevice::SysfsDevice(string name, DeviceType type, std::filesystem::path path) :
     Device(name, type),
     path(path) {
-  spdlog::trace("CURRENT SYSFS DEVICE: {} <{}>", path.string(), name);
+  SPDLOG_TRACE("CURRENT SYSFS DEVICE: {} <{}>", path.string(), name);
   if (helpers::pathType(path) != helpers::pathTypeEnum::DIRECTORY) {
-    spdlog::critical("invalid path for device {}: {}", name, path.string());
+    SPDLOG_CRITICAL("invalid path for device {}: {}", name, path.string());
     throw std::runtime_error("invalid path, check logs");
   };
 }

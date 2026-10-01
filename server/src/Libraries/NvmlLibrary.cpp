@@ -18,7 +18,7 @@ std::shared_ptr<NvmlLibrary> NvmlLibrary::acquire() {
     return existing;
 
 #ifdef HWMON_NO_DLOPEN
-  spdlog::debug("NVML: dynamic loading disabled in this build");
+  SPDLOG_DEBUG("NVML: dynamic loading disabled in this build");
   return nullptr;
 #else
   auto library = std::shared_ptr<NvmlLibrary>(new NvmlLibrary());
@@ -33,7 +33,7 @@ std::shared_ptr<NvmlLibrary> NvmlLibrary::acquire() {
 NvmlLibrary::~NvmlLibrary() {
 #ifndef HWMON_NO_DLOPEN
   if (initialized && nvmlShutdown() != NVML_SUCCESS)
-    spdlog::warn("NVML: failed to shut down");
+    SPDLOG_WARN("NVML: failed to shut down");
   if (dlHandle != nullptr)
     dlclose(dlHandle);
 #endif
@@ -59,8 +59,8 @@ bool NvmlLibrary::load() {
       break;
   }
   if (dlHandle == nullptr) {
-    spdlog::info("NVML: failed to load libnvidia-ml.so, NVIDIA GPUs will use sysfs only: {}",
-                 dlerror());
+    SPDLOG_INFO("NVML: failed to load libnvidia-ml.so, NVIDIA GPUs will use sysfs only: {}",
+                dlerror());
     return false;
   }
 
@@ -68,7 +68,7 @@ bool NvmlLibrary::load() {
     void *symbol = dlsym(dlHandle, symbolName);
     const char *error = dlerror();
     if (error != nullptr) {
-      spdlog::error("NVML: couldn't find function {}: {}", symbolName, error);
+      SPDLOG_ERROR("NVML: couldn't find function {}: {}", symbolName, error);
       return nullptr;
     }
     return symbol;
@@ -110,23 +110,23 @@ bool NvmlLibrary::load() {
 
   nvmlReturn_t result = nvmlInit();
   if (result != NVML_SUCCESS) {
-    spdlog::debug("NVML: failed to initialize: {}", nvmlErrorString(result));
+    SPDLOG_DEBUG("NVML: failed to initialize: {}", nvmlErrorString(result));
     return false;
   }
   initialized = true;
 
   result = nvmlDeviceGetCount(&device_count);
   if (result != NVML_SUCCESS) {
-    spdlog::warn("NVML: failed to get device count: {}", nvmlErrorString(result));
+    SPDLOG_WARN("NVML: failed to get device count: {}", nvmlErrorString(result));
     return false;
   }
 
   if (device_count == 0) {
-    spdlog::debug("NVML: no devices reported");
+    SPDLOG_DEBUG("NVML: no devices reported");
     return false;
   }
 
-  spdlog::info("NVML: initialized, {} device(s)", device_count);
+  SPDLOG_INFO("NVML: initialized, {} device(s)", device_count);
   return true;
 }
 
@@ -140,8 +140,7 @@ bool NvmlLibrary::getHandleByPciAddress(const std::string &pciAddress, nvmlDevic
     const nvmlReturn_t result = nvmlDeviceGetHandleByPciBusId(pciAddress.c_str(), &handle);
     if (result == NVML_SUCCESS)
       return true;
-    spdlog::debug("NVML: lookup by PCI address {} failed: {}", pciAddress,
-                  nvmlErrorString(result));
+    SPDLOG_DEBUG("NVML: lookup by PCI address {} failed: {}", pciAddress, nvmlErrorString(result));
   }
 
   // no usable PCI lookup: fall back to the single-GPU case, where index 0 is unambiguous
@@ -149,7 +148,7 @@ bool NvmlLibrary::getHandleByPciAddress(const std::string &pciAddress, nvmlDevic
     const nvmlReturn_t result = nvmlDeviceGetHandleByIndex(0, &handle);
     if (result == NVML_SUCCESS)
       return true;
-    spdlog::warn("NVML: failed to get device handle: {}", nvmlErrorString(result));
+    SPDLOG_WARN("NVML: failed to get device handle: {}", nvmlErrorString(result));
   }
 
   return false;

@@ -17,7 +17,7 @@ SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
   helpers::AvailableSensorsMap available_sensors;
   for (const auto &entry : std::filesystem::directory_iterator(path)) {
     if (!entry.is_regular_file()) {
-      spdlog::trace("{} is not a regular file", entry.path().string());
+      SPDLOG_TRACE("{} is not a regular file", entry.path().string());
       continue;
     }
     // stem returns filename
@@ -38,7 +38,7 @@ SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
 
     size_t underscorePos = filename.find('_');
     if (underscorePos == std::string::npos) {
-      spdlog::trace("{} does not contain an underscore", filename);
+      SPDLOG_TRACE("{} does not contain an underscore", filename);
       continue;
     }
 
@@ -87,18 +87,18 @@ void SharedHwmonParser::createSensors(const std::filesystem::path &path,
     }
     // if no reading available, continue
     if (!hasInput && !hasAverage && !isPwm) {
-      spdlog::warn("sensor {} exposes no known reading interface", sensorBase);
+      SPDLOG_WARN("sensor {} exposes no known reading interface", sensorBase);
       continue;
     }
     if (hasInput && hasAverage) {
-      spdlog::error("singular sensor has both input and average fields, please make a report "
-                    "on this. ignoring this sensor");
+      SPDLOG_ERROR("singular sensor has both input and average fields, please make a report "
+                   "on this. ignoring this sensor");
       continue;
     }
 
     const SensorType type = Sensor::deduceSensorType(sensorBase);
     if (type == SensorType::UNKNOWN) {
-      spdlog::warn("unable to find type for sensor {}", sensorBase);
+      SPDLOG_WARN("unable to find type for sensor {}", sensorBase);
     }
 
     if (type == SensorType::ENERGY) {

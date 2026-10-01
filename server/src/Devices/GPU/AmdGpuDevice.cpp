@@ -90,7 +90,7 @@ bool AmdGpuDevice::setupRsmi() {
                  RSMI_STATUS_SUCCESS) {
     name = deviceName;
   } else {
-    spdlog::warn("ROCm SMI: failed to get device name for {}", card.pciAddress);
+    SPDLOG_WARN("ROCm SMI: failed to get device name for {}", card.pciAddress);
     name = sysfsName();
   }
 
@@ -169,7 +169,7 @@ bool AmdGpuDevice::setupRsmi() {
         Sensor::addPushSensor<ScaleTransform>(sensors, {"pcie_rx", SensorType::THROUGHPUT});
   }
 
-  spdlog::info("using ROCm SMI for {} (index {})", name, rsmiIndex);
+  SPDLOG_INFO("using ROCm SMI for {} (index {})", name, rsmiIndex);
   return true;
 }
 
@@ -277,10 +277,10 @@ void AmdGpuDevice::setupSysfs() {
                  SensorType::MEMORY, 1, false, false);
 
   if (sensors.empty() && card.hwmonPath.empty()) {
-    spdlog::warn("{}: no readable metrics found", card.devicePath.string());
+    SPDLOG_WARN("{}: no readable metrics found", card.devicePath.string());
     return;
   }
-  spdlog::info("using amdgpu sysfs for {}", name);
+  SPDLOG_INFO("using amdgpu sysfs for {}", name);
 }
 
 void AmdGpuDevice::addHwmonSensors(bool onlyUncoveredMetrics) {

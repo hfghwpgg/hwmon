@@ -54,7 +54,7 @@ void NvidiaGpuDevice::initialize() {
   addHwmonSensors();
 
   if (!haveNvml && sensors.empty())
-    spdlog::warn("{}: no readable metrics found", card.devicePath.string());
+    SPDLOG_WARN("{}: no readable metrics found", card.devicePath.string());
 }
 
 void NvidiaGpuDevice::read() {
@@ -96,7 +96,7 @@ bool NvidiaGpuDevice::setupNvml() {
   if (nvml->nvmlDeviceGetName(handle, deviceName, NVML_DEVICE_NAME_BUFFER_SIZE) == NVML_SUCCESS) {
     name = stripBranding(deviceName);
   } else {
-    spdlog::warn("NVML: failed to get device name for {}", card.pciAddress);
+    SPDLOG_WARN("NVML: failed to get device name for {}", card.pciAddress);
   }
 
   unsigned int value = 0;
@@ -152,7 +152,7 @@ bool NvidiaGpuDevice::setupNvml() {
         sensors, {"Decoder Utilization", SensorType::UTILIZATION, 1});
   }
 
-  spdlog::info("using NVML for {}", name);
+  SPDLOG_INFO("using NVML for {}", name);
   return true;
 }
 

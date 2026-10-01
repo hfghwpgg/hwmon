@@ -20,7 +20,7 @@ std::shared_ptr<RsmiLibrary> RsmiLibrary::acquire() {
     return existing;
 
 #ifdef HWMON_NO_DLOPEN
-  spdlog::debug("ROCm SMI: dynamic loading disabled in this build");
+  SPDLOG_DEBUG("ROCm SMI: dynamic loading disabled in this build");
   return nullptr;
 #else
   auto library = std::shared_ptr<RsmiLibrary>(new RsmiLibrary());
@@ -35,7 +35,7 @@ std::shared_ptr<RsmiLibrary> RsmiLibrary::acquire() {
 RsmiLibrary::~RsmiLibrary() {
 #ifndef HWMON_NO_DLOPEN
   if (initialized && rsmi_shut_down() != RSMI_STATUS_SUCCESS)
-    spdlog::warn("ROCm SMI: failed to shut down");
+    SPDLOG_WARN("ROCm SMI: failed to shut down");
   if (dlHandle != nullptr)
     dlclose(dlHandle);
 #endif
@@ -65,8 +65,8 @@ bool RsmiLibrary::load() {
       break;
   }
   if (dlHandle == nullptr) {
-    spdlog::info("ROCm SMI: failed to load librocm_smi64.so, AMD GPUs will use sysfs: {}",
-                 dlerror());
+    SPDLOG_INFO("ROCm SMI: failed to load librocm_smi64.so, AMD GPUs will use sysfs: {}",
+                dlerror());
     return false;
   }
 
@@ -74,7 +74,7 @@ bool RsmiLibrary::load() {
     void *symbol = dlsym(dlHandle, symbolName);
     const char *error = dlerror();
     if (error != nullptr) {
-      spdlog::error("ROCm SMI: couldn't find function {}: {}", symbolName, error);
+      SPDLOG_ERROR("ROCm SMI: couldn't find function {}: {}", symbolName, error);
       return nullptr;
     }
     return symbol;
@@ -104,7 +104,7 @@ bool RsmiLibrary::load() {
 
   rsmi_status_t result = rsmi_init(0);
   if (result != RSMI_STATUS_SUCCESS) {
-    spdlog::debug("ROCm SMI: failed to initialize");
+    SPDLOG_DEBUG("ROCm SMI: failed to initialize");
     return false;
   }
   initialized = true;
@@ -112,7 +112,7 @@ bool RsmiLibrary::load() {
   rsmi_version_t version{};
   result = rsmi_version_get(&version);
   if (result != RSMI_STATUS_SUCCESS) {
-    spdlog::warn("ROCm SMI: failed to get version");
+    SPDLOG_WARN("ROCm SMI: failed to get version");
     return false;
   }
 
@@ -126,8 +126,8 @@ bool RsmiLibrary::load() {
     const bool hasV6Symbol = dlsym(dlHandle, "rsmi_dev_activity_metric_get") != nullptr;
     (void)dlerror(); // clear error state from the probe
     version_major = hasV6Symbol ? 6 : 5;
-    spdlog::warn("ROCm SMI: library reports version 1.x; assuming {}.x ABI based on symbol probe",
-                 version_major);
+    SPDLOG_WARN("ROCm SMI: library reports version 1.x; assuming {}.x ABI based on symbol probe",
+                version_major);
   }
 
   if (version_major == 5) {
@@ -142,22 +142,22 @@ bool RsmiLibrary::load() {
     if (rsmi_dev_gpu_clk_freq_get_v6 == nullptr)
       return false;
   } else {
-    spdlog::warn("ROCm SMI: dynamic loading only supported for versions 5 to 7");
+    SPDLOG_WARN("ROCm SMI: dynamic loading only supported for versions 5 to 7");
     return false;
   }
 
   result = rsmi_num_monitor_devices(&device_count);
   if (result != RSMI_STATUS_SUCCESS) {
-    spdlog::warn("ROCm SMI: failed to fetch number of devices");
+    SPDLOG_WARN("ROCm SMI: failed to fetch number of devices");
     return false;
   }
 
   if (device_count == 0) {
-    spdlog::debug("ROCm SMI: no devices reported");
+    SPDLOG_DEBUG("ROCm SMI: no devices reported");
     return false;
   }
 
-  spdlog::info("ROCm SMI: initialized (v{} ABI), {} device(s)", version_major, device_count);
+  SPDLOG_INFO("ROCm SMI: initialized (v{} ABI), {} device(s)", version_major, device_count);
   return true;
 }
 
@@ -181,7 +181,7 @@ bool RsmiLibrary::findIndexByPciAddress(const std::string &pciAddress, uint32_t 
     }
   }
 
-  spdlog::debug("ROCm SMI: no device matches PCI address {}", pciAddress);
+  SPDLOG_DEBUG("ROCm SMI: no device matches PCI address {}", pciAddress);
   return false;
 }
 

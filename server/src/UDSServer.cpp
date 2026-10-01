@@ -89,26 +89,26 @@ bool UDSServer::setup() {
   sockaddr_un addr{};
   const socklen_t addrLen = initAbstractAddress(addr, socketName);
   if (addrLen == 0) {
-    spdlog::error("refusing abstract socket name '{}'", socketName);
+    SPDLOG_ERROR("refusing abstract socket name '{}'", socketName);
     return false;
   }
 
   FdGuard fd{ops.socket(AF_UNIX, SOCK_STREAM, 0)};
   if (!fd.valid()) {
-    spdlog::error("couldn't open socket: {}", std::strerror(errno));
+    SPDLOG_ERROR("couldn't open socket: {}", std::strerror(errno));
     return false;
   }
 
   if (ops.bind(fd.get(), reinterpret_cast<sockaddr *>(&addr), addrLen) != 0) {
-    spdlog::error("couldn't bind abstract socket @{}: {}", socketName, std::strerror(errno));
+    SPDLOG_ERROR("couldn't bind abstract socket @{}: {}", socketName, std::strerror(errno));
     if (errno == EADDRINUSE) {
-      spdlog::info("another instance is already listening on @{}", socketName);
+      SPDLOG_INFO("another instance is already listening on @{}", socketName);
     }
     return false;
   }
 
   if (ops.listen(fd.get(), backlog) != 0) {
-    spdlog::error("listen failed: {}", std::strerror(errno));
+    SPDLOG_ERROR("listen failed: {}", std::strerror(errno));
     return false;
   }
 
@@ -122,8 +122,7 @@ bool UDSServer::run() {
     return false;
   }
 
-  spdlog::info("UDS server listening on @{} (max {} concurrent clients)", socketName,
-               maxClients);
+  SPDLOG_INFO("UDS server listening on @{} (max {} concurrent clients)", socketName, maxClients);
 
   while (state.running.load(std::memory_order_relaxed)) {
     std::array<pollfd, 2> pfds{
@@ -136,7 +135,7 @@ bool UDSServer::run() {
       if (errno == EINTR) {
         continue;
       }
-      spdlog::error("poll failed: {}", std::strerror(errno));
+      SPDLOG_ERROR("poll failed: {}", std::strerror(errno));
       break;
     }
     if (pfds[1].revents & POLLIN) {
@@ -153,14 +152,14 @@ bool UDSServer::run() {
         if (errno == EINTR) {
           continue;
         }
-        spdlog::error("accept failed: {}", std::strerror(errno));
+        SPDLOG_ERROR("accept failed: {}", std::strerror(errno));
         continue;
       }
 
       // Free up slots of clients that already hung up before judging the limit.
       ReapFinishedClients();
       if (clients.size() >= maxClients) {
-        spdlog::warn("client limit of {} reached, rejecting connection", maxClients);
+        SPDLOG_WARN("client limit of {} reached, rejecting connection", maxClients);
         RejectClient(clientFd, "too many clients");
         continue;
       }
@@ -245,8 +244,8 @@ void UDSServer::HandleClient(std::stop_token stopToken, FdGuard clientFd,
 
     buffer.append(chunk.data(), static_cast<size_t>(received));
     if (buffer.size() > maxRequestBytes) {
-      spdlog::warn("client request exceeded limit of {} bytes, dropping connection",
-                   maxRequestBytes);
+      SPDLOG_WARN("client request exceeded limit of {} bytes, dropping connection",
+                  maxRequestBytes);
       RejectClient(clientFd, "request too large");
       break;
     }

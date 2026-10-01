@@ -47,7 +47,7 @@ std::vector<GpuCardInfo> GpuDetector::detect(const std::filesystem::path &drmRoo
 
   std::error_code ec;
   if (!std::filesystem::is_directory(drmRoot, ec)) {
-    spdlog::debug("{} is not a directory, no GPUs will be detected", drmRoot.string());
+    SPDLOG_DEBUG("{} is not a directory, no GPUs will be detected", drmRoot.string());
     return cards;
   }
 
@@ -67,7 +67,7 @@ std::vector<GpuCardInfo> GpuDetector::detect(const std::filesystem::path &drmRoo
 
     if (card.vendorId != PCI_VENDOR_AMD && card.vendorId != PCI_VENDOR_NVIDIA &&
         card.vendorId != PCI_VENDOR_INTEL) {
-      spdlog::debug("{}: unsupported gpu vendor {:#06x}", entry.path().string(), card.vendorId);
+      SPDLOG_DEBUG("{}: unsupported gpu vendor {:#06x}", entry.path().string(), card.vendorId);
       continue;
     }
 
@@ -82,8 +82,8 @@ std::vector<GpuCardInfo> GpuDetector::detect(const std::filesystem::path &drmRoo
 
     card.hwmonPath = findHwmon(devicePath);
 
-    spdlog::debug("detected gpu {} vendor {:#06x} device {:#06x} driver {}", card.pciAddress,
-                  card.vendorId, card.deviceId, card.driver);
+    SPDLOG_DEBUG("detected gpu {} vendor {:#06x} device {:#06x} driver {}", card.pciAddress,
+                 card.vendorId, card.deviceId, card.driver);
     cards.push_back(std::move(card));
   }
 

@@ -15,9 +15,9 @@
 #include <unistd.h>
 #include <vector>
 
+#include "Devices/CpuDevice.hpp"
 #include "Devices/Device.hpp"
 #include "Devices/DeviceType.hpp"
-#include "Devices/CpuDevice.hpp"
 #include "Devices/GPU/AmdGpuDevice.hpp"
 #include "Devices/GPU/GpuDetector.hpp"
 #include "Devices/GPU/IntelGpuDevice.hpp"
@@ -40,7 +40,7 @@ Runner::Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpeci
 };
 #ifdef DEBUG
 Runner::~Runner() {
-  spdlog::trace("runner destroyed");
+  SPDLOG_TRACE("runner destroyed");
 }
 #endif
 
@@ -57,7 +57,7 @@ long Runner::getUnixTimestamp() {
 //  ===============
 void Runner::setup() {
   if (!std::filesystem::exists(hwmonPath) || access(hwmonPath.c_str(), R_OK) == -1) {
-    spdlog::critical("no access to hwmon interface, aborting");
+    SPDLOG_CRITICAL("no access to hwmon interface, aborting");
     throw std::runtime_error("no access to hwmon interface");
   }
 
@@ -66,7 +66,7 @@ void Runner::setup() {
     hwmonPaths.insert(std::filesystem::canonical(entry.path()));
   }
 
-  spdlog::trace("hwmon length: {}", hwmonPaths.size());
+  SPDLOG_TRACE("hwmon length: {}", hwmonPaths.size());
 
   if (doSpecializedDevices) {
     auto cpu = std::make_unique<CpuDevice>(hwmonPaths);
@@ -81,7 +81,7 @@ void Runner::setup() {
     devices.push_back(std::move(ram));
   }
 
-  spdlog::trace("hwmon length: {}", hwmonPaths.size());
+  SPDLOG_TRACE("hwmon length: {}", hwmonPaths.size());
   // rest of hwmon devices
   for (const auto &entry : hwmonPaths) {
     auto dev = std::make_unique<SysfsDevice>(entry.filename(), DeviceType::UNKNOWN, entry);
@@ -119,7 +119,7 @@ void Runner::setupGpuDevices(std::set<std::filesystem::path> &hwmonPaths) {
       gpu->initialize();
       devices.push_back(std::move(gpu));
     } catch (const std::exception &e) {
-      spdlog::error("failed to initialize gpu {}: {}", card.cardPath.string(), e.what());
+      SPDLOG_ERROR("failed to initialize gpu {}: {}", card.cardPath.string(), e.what());
     }
   }
 }
@@ -127,7 +127,7 @@ void Runner::setupGpuDevices(std::set<std::filesystem::path> &hwmonPaths) {
 void Runner::setupNetworkDevice() {
   const std::filesystem::path sysfs_net = "/sys/class/net";
   if (!std::filesystem::exists(sysfs_net) || access(sysfs_net.c_str(), R_OK) == -1) {
-    spdlog::error("{} inaccessible; skipping networking", sysfs_net.string());
+    SPDLOG_ERROR("{} inaccessible; skipping networking", sysfs_net.string());
     return;
   }
 
@@ -147,7 +147,7 @@ void Runner::run() {
   auto timestamp = getUnixTimestamp();
   while (state.running.load(std::memory_order_relaxed)) {
     if (state.resetFlag.load(std::memory_order_relaxed)) {
-      spdlog::debug("reset initiated");
+      SPDLOG_DEBUG("reset initiated");
       resetReadings();
       timestamp = getUnixTimestamp();
       state.resetFlag.store(false, std::memory_order_relaxed);

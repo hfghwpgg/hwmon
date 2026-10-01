@@ -74,7 +74,7 @@ void IntelGpuDevice::initialize() {
   addHwmonSensors();
 
   if (!havePmu && sensors.empty())
-    spdlog::warn("{}: no readable metrics found", card.devicePath.string());
+    SPDLOG_WARN("{}: no readable metrics found", card.devicePath.string());
 }
 
 void IntelGpuDevice::read() {
@@ -105,13 +105,13 @@ nlohmann::json IntelGpuDevice::serialize() {
 bool IntelGpuDevice::setupPmu() {
   pmuEngines = discover_engines(PMU_DEVICE);
   if (pmuEngines == nullptr) {
-    spdlog::debug("intel gpu: no PMU engines found for {}", PMU_DEVICE);
+    SPDLOG_DEBUG("intel gpu: no PMU engines found for {}", PMU_DEVICE);
     return false;
   }
 
   if (pmu_init(pmuEngines) != 0) {
-    spdlog::warn("intel gpu: failed to initialize PMU, engine utilization unavailable");
-    spdlog::info("try running with sudo");
+    SPDLOG_WARN("intel gpu: failed to initialize PMU, engine utilization unavailable");
+    SPDLOG_INFO("try running with sudo");
     free_engines(pmuEngines);
     pmuEngines = nullptr;
     return false;
@@ -137,7 +137,7 @@ bool IntelGpuDevice::setupPmu() {
   if (pmuEngines->num_rapl > 0)
     power = Sensor::addPushSensor<ScaleTransform>(sensors, {"GPU power", SensorType::POWER, 1});
 
-  spdlog::info("using i915 PMU for {} ({} engines)", name, pmuEngines->num_engines);
+  SPDLOG_INFO("using i915 PMU for {} ({} engines)", name, pmuEngines->num_engines);
   return true;
 }
 

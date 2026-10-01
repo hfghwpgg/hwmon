@@ -18,7 +18,7 @@ Sensor::Sensor(std::unique_ptr<Source> source, std::unique_ptr<Transform> readin
     source(std::move(source)),
     readingTransform(std::move(readingTransform)),
     config(config) {
-  spdlog::trace("sensor init; its name: {}", config.name);
+  SPDLOG_TRACE("sensor init; its name: {}", config.name);
   readings.reset();
 }
 
@@ -40,19 +40,19 @@ void Sensor::updateValue() {
   auto raw = source->read();
   if (!raw) {
     if (raw.error() == Source::SourceStatus::NotReady)
-      spdlog::trace("sensor '{}': no value pushed yet", config.name);
+      SPDLOG_TRACE("sensor '{}': no value pushed yet", config.name);
     else
-      spdlog::error("sensor '{}': invalid value read", config.name);
+      SPDLOG_ERROR("sensor '{}': invalid value read", config.name);
     return;
   }
 
   auto val = readingTransform->apply(*raw);
   if (!val.has_value()) {
-    spdlog::trace("sensor '{}': not ready yet", config.name);
+    SPDLOG_TRACE("sensor '{}': not ready yet", config.name);
     return;
   }
   if (std::isnan(*val)) {
-    spdlog::trace("sensor '{}': value of recieved data is NaN", config.name);
+    SPDLOG_TRACE("sensor '{}': value of recieved data is NaN", config.name);
     return;
   }
 

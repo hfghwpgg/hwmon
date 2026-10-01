@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
     spdlog::set_level(spdlog::level::debug);
     break;
   default:
+    spdlog::set_level(spdlog::level::info);
     break;
   }
 
@@ -61,10 +62,10 @@ int main(int argc, char *argv[]) {
   }
 
   if (!served) {
-    spdlog::error("server failed to start");
+    SPDLOG_ERROR("server failed to start");
     return 1;
   }
 
-  spdlog::info("program ended gracefully");
+  SPDLOG_INFO("program ended gracefully");
   return 0;
 }

@@ -122,7 +122,7 @@ void CpuDevice::getTemperature() {
 // this interface returns frequency in kHz, not Hz.
 void CpuDevice::getCoreFrequency() {
   if (!std::filesystem::exists(cpuPaths.cpufreq) || access(cpuPaths.cpufreq.c_str(), R_OK) == -1) {
-    spdlog::error("{} inaccessible", cpuPaths.cpufreq.string());
+    SPDLOG_ERROR("{} inaccessible", cpuPaths.cpufreq.string());
     return;
   }
   for (const auto &policy : std::filesystem::directory_iterator(cpuPaths.cpufreq)) {
@@ -142,7 +142,7 @@ void CpuDevice::getCoreFrequency() {
 std::string CpuDevice::getName() {
   std::string name = "cpumodel"; // placeholder
   if (!std::filesystem::exists(cpuPaths.cpuinfo) || access(cpuPaths.cpuinfo.c_str(), R_OK) == -1) {
-    spdlog::error("{} inaccessible; setting general name for cpu", cpuPaths.cpuinfo.string());
+    SPDLOG_ERROR("{} inaccessible; setting general name for cpu", cpuPaths.cpuinfo.string());
     return name;
   }
 
@@ -163,7 +163,7 @@ std::string CpuDevice::getName() {
   cpuinfo_fd.close();
 
   if (name == "cpumodel")
-    spdlog::warn("couldn't find cpu name in CPUINFO");
+    SPDLOG_WARN("couldn't find cpu name in CPUINFO");
   return name;
 }
 
@@ -171,7 +171,7 @@ std::string CpuDevice::getName() {
 // valueSensors for cpu + each core
 void CpuDevice::initUtilization() {
   if (!std::filesystem::exists(cpuPaths.cpuutil) || access(cpuPaths.cpuutil.c_str(), R_OK) == -1) {
-    spdlog::error("{} inaccessible", cpuPaths.cpuutil.string());
+    SPDLOG_ERROR("{} inaccessible", cpuPaths.cpuutil.string());
     return;
   }
 
@@ -200,11 +200,11 @@ void CpuDevice::initUtilization() {
 // actually reading stuff
 void CpuDevice::readUtilization() {
   if (utilSensorsPrivate.size() == 0) {
-    spdlog::critical("no cpu utilization sensors detected");
+    SPDLOG_CRITICAL("no cpu utilization sensors detected");
     return;
   }
   if (!cpuutil_fd.is_open()) {
-    spdlog::critical("access to {} suddenly lost", cpuPaths.cpuutil.string());
+    SPDLOG_CRITICAL("access to {} suddenly lost", cpuPaths.cpuutil.string());
     return;
   }
 
@@ -241,7 +241,7 @@ void CpuDevice::readUtilization() {
       }
 
       if (!utilSensorsPrivate.contains(cpuCoreNum)) {
-        spdlog::critical("somehow, cpu core is not present in the cpuUtil map. aborting");
+        SPDLOG_CRITICAL("somehow, cpu core is not present in the cpuUtil map. aborting");
         throw std::runtime_error("cpuCoreNum not present in cpuUtil map");
       }
       auto &utilEntry = utilSensorsPrivate.at(cpuCoreNum);
@@ -263,10 +263,10 @@ void CpuDevice::readUtilization() {
         utilEntry.src->setValue(NAN); // follow convention
       }
     } catch (const std::out_of_range &) {
-      spdlog::critical("somehow, amount of cores read is invalid. aborting");
+      SPDLOG_CRITICAL("somehow, amount of cores read is invalid. aborting");
       throw std::runtime_error("out of range in CpuDevice");
     } catch (const std::exception &) {
-      spdlog::critical("reading cpu utilization failed. aborting");
+      SPDLOG_CRITICAL("reading cpu utilization failed. aborting");
       throw std::runtime_error("reading cpu utilization failed");
     }
   }
@@ -297,7 +297,7 @@ void CpuDevice::getPowerDraw() {
 
   helpers::SensorVec powerSensors;
   if (zenergyAccessible) {
-    spdlog::info("using zenergy interface for cpu power draw");
+    SPDLOG_INFO("using zenergy interface for cpu power draw");
     const auto availableSensors = SharedHwmonParser::parseHwmonDirectory(zenergyPath);
     powerSensors = SharedHwmonParser::returnSensors(zenergyPath, availableSensors);
     // kinda hacky
@@ -318,11 +318,11 @@ void CpuDevice::getPowerDraw() {
       }
     }
   } else if (intelRaplAccessible) {
-    spdlog::info("using intel rapl interface for cpu power draw");
+    SPDLOG_INFO("using intel rapl interface for cpu power draw");
     Sensor::makeFileSensor<DeltaTransform>(powerSensors, cpuPaths.intelrapl,
                                            {"Socket power draw", SensorType::POWER});
   } else {
-    spdlog::warn("couldn't read cpu power draw. Try running with sudo");
+    SPDLOG_WARN("couldn't read cpu power draw. Try running with sudo");
   }
 
   sensors.insert(sensors.end(), std::make_move_iterator(powerSensors.begin()),

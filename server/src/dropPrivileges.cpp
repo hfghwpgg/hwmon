@@ -10,11 +10,11 @@
 // somehow else (or rather, if we dont get SUDO_UID/GID env)
 // for now we crash but its probably not a very good idea
 void dropPrivileges() {
-  spdlog::debug("current uid: {} | gid: {}", getuid(), getgid());
+  SPDLOG_DEBUG("current uid: {} | gid: {}", getuid(), getgid());
 
   // we arent running as root
   if (getuid() != 0) {
-    spdlog::debug("we're NOT running as root");
+    SPDLOG_DEBUG("we're NOT running as root");
     return;
   }
 
@@ -22,8 +22,8 @@ void dropPrivileges() {
   const auto gid = getenv("SUDO_GID");
 
   if (!uid || !gid) {
-    spdlog::critical("didnt recieve uid/gid from sudo");
-    spdlog::warn("dont run this as root user ...");
+    SPDLOG_CRITICAL("didnt recieve uid/gid from sudo");
+    SPDLOG_WARN("dont run this as root user ...");
     throw std::runtime_error("didnt recieve uid/gid from sudo");
   }
 
@@ -50,10 +50,10 @@ void dropPrivileges() {
   // sanity check
 
   if (getuid() == 0) {
-    spdlog::critical("we're still root, aborting");
+    SPDLOG_CRITICAL("we're still root, aborting");
     throw std::runtime_error("we're still root, aborting");
   }
 
-  spdlog::info("successfully dropped root privileges");
-  spdlog::debug("current uid: {} | gid: {}", getuid(), getgid());
+  SPDLOG_INFO("successfully dropped root privileges");
+  SPDLOG_DEBUG("current uid: {} | gid: {}", getuid(), getgid());
 }
