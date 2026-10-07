@@ -27,6 +27,8 @@ std::expected<double, Source::SourceStatus> FileSource::read() {
   double readData;
   auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), readData);
   if (ec != std::errc{} || ptr != str.data() + str.size()) {
+    SPDLOG_TRACE("invalid read. raw file (inside quotes, in newline) \n'{}'", str);
+    SPDLOG_TRACE("end of raw file");
     return std::unexpected(SourceStatus::Unreadable);
   }
 

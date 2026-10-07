@@ -98,11 +98,11 @@ nlohmann::json Sensor::serialize() {
 }
 
 SensorType Sensor::deduceSensorType(const std::string &sensorName) {
-  auto lastDigit = sensorName.find_first_of("0123456789");
+  auto firstDigit = sensorName.find_first_of("0123456789");
 
   std::string_view prefix;
-  if (lastDigit != std::string::npos) {
-    prefix = std::string_view(sensorName).substr(0, lastDigit);
+  if (firstDigit != std::string::npos) {
+    prefix = std::string_view(sensorName).substr(0, firstDigit);
   } else {
     prefix = sensorName;
   }
