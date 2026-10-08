@@ -11,8 +11,8 @@
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
 #include "Devices/CpuDevice.hpp"
@@ -26,15 +26,14 @@
 #include "Devices/RamDevice.hpp"
 #include "Devices/SysfsDevice.hpp"
 #include "SharedState.hpp"
-#include "helpers.hpp"
 
 using nlohmann::json;
 
-Runner::Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpecializedDevices,
-               std::filesystem::path drmPath) :
+Runner::Runner(SharedState &state, std::filesystem::path hwmonPath, std::filesystem::path drmPath,
+               bool doSpecializedDevices) :
     doSpecializedDevices(doSpecializedDevices),
-    hwmonPath(hwmonPath),
-    drmPath(drmPath),
+    hwmonPath(std::move(hwmonPath)),
+    drmPath(std::move(drmPath)),
     state(state) {
   devices.reserve(10);
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <string_view>
 
@@ -12,9 +13,7 @@ static inline constexpr std::array<std::string_view, 3> sensorAttributeWhitelist
 };
 
 inline bool IsWhitelistedSensorAttribute(std::string_view attribute) {
-  for (const auto allowed : sensorAttributeWhitelist) {
-    if (attribute == allowed)
-      return true;
-  }
-  return false;
+  return std::ranges::any_of(sensorAttributeWhitelist, [attribute](std::string_view allowed) {
+    return attribute == allowed;
+  });
 }

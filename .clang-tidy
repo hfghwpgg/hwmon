@@ -1,0 +1,19 @@
+HeaderFilterRegex: '^(?!.*Libraries/intel_gpu_top).*'
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-*,
+  concurrency-*,
+  clang-analyzer-*,
+
+  -bugprone-easily-swappable-parameters,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -readability-uppercase-literal-suffix,
+  -readability-magic-numbers,
+  -readability-braces-around-statements,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+WarningsAsErrors: ''

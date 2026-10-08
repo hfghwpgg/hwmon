@@ -31,10 +31,12 @@ CpuDevice::CpuDevice(std::set<std::filesystem::path> &hwmonPaths,
                      std::filesystem::path cpufreq_path, std::filesystem::path cpuinfo_path,
                      std::filesystem::path cpuutil_path, std::filesystem::path intelrapl_path) :
     Device("SAMPLE CPU NAME", DeviceType::CPU),
-    cpuPaths(CpuPaths{.cpufreq = cpufreq_path,
-                      .cpuinfo = cpuinfo_path,
-                      .cpuutil = cpuutil_path,
-                      .intelrapl = intelrapl_path}),
+    cpuPaths(CpuPaths{
+        .cpufreq = std::move(cpufreq_path),
+        .cpuinfo = std::move(cpuinfo_path),
+        .cpuutil = std::move(cpuutil_path),
+        .intelrapl = std::move(intelrapl_path),
+    }),
     hwmonPaths(hwmonPaths) {}
 
 CpuDevice::~CpuDevice() {
@@ -134,8 +136,9 @@ void CpuDevice::getCoreFrequency() {
     // we know that file starts with 'policy', and thats 6 letters.
     // we only want core number, so we substr the beginning
     const std::string suffix = filename.substr(6);
-    const std::string label = suffix.length() > 0 ? "CPU core " + suffix : "CPU";
-    Sensor::makeFileSensor<ScaleTransform>(sensors, path, {label, SensorType::FREQUENCY, 1000});
+    const std::string label = !suffix.empty() ? "CPU core " + suffix : "CPU";
+    Sensor::makeFileSensor<ScaleTransform>(
+        sensors, path, {.name = label, .type = SensorType::FREQUENCY, .rawDivider = 1000});
   }
 }
 
@@ -149,7 +152,7 @@ std::string CpuDevice::getName() {
   std::ifstream cpuinfo_fd(cpuPaths.cpuinfo);
   std::string line;
   while (std::getline(cpuinfo_fd, line)) {
-    if (line.find("model name") == std::string::npos)
+    if (!line.contains("model name"))
       continue;
 
     const auto colonIdx = line.find(':');
@@ -187,19 +190,28 @@ void CpuDevice::initUtilization() {
     ss >> cpuCoreNum; // first column is name
     // remove cpu beginning
     const std::string suffix = cpuCoreNum.substr(3);
-    const std::string label = suffix.length() > 0 ? "CPU core " + suffix : "CPU";
+    const std::string label = !suffix.empty() ? "CPU core " + suffix : "CPU";
     const bool primary = label == "CPU";
 
     utilSensorsPrivate.emplace(
-        cpuCoreNum, utilSensorData{Sensor::addPushSensor<ScaleTransform>(
-                                       sensors, {label, SensorType::UTILIZATION, 1, true, primary}),
-                                   {0, 0, false}});
+        cpuCoreNum,
+        utilSensorData{
+            .src = Sensor::addPushSensor<ScaleTransform>(sensors,
+                                                         {
+                                                             .name = label,
+                                                             .type = SensorType::UTILIZATION,
+                                                             .rawDivider = 1,
+                                                             .aggregateData = true,
+                                                             .isPrimary = primary,
+                                                         }),
+            .utilOld = {.totalTime = 0, .idleTime = 0, .hasRead = false},
+        });
   }
 }
 
 // actually reading stuff
 void CpuDevice::readUtilization() {
-  if (utilSensorsPrivate.size() == 0) {
+  if (utilSensorsPrivate.empty()) {
     SPDLOG_CRITICAL("no cpu utilization sensors detected");
     return;
   }
@@ -248,8 +260,8 @@ void CpuDevice::readUtilization() {
       if (utilEntry.utilOld.hasRead) {
         // calculations
         // time there corresponds to cpu time
-        const long calc_totalTime = totalTime - utilEntry.utilOld.totalTime;
-        const long calc_idleTime = idleTime - utilEntry.utilOld.idleTime;
+        const unsigned long calc_totalTime = totalTime - utilEntry.utilOld.totalTime;
+        const unsigned long calc_idleTime = idleTime - utilEntry.utilOld.idleTime;
         utilEntry.utilOld.totalTime = totalTime;
         utilEntry.utilOld.idleTime = idleTime;
 
@@ -319,8 +331,8 @@ void CpuDevice::getPowerDraw() {
     }
   } else if (intelRaplAccessible) {
     SPDLOG_INFO("using intel rapl interface for cpu power draw");
-    Sensor::makeFileSensor<DeltaTransform>(powerSensors, cpuPaths.intelrapl,
-                                           {"Socket power draw", SensorType::POWER});
+    Sensor::makeFileSensor<DeltaTransform>(
+        powerSensors, cpuPaths.intelrapl, {.name = "Socket power draw", .type = SensorType::POWER});
   } else {
     SPDLOG_WARN("couldn't read cpu power draw. Try running with sudo");
   }

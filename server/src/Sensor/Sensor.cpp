@@ -5,8 +5,8 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <spdlog/spdlog.h>
-#include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "SensorReading.hpp"
 #include "SensorType.hpp"
@@ -26,7 +26,7 @@ std::string Sensor::getName() {
   return config.name;
 }
 void Sensor::setName(std::string name) {
-  config.name = name;
+  config.name = std::move(name);
 }
 SensorType Sensor::getType() {
   return config.type;

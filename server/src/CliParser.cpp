@@ -1,5 +1,4 @@
 #include "CliParser.hpp"
-#include "helpers.hpp"
 #include <argparse/argparse.hpp>
 #include <filesystem>
 #include <stdexcept>
@@ -17,7 +16,7 @@ Config CliParser(int argc, char *argv[]) {
         if (parsed > 2) {
           throw std::runtime_error("Argument -d/--debuglevel must be less or equal to 2");
         }
-        return static_cast<unsigned int>(parsed);
+        return parsed;
       });
   hwmon.add_argument("-i", "--interval")
       .default_value(1000u)

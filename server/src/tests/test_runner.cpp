@@ -61,6 +61,11 @@ protected:
     hwmonPath = hwmonRoot;
   }
 
+  void createFakeDrm() {
+    const fs::path drmRoot = root / "drm";
+    drmPath = drmRoot;
+  }
+
   static bool snapshotHasDeltaSensorTimes(const std::string &snapshot, std::size_t minTimes) {
     const json devices = json::parse(snapshot);
     for (const auto &device : devices) {
@@ -152,7 +157,7 @@ protected:
   }
 
   void startRunner() {
-    runner.emplace(state, hwmonPath, false);
+    runner.emplace(state, hwmonPath, drmPath, false);
     runner->setup();
     runThread = std::jthread([this] { runner->run(); });
   }
@@ -160,6 +165,7 @@ protected:
   SharedState state{50};
   fs::path root;
   fs::path hwmonPath;
+  fs::path drmPath;
   std::optional<Runner> runner;
   std::jthread runThread;
 };
@@ -168,6 +174,7 @@ protected:
 
 TEST_F(RunnerResetTest, ResetFlagClearsSensorTimesInSnapshot) {
   createFakeHwmon();
+  createFakeDrm();
   startRunner();
 
   ASSERT_TRUE(waitForSnapshot([](const std::string &s) { return snapshotHasSensorTimes(s, 2); }));
@@ -179,6 +186,7 @@ TEST_F(RunnerResetTest, ResetFlagClearsSensorTimesInSnapshot) {
 
 TEST_F(RunnerResetTest, ResetFlagIsClearedAfterProcessing) {
   createFakeHwmon();
+  createFakeDrm();
   startRunner();
 
   ASSERT_TRUE(waitForSnapshot([](const std::string &s) { return snapshotHasSensorTimes(s, 2); }));
@@ -190,6 +198,7 @@ TEST_F(RunnerResetTest, ResetFlagIsClearedAfterProcessing) {
 
 TEST_F(RunnerResetTest, ResetPreservesDeviceList) {
   createFakeHwmon();
+  createFakeDrm();
   startRunner();
 
   ASSERT_TRUE(waitForSnapshot([](const std::string &s) { return snapshotHasSensorTimes(s, 2); }));
@@ -208,6 +217,7 @@ TEST_F(RunnerResetTest, ResetPreservesDeviceList) {
 
 TEST_F(RunnerResetTest, ResetClearsDeltaSensorBaseline) {
   createFakeHwmonWithEnergy();
+  createFakeDrm();
   startRunner();
 
   // Loop 1: energy baseline. Loop 2+: energy sample with static counter delta.

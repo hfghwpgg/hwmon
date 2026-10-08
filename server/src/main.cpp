@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
   // this block is only for a correct order
   // of debug messsages
   {
-    Runner runner{state, config.hwmonPath, true};
+    Runner runner{state, config.hwmonPath, "/sys/class/drm", true};
     runner.setup();
 
     if (!config.dontDropRoot) {

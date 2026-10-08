@@ -1,6 +1,4 @@
 #include <filesystem>
-#include <fstream>
-#include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_map>
@@ -103,16 +101,17 @@ void SharedHwmonParser::createSensors(const std::filesystem::path &path,
 
     if (type == SensorType::ENERGY) {
       // energy sensors return power
-      Sensor::makeFileSensor<DeltaTransform>(sensors, valueSrcPath, {label, SensorType::POWER});
+      Sensor::makeFileSensor<DeltaTransform>(sensors, valueSrcPath,
+                                             {.name = label, .type = SensorType::POWER});
     } else {
-      Sensor::makeFileSensor<ScaleTransform>(sensors, valueSrcPath, {label, type});
+      Sensor::makeFileSensor<ScaleTransform>(sensors, valueSrcPath, {.name = label, .type = type});
     }
   }
 }
 helpers::SensorVec
 SharedHwmonParser::returnSensors(const std::filesystem::path &path,
-                                 const helpers::AvailableSensorsMap &available_sensors) {
+                                 const helpers::AvailableSensorsMap &availableSensors) {
   helpers::SensorVec sensors;
-  createSensors(path, available_sensors, sensors);
+  createSensors(path, availableSensors, sensors);
   return sensors;
 }

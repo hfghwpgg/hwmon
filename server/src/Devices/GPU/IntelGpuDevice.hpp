@@ -7,7 +7,6 @@
 #include "Devices/Device.hpp"
 #include "GpuDetector.hpp"
 #include "Sensor/Source.hpp"
-#include "helpers.hpp"
 
 struct engines;
 
@@ -18,7 +17,7 @@ public:
   // allowPmu must be set for at most one card: the i915 perf PMU is a
   // process-wide resource and the upstream helper only handles one device.
   IntelGpuDevice(GpuCardInfo card, std::set<std::filesystem::path> &hwmonPaths, bool allowPmu);
-  ~IntelGpuDevice();
+  ~IntelGpuDevice() override;
 
   void initialize() override;
   void read() override;
@@ -39,5 +38,5 @@ private:
   bool setupPmu();
   void readPmu();
   void addHwmonSensors();
-  std::string lookupName() const;
+  [[nodiscard]] std::string lookupName() const;
 };

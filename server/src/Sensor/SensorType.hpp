@@ -54,4 +54,5 @@ static const std::unordered_map<std::string_view, SensorType> sensorConfigMap = 
     {"energy", SensorType::ENERGY}, // energy is provided in ujoules, needs different
                                     // calculations
 
-    {"util", SensorType::UTILIZATION}};
+    {"util", SensorType::UTILIZATION},
+};

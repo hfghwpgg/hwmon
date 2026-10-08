@@ -72,8 +72,8 @@ socklen_t initAbstractAddress(sockaddr_un &addr, std::string_view name) {
   return static_cast<socklen_t>(offsetof(sockaddr_un, sun_path) + 1 + name.size());
 }
 
-UDSServer::UDSServer(std::string socketName, int backlog, size_t maxClients, SharedState &state,
-                     SocketOps ops) :
+UDSServer::UDSServer(std::string socketName, unsigned int backlog, size_t maxClients,
+                     SharedState &state, SocketOps ops) :
     socketName(std::move(socketName)),
     backlog(backlog),
     maxClients(maxClients),

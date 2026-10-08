@@ -1,6 +1,5 @@
 #pragma once
 #include <concepts>
-#include <csignal>
 #include <filesystem>
 #include <memory>
 #include <nlohmann/json_fwd.hpp>

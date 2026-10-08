@@ -18,19 +18,19 @@ void dropPrivileges() {
     return;
   }
 
-  const auto uid = getenv("SUDO_UID");
-  const auto gid = getenv("SUDO_GID");
+  auto *const uid = getenv("SUDO_UID");
+  auto *const gid = getenv("SUDO_GID");
 
-  if (!uid || !gid) {
+  if ((uid == nullptr) || (gid == nullptr)) {
     SPDLOG_CRITICAL("didnt recieve uid/gid from sudo");
     SPDLOG_WARN("dont run this as root user ...");
     throw std::runtime_error("didnt recieve uid/gid from sudo");
   }
 
-  uid_t target_uid = (uid_t)std::stoi(uid);
-  gid_t target_gid = (gid_t)std::stoi(gid);
+  uid_t target_uid = static_cast<uid_t>(std::stoi(uid));
+  gid_t target_gid = static_cast<gid_t>(std::stoi(gid));
   // clear root groups
-  if (setgroups(0, NULL) != 0) {
+  if (setgroups(0, nullptr) != 0) {
     perror("setgroups");
     throw std::runtime_error("failed to clear root groups");
   }

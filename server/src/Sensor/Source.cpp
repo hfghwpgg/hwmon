@@ -25,6 +25,15 @@ std::expected<double, Source::SourceStatus> FileSource::read() {
   std::getline(stream, str);
 
   double readData;
+
+  if (stream.fail()) {
+    int e = errno;
+    SPDLOG_TRACE("read fail; details:");
+    SPDLOG_TRACE("rdstate={} bad={} eof={} errno={} ({})", static_cast<int>(stream.rdstate()),
+                 stream.bad(), stream.eof(), e, std::generic_category().message(e));
+    return std::unexpected(SourceStatus::Unreadable);
+  }
+
   auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), readData);
   if (ec != std::errc{} || ptr != str.data() + str.size()) {
     SPDLOG_TRACE("invalid read. raw file (inside quotes, in newline) \n'{}'", str);

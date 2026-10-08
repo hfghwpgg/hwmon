@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <utility>
 
 #include "DeviceType.hpp"
 #include "Sensor/Sensor.hpp"
@@ -10,14 +11,14 @@
 #include "Sensor/Transform.hpp"
 
 NetworkDevice::NetworkDevice(std::string name, std::filesystem::path statsPath) :
-    Device(name, DeviceType::NETWORK),
-    statsPath(statsPath) {}
+    Device(std::move(name), DeviceType::NETWORK),
+    statsPath(std::move(statsPath)) {}
 
 void NetworkDevice::initialize() {
   Sensor::makeFileSensor<DeltaTransform>(sensors, statsPath / "rx_bytes",
-                                         {"Recieve speed", SensorType::THROUGHPUT});
-  Sensor::makeFileSensor<DeltaTransform>(sensors, statsPath / "tx_bytes",
-                                         {"Transmit speed", SensorType::THROUGHPUT});
+                                         {.name = "Recieve speed", .type = SensorType::THROUGHPUT});
+  Sensor::makeFileSensor<DeltaTransform>(
+      sensors, statsPath / "tx_bytes", {.name = "Transmit speed", .type = SensorType::THROUGHPUT});
 }
 
 void NetworkDevice::read() {

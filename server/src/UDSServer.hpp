@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "SharedState.hpp"
-#include "helpers.hpp"
 
 struct SharedState;
 
@@ -73,7 +72,7 @@ public:
   // Largest request a single client may buffer before it gets disconnected.
   static constexpr size_t maxRequestBytes = 64 * 1024;
 
-  UDSServer(std::string socketName, int backlog, size_t maxClients, SharedState &state,
+  UDSServer(std::string socketName, unsigned int backlog, size_t maxClients, SharedState &state,
             SocketOps ops = {});
   ~UDSServer();
 
@@ -102,7 +101,7 @@ private:
   static void RejectClient(const FdGuard &clientFd, std::string_view reason);
 
   const std::string socketName;
-  const int backlog;
+  const unsigned int backlog;
   const size_t maxClients;
   SharedState &state;
   SocketOps ops;

@@ -6,15 +6,13 @@
 
 #include "Devices/Device.hpp"
 #include "SharedState.hpp"
-#include "helpers.hpp"
 
 struct SharedState;
 
 class Runner {
 public:
-  explicit Runner(SharedState &state, std::filesystem::path hwmonPath, bool doSpecializedDevices,
-                  std::filesystem::path drmPath = "/sys/class/drm");
-
+  explicit Runner(SharedState &state, std::filesystem::path hwmonPath,
+                  std::filesystem::path drmPath, bool doSpecializedDevices);
 
 #ifdef DEBUG
   ~Runner();

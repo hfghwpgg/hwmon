@@ -1,7 +1,6 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
-#include <stddef.h>
 #include <stdexcept>
 #include <string>
 
@@ -14,7 +13,7 @@ enum class DeviceType;
 
 using std::string;
 
-SysfsDevice::SysfsDevice(string name, DeviceType type, std::filesystem::path path) :
+SysfsDevice::SysfsDevice(string name, DeviceType type, const std::filesystem::path &path) :
     Device(name, type),
     path(path) {
   SPDLOG_TRACE("CURRENT SYSFS DEVICE: {} <{}>", path.string(), name);

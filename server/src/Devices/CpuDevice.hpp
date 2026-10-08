@@ -5,7 +5,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "../helpers.hpp"
 #include "Device.hpp"
 #include "Sensor/Source.hpp"
 
@@ -16,7 +15,7 @@ public:
   CpuDevice(std::set<std::filesystem::path> &hwmonPaths, std::filesystem::path cpufreq_path,
             std::filesystem::path cpuinfo_path, std::filesystem::path cpuutil_path,
             std::filesystem::path intelrapl_path);
-  ~CpuDevice();
+  ~CpuDevice() override;
 
   void initialize() override;
   void read() override;
@@ -25,8 +24,8 @@ public:
 
 private:
   struct lastReading { // cpu time
-    unsigned long long totalTime;
-    unsigned long long idleTime;
+    unsigned long totalTime;
+    unsigned long idleTime;
     bool hasRead;
   };
 

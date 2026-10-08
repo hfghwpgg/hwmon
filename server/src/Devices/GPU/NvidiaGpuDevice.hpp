@@ -8,7 +8,6 @@
 #include "GpuDetector.hpp"
 #include "Libraries/NvmlLibrary.hpp"
 #include "Sensor/Source.hpp"
-#include "helpers.hpp"
 
 class NvidiaGpuDevice : public Device {
 public:
@@ -52,5 +51,5 @@ private:
   bool setupNvml();
   void readNvml();
   void addHwmonSensors();
-  std::string sysfsName() const;
+  [[nodiscard]] std::string sysfsName() const;
 };

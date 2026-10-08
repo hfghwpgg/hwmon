@@ -22,10 +22,20 @@ void RamDevice::initialize() {
     SPDLOG_ERROR("{} inaccessible; skipping ram", meminfoPath.string());
     return;
   }
-  totalSrc = Sensor::addPushSensor<ScaleTransform>(
-      sensors, {"Total memory", SensorType::MEMORY, 1, false, false});
-  availableSrc = Sensor::addPushSensor<ScaleTransform>(
-      sensors, {"Used memory", SensorType::MEMORY, 1, true, true});
+  totalSrc = Sensor::addPushSensor<ScaleTransform>(sensors, {
+                                                                .name = "Total memory",
+                                                                .type = SensorType::MEMORY,
+                                                                .rawDivider = 1,
+                                                                .aggregateData = false,
+                                                                .isPrimary = false,
+                                                            });
+  availableSrc = Sensor::addPushSensor<ScaleTransform>(sensors, {
+                                                                    .name = "Used memory",
+                                                                    .type = SensorType::MEMORY,
+                                                                    .rawDivider = 1,
+                                                                    .aggregateData = true,
+                                                                    .isPrimary = true,
+                                                                });
 }
 
 void RamDevice::read() {
@@ -38,8 +48,10 @@ void RamDevice::read() {
     return;
   }
 
-  bool gotTotal = false, gotAvailable = false;
-  double totalValue = 0, availableValue = 0;
+  bool gotTotal = false;
+  bool gotAvailable = false;
+  double totalValue = 0;
+  double availableValue = 0;
   std::string line, key;
   while (std::getline(file, line) && !(gotTotal && gotAvailable)) {
     double value;

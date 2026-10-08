@@ -59,8 +59,8 @@ private:
   // adds the card's hwmon sensors; when onlyUncoveredMetrics is set, only the
   // readings ROCm SMI doesn't provide (fan speed, voltage) are added
   void addHwmonSensors(bool onlyUncoveredMetrics);
-  void addSysfsSensor(helpers::SensorVec &sensors, const std::filesystem::path &path,
-                      const std::string &sensorName, SensorType type, unsigned int divider,
-                      bool aggregateData = true, bool isPrimary = false);
-  std::string sysfsName() const;
+  static void addSysfsSensor(helpers::SensorVec &sensors, const std::filesystem::path &path,
+                             const std::string &sensorName, SensorType type, unsigned int divider,
+                             bool aggregateData = true, bool isPrimary = false);
+  [[nodiscard]] std::string sysfsName() const;
 };
