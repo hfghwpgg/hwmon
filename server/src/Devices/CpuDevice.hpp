@@ -56,6 +56,5 @@ private:
   void getPowerDraw();
 
   // TODO:
-  //       power
   //       vcore
 };

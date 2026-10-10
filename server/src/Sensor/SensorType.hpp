@@ -49,7 +49,7 @@ static const std::unordered_map<std::string_view, SensorType> sensorConfigMap = 
     {"voltage", SensorType::VOLTAGE},
     {"fan", SensorType::FAN_SPEED},
     {"power", SensorType::POWER},
-    {"current", SensorType::CURRENT},
+    {"curr", SensorType::CURRENT},
     {"freq", SensorType::FREQUENCY},
     {"energy", SensorType::ENERGY}, // energy is provided in ujoules, needs different
                                     // calculations

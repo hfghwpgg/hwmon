@@ -16,4 +16,5 @@ Checks: >
   -readability-braces-around-statements,
   -readability-identifier-length,
   -readability-function-cognitive-complexity,
+  -readability-redundant-smartptr-get,
 WarningsAsErrors: ''

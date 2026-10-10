@@ -31,7 +31,7 @@ TEST(SensorConfigMap, MapsPrefixesToTypes) {
   EXPECT_EQ(sensorConfigMap.at("voltage"), SensorType::VOLTAGE);
   EXPECT_EQ(sensorConfigMap.at("fan"), SensorType::FAN_SPEED);
   EXPECT_EQ(sensorConfigMap.at("power"), SensorType::POWER);
-  EXPECT_EQ(sensorConfigMap.at("current"), SensorType::CURRENT);
+  EXPECT_EQ(sensorConfigMap.at("curr"), SensorType::CURRENT);
   EXPECT_EQ(sensorConfigMap.at("freq"), SensorType::FREQUENCY);
   EXPECT_EQ(sensorConfigMap.at("energy"), SensorType::ENERGY);
 }

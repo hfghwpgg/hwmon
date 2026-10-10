@@ -82,6 +82,11 @@ nlohmann::json CpuDevice::serialize() {
 }
 
 void CpuDevice::getTemperature() {
+  // this actually just pulls in k10temp/coretemp from
+  // hwmon and if system has an alternative to that
+  // such as zenpower, then it will suck up all
+  // sensors exposed, such as current or voltages
+  SPDLOG_TRACE("getting temperature...");
   // placeholders
   std::filesystem::path coretempDriver = "";
   std::filesystem::path cpuTemp = "";
@@ -103,8 +108,10 @@ void CpuDevice::getTemperature() {
       const auto label = helpers::readFileFirstLine(file.path());
       if (label.starts_with("Package id") || label.starts_with("Tdie") ||
           label.starts_with("SoC Temperature")) {
+        SPDLOG_TRACE("got cpuTemp: {}", dir.string());
         cpuTemp = dir;
-      } else if (label.starts_with("Core") || label.starts_with("Tccd")) {
+      } else if (dir != cpuTemp && (label.starts_with("Core") || label.starts_with("Tccd"))) {
+        SPDLOG_TRACE("got coretempDriver: {}", dir.string());
         coretempDriver = dir;
       }
     }
@@ -123,6 +130,7 @@ void CpuDevice::getTemperature() {
 
 // this interface returns frequency in kHz, not Hz.
 void CpuDevice::getCoreFrequency() {
+  SPDLOG_TRACE("getting frequencies...");
   if (!std::filesystem::exists(cpuPaths.cpufreq) || access(cpuPaths.cpufreq.c_str(), R_OK) == -1) {
     SPDLOG_ERROR("{} inaccessible", cpuPaths.cpufreq.string());
     return;
@@ -143,6 +151,7 @@ void CpuDevice::getCoreFrequency() {
 }
 
 std::string CpuDevice::getName() {
+  SPDLOG_TRACE("getting name...");
   std::string name = "cpumodel"; // placeholder
   if (!std::filesystem::exists(cpuPaths.cpuinfo) || access(cpuPaths.cpuinfo.c_str(), R_OK) == -1) {
     SPDLOG_ERROR("{} inaccessible; setting general name for cpu", cpuPaths.cpuinfo.string());
@@ -173,6 +182,7 @@ std::string CpuDevice::getName() {
 // this is just creating right amount of
 // valueSensors for cpu + each core
 void CpuDevice::initUtilization() {
+  SPDLOG_TRACE("getting util...");
   if (!std::filesystem::exists(cpuPaths.cpuutil) || access(cpuPaths.cpuutil.c_str(), R_OK) == -1) {
     SPDLOG_ERROR("{} inaccessible", cpuPaths.cpuutil.string());
     return;
@@ -285,6 +295,7 @@ void CpuDevice::readUtilization() {
 }
 
 void CpuDevice::getPowerDraw() {
+  SPDLOG_TRACE("getting power draw...");
   // we use zenergy primarly
   // if its not present we try
   // to use intel rapl

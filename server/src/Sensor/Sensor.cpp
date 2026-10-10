@@ -82,9 +82,11 @@ SensorReading Sensor::getReadings() {
   return readings;
 }
 
+// disambiguate unfortunate name for those
+// (unique_ptr `reset` vs my type `reset`)
 void Sensor::resetReadings() {
-  source->reset();
-  readingTransform->reset();
+  source.get()->reset();
+  readingTransform.get()->reset();
   readings.reset();
 }
 

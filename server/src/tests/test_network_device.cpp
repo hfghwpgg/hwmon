@@ -67,7 +67,7 @@ TEST_F(NetworkDeviceTest, InitializeCreatesReceiveAndTransmitSensors) {
   ASSERT_TRUE(j.contains("sensors"));
   ASSERT_EQ(j["sensors"].size(), 2u);
 
-  for (const char *name : {"Recieve speed", "Transmit speed"}) {
+  for (const char *name : {"Download speed", "Upload speed"}) {
     const nlohmann::json sensor = findSensor(j["sensors"], name);
     ASSERT_FALSE(sensor.empty()) << name;
     EXPECT_EQ(sensor["type"].get<int>(), static_cast<int>(SensorType::THROUGHPUT));
@@ -97,8 +97,8 @@ TEST_F(NetworkDeviceTest, ReadProducesThroughputFromRxAndTxCounters) {
   device.read();
 
   const nlohmann::json j = device.serialize();
-  const nlohmann::json rx = findSensor(j["sensors"], "Recieve speed");
-  const nlohmann::json tx = findSensor(j["sensors"], "Transmit speed");
+  const nlohmann::json rx = findSensor(j["sensors"], "Download speed");
+  const nlohmann::json tx = findSensor(j["sensors"], "Upload speed");
   ASSERT_FALSE(rx.empty());
   ASSERT_FALSE(tx.empty());
   EXPECT_EQ(rx["readings"]["times"].get<std::size_t>(), 1u);
@@ -115,27 +115,27 @@ TEST_F(NetworkDeviceTest, ResetClearsAggregatesAndReestablishesBaseline) {
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
   writeCounters(3'000, 6'000);
   device.read();
-  ASSERT_EQ(findSensor(device.serialize()["sensors"], "Recieve speed")["readings"]["times"]
+  ASSERT_EQ(findSensor(device.serialize()["sensors"], "Download speed")["readings"]["times"]
                 .get<std::size_t>(),
             1u);
 
   device.resetReadings();
-  const nlohmann::json cleared = findSensor(device.serialize()["sensors"], "Recieve speed");
+  const nlohmann::json cleared = findSensor(device.serialize()["sensors"], "Download speed");
   EXPECT_EQ(cleared["readings"]["times"].get<std::size_t>(), 0u);
 
   writeCounters(3'000, 6'000);
   device.read(); // baseline again
-  EXPECT_EQ(findSensor(device.serialize()["sensors"], "Recieve speed")["readings"]["times"]
+  EXPECT_EQ(findSensor(device.serialize()["sensors"], "Download speed")["readings"]["times"]
                 .get<std::size_t>(),
             0u);
 
   std::this_thread::sleep_for(std::chrono::milliseconds{5});
   writeCounters(5'000, 8'000);
   device.read();
-  EXPECT_EQ(findSensor(device.serialize()["sensors"], "Recieve speed")["readings"]["times"]
+  EXPECT_EQ(findSensor(device.serialize()["sensors"], "Download speed")["readings"]["times"]
                 .get<std::size_t>(),
             1u);
-  EXPECT_GT(
-      findSensor(device.serialize()["sensors"], "Recieve speed")["readings"]["value"].get<double>(),
-      0.0);
+  EXPECT_GT(findSensor(device.serialize()["sensors"], "Download speed")["readings"]["value"]
+                .get<double>(),
+            0.0);
 }

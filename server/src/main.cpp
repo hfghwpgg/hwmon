@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
   std::signal(SIGTERM, HandleSignal);
 
   bool served = false;
-  // this block is only for a correct order
+  // this block is only for correct order
   // of debug messsages
   {
     Runner runner{state, config.hwmonPath, "/sys/class/drm", true};
