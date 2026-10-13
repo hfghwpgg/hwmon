@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -57,7 +58,7 @@ SharedHwmonParser::parseHwmonDirectory(const std::filesystem::path &path) {
 }
 void SharedHwmonParser::createSensors(const std::filesystem::path &path,
                                       const helpers::AvailableSensorsMap &availableSensors,
-                                      helpers::SensorVec &sensors) {
+                                      helpers::SensorVec &sensors, std::string_view ownerName) {
   for (const auto &[sensorBase, extensions] : availableSensors) {
     bool isPwm = sensorBase.contains("pwm");
     bool hasInput = false;
@@ -102,16 +103,18 @@ void SharedHwmonParser::createSensors(const std::filesystem::path &path,
     if (type == SensorType::ENERGY) {
       // energy sensors return power
       Sensor::makeFileSensor<DeltaTransform>(sensors, valueSrcPath,
-                                             {.name = label, .type = SensorType::POWER});
+                                             {.name = label, .type = SensorType::POWER}, ownerName);
     } else {
-      Sensor::makeFileSensor<ScaleTransform>(sensors, valueSrcPath, {.name = label, .type = type});
+      Sensor::makeFileSensor<ScaleTransform>(sensors, valueSrcPath, {.name = label, .type = type},
+                                             ownerName);
     }
   }
 }
 helpers::SensorVec
 SharedHwmonParser::returnSensors(const std::filesystem::path &path,
-                                 const helpers::AvailableSensorsMap &availableSensors) {
+                                 const helpers::AvailableSensorsMap &availableSensors,
+                                 std::string_view ownerName) {
   helpers::SensorVec sensors;
-  createSensors(path, availableSensors, sensors);
+  createSensors(path, availableSensors, sensors, ownerName);
   return sensors;
 }

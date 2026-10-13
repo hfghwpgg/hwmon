@@ -50,7 +50,7 @@ protected:
   Sensor makeSensor(std::string name, SensorType type, unsigned int rawDivider = 0) {
     SensorConfig config{std::move(name), type, rawDivider};
     helpers::SensorVec sensors;
-    Sensor::makeFileSensor<TTransform>(sensors, path, config);
+    Sensor::makeFileSensor<TTransform>(sensors, path, config, "TEST");
 
     return std::move(*sensors[0]);
   }
@@ -115,6 +115,23 @@ TEST_F(SensorFileTest, SerializeEmitsNameTypeAndReadings) {
   EXPECT_FALSE(j["isPrimary"].get<bool>());
   EXPECT_EQ(j["readings"]["times"].get<std::size_t>(), 1u);
   EXPECT_DOUBLE_EQ(j["readings"]["value"].get<double>(), 45.0);
+  EXPECT_TRUE(j["readings"]["active"].get<bool>());
+}
+
+TEST_F(SensorFileTest, DisablesSensorAfterRepeatedBadReads) {
+  writeRaw("garbage");
+  Sensor sensor = makeSensor<ScaleTransform>("cpu", SensorType::TEMPERATURE);
+
+  for (int i = 0; i < MAX_ERRORS; i++)
+    sensor.updateValue();
+
+  EXPECT_FALSE(sensor.serialize()["readings"]["active"].get<bool>());
+  EXPECT_EQ(sensor.getReadings().times, 0u);
+
+  writeRaw("30000");
+  sensor.updateValue();
+  EXPECT_EQ(sensor.getReadings().times, 0u);
+  EXPECT_FALSE(sensor.serialize()["readings"]["active"].get<bool>());
 }
 
 TEST_F(SensorFileTest, SetPrimaryIsReflectedInSerialization) {
@@ -269,7 +286,7 @@ TEST_F(SensorFileTest, SourceFileThrowsOnDirectory) {
 TEST_F(SensorFileTest, MakeFileSensorAppendsToVector) {
   writeRaw("42000");
   std::vector<std::unique_ptr<Sensor>> sensors;
-  Sensor::makeFileSensor<ScaleTransform>(sensors, path, {"edge", SensorType::TEMPERATURE});
+  Sensor::makeFileSensor<ScaleTransform>(sensors, path, {"edge", SensorType::TEMPERATURE}, "TEST");
 
   ASSERT_EQ(sensors.size(), 1u);
   sensors.front()->updateValue();

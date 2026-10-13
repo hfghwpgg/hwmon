@@ -26,7 +26,7 @@ SysfsDevice::SysfsDevice(string name, DeviceType type, const std::filesystem::pa
 void SysfsDevice::initialize() {
   getName();
   const auto available_sensors = SharedHwmonParser::parseHwmonDirectory(path);
-  SharedHwmonParser::createSensors(path, available_sensors, sensors);
+  SharedHwmonParser::createSensors(path, available_sensors, sensors, name);
 }
 
 void SysfsDevice::read() {

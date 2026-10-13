@@ -21,6 +21,7 @@ struct SensorData {
   qint64 times = 0;
   bool hidden = false;
   bool primary = false;
+  bool active = true;
   qint64 flashCurrentUntil = 0;
   qint64 flashMinUntil = 0;
   qint64 flashMaxUntil = 0;

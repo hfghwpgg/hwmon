@@ -101,61 +101,65 @@ bool NvidiaGpuDevice::setupNvml() {
 
   unsigned int value = 0;
   if (nvml->nvmlDeviceGetTemperature(handle, NVML_TEMPERATURE_GPU, &value) == NVML_SUCCESS) {
-    nvmlSensors.temp =
-        Sensor::addPushSensor<ScaleTransform>(sensors, {
-                                                           .name = "GPU core",
-                                                           .type = SensorType::TEMPERATURE,
-                                                           .rawDivider = 1,
-                                                           .aggregateData = true,
-                                                           .isPrimary = true,
-                                                       });
+    nvmlSensors.temp = Sensor::addPushSensor<ScaleTransform>(sensors,
+                                                             {
+                                                                 .name = "GPU core",
+                                                                 .type = SensorType::TEMPERATURE,
+                                                                 .rawDivider = 1,
+                                                                 .aggregateData = true,
+                                                                 .isPrimary = true,
+                                                             },
+                                                             name);
   }
 
   nvmlUtilization_t utilization{};
   if (nvml->nvmlDeviceGetUtilizationRates(handle, &utilization) == NVML_SUCCESS) {
     nvmlSensors.gpuUtil = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "GPU core", .type = SensorType::UTILIZATION, .rawDivider = 1});
+        sensors, {.name = "GPU core", .type = SensorType::UTILIZATION, .rawDivider = 1}, name);
     nvmlSensors.memUtil = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "GPU memory", .type = SensorType::UTILIZATION, .rawDivider = 1});
+        sensors, {.name = "GPU memory", .type = SensorType::UTILIZATION, .rawDivider = 1}, name);
   }
 
   if (nvml->nvmlDeviceGetClockInfo(handle, NVML_CLOCK_GRAPHICS, &value) == NVML_SUCCESS) {
     nvmlSensors.gpuClock = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "GPU core", .type = SensorType::FREQUENCY, .rawDivider = 1});
+        sensors, {.name = "GPU core", .type = SensorType::FREQUENCY, .rawDivider = 1}, name);
   }
   if (nvml->nvmlDeviceGetClockInfo(handle, NVML_CLOCK_MEM, &value) == NVML_SUCCESS) {
     nvmlSensors.memClock = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "GPU memory clock", .type = SensorType::FREQUENCY, .rawDivider = 1});
+        sensors, {.name = "GPU memory clock", .type = SensorType::FREQUENCY, .rawDivider = 1},
+        name);
   }
 
   if (nvml->nvmlDeviceGetPowerUsage(handle, &value) == NVML_SUCCESS) {
     nvmlSensors.power = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "GPU power draw", .type = SensorType::POWER, .rawDivider = 1});
+        sensors, {.name = "GPU power draw", .type = SensorType::POWER, .rawDivider = 1}, name);
   }
 
   nvmlMemory_t memory{};
   if (nvml->nvmlDeviceGetMemoryInfo(handle, &memory) == NVML_SUCCESS) {
     nvmlSensors.vramTotal = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "GPU total memory", .type = SensorType::MEMORY, .rawDivider = 1});
+        sensors, {.name = "GPU total memory", .type = SensorType::MEMORY, .rawDivider = 1}, name);
     nvmlSensors.vramUsed = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "GPU used memory", .type = SensorType::MEMORY, .rawDivider = 1});
+        sensors, {.name = "GPU used memory", .type = SensorType::MEMORY, .rawDivider = 1}, name);
   }
 
   if (nvml->nvmlDeviceGetPcieThroughput(handle, NVML_PCIE_UTIL_TX_BYTES, &value) == NVML_SUCCESS) {
     nvmlSensors.pcieTx = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "pcie_tx", .type = SensorType::THROUGHPUT, .rawDivider = 1});
+        sensors, {.name = "pcie_tx", .type = SensorType::THROUGHPUT, .rawDivider = 1}, name);
     nvmlSensors.pcieRx = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "pcie_rx", .type = SensorType::THROUGHPUT, .rawDivider = 1});
+        sensors, {.name = "pcie_rx", .type = SensorType::THROUGHPUT, .rawDivider = 1}, name);
   }
 
   unsigned int samplingPeriodUs = 0;
   if (nvml->nvmlDeviceGetEncoderUtilization(handle, &value, &samplingPeriodUs) == NVML_SUCCESS) {
     nvmlSensors.encoderUtil = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "Encoder utilization", .type = SensorType::UTILIZATION, .rawDivider = 1});
+        sensors, {.name = "Encoder utilization", .type = SensorType::UTILIZATION, .rawDivider = 1},
+        name);
   }
   if (nvml->nvmlDeviceGetDecoderUtilization(handle, &value, &samplingPeriodUs) == NVML_SUCCESS) {
     nvmlSensors.decoderUtil = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "Decoder Utilization", .type = SensorType::UTILIZATION, .rawDivider = 1});
+        sensors, {.name = "Decoder Utilization", .type = SensorType::UTILIZATION, .rawDivider = 1},
+        name);
   }
 
   SPDLOG_INFO("using NVML for {}", name);
@@ -238,7 +242,7 @@ void NvidiaGpuDevice::addHwmonSensors() {
     return;
 
   const auto availableSensors = SharedHwmonParser::parseHwmonDirectory(card.hwmonPath);
-  SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sensors);
+  SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sensors, name);
 }
 
 std::string NvidiaGpuDevice::sysfsName() const {

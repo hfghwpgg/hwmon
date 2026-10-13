@@ -19,10 +19,15 @@ TEST(SensorReadingSerialize, EmitsAllFields) {
   ASSERT_TRUE(j.contains("max_value"));
   ASSERT_TRUE(j.contains("sum"));
   ASSERT_TRUE(j.contains("times"));
+  ASSERT_TRUE(j.contains("active"));
 
   EXPECT_FLOAT_EQ(j["value"].get<float>(), 1.5f);
   EXPECT_FLOAT_EQ(j["min_value"].get<float>(), 0.5f);
   EXPECT_FLOAT_EQ(j["max_value"].get<float>(), 2.5f);
   EXPECT_DOUBLE_EQ(j["sum"].get<double>(), 10.0);
   EXPECT_EQ(j["times"].get<std::size_t>(), 4u);
+  EXPECT_TRUE(j["active"].get<bool>());
+
+  reading.errorCount = MAX_ERRORS;
+  EXPECT_FALSE(reading.serialize()["active"].get<bool>());
 }

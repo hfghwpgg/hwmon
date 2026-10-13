@@ -22,7 +22,7 @@ struct PushDeltaFixture {
   PushSource *source;
 
   explicit PushDeltaFixture(std::string name, SensorType type = SensorType::THROUGHPUT) :
-      source(Sensor::addPushSensor<DeltaTransform>(sensors, {std::move(name), type})) {}
+      source(Sensor::addPushSensor<DeltaTransform>(sensors, {std::move(name), type}, "TEST")) {}
 
   Sensor &sensor() {
     return *sensors.front();
@@ -162,7 +162,7 @@ TEST(AddPushDeltaSensorTest, AppendsSensorAndReturnsBorrowedPointer) {
   std::vector<std::unique_ptr<Sensor>> sensors;
 
   PushSource *source = Sensor::addPushSensor<DeltaTransform>(
-      sensors, {"eth0 download", SensorType::THROUGHPUT});
+      sensors, {"eth0 download", SensorType::THROUGHPUT}, "TEST");
   source->setValue(1'000);
   sensors.front()->updateValue();
   tick();

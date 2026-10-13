@@ -148,11 +148,18 @@ Readings readingsFor(const SensorData &sensor, qint64 now) {
   return r;
 }
 
-Readings primaryReadings(const SectionData &section, qint64 now) {
+const SensorData *primarySensor(const SectionData &section) {
   for (const SensorData &sensor : section.sensors) {
     if (sensor.primary && !sensor.hidden) {
-      return readingsFor(sensor, now);
+      return &sensor;
     }
+  }
+  return nullptr;
+}
+
+Readings primaryReadings(const SectionData &section, qint64 now) {
+  if (const SensorData *sensor = primarySensor(section)) {
+    return readingsFor(*sensor, now);
   }
   return {};
 }
@@ -165,13 +172,13 @@ QString labelledName(const QString &iconPath, const QString &label, const QStrin
   return iconPath.isEmpty() ? QStringLiteral("[%1]  %2").arg(label, name) : name;
 }
 
-QIcon tintedSvgIcon(const QString &path, bool dark) {
+QIcon tintedSvgIcon(const QString &path, const QColor &color) {
   if (path.isEmpty()) {
     return {};
   }
 
-  static QHash<QPair<QString, bool>, QIcon> cache;
-  const auto key = qMakePair(path, dark);
+  static QHash<QPair<QString, QRgb>, QIcon> cache;
+  const auto key = qMakePair(path, color.rgba());
   if (auto it = cache.constFind(key); it != cache.cend()) {
     return it.value();
   }
@@ -186,7 +193,6 @@ QIcon tintedSvgIcon(const QString &path, bool dark) {
     return {};
   }
 
-  const QColor color = accentColor(dark);
   QIcon icon;
   for (const int size : {16, 32, 48}) {
     QPixmap pixmap(size, size);
@@ -268,6 +274,8 @@ SensorData parseSensor(const QString &deviceKey, QHash<QString, int> &sensorCoun
   sensor.max = readings.value(QLatin1String("max_value")).toDouble();
   sensor.sum = readings.value(QLatin1String("sum")).toDouble();
   sensor.times = readings.value(QLatin1String("times")).toVariant().toLongLong();
+  const QJsonValue active = readings.value(QLatin1String("active"));
+  sensor.active = !active.isBool() || active.toBool();
   const QJsonValue primary = sensorObject.value(QLatin1String("isPrimary"));
   sensor.primary = primary.toBool() || primary.toInt() != 0;
   return sensor;
@@ -398,7 +406,8 @@ QVariant MonitorModel::data(const QModelIndex &index, int role) const {
     const QString path = deviceRow            ? deviceIconPath(device->type)
                          : section != nullptr ? sensorIconPath(section->type)
                                               : sensorIconPath(sensor->type);
-    return tintedSvgIcon(path, m_darkTheme);
+    const bool inactive = sensor != nullptr && !sensor->active;
+    return tintedSvgIcon(path, inactive ? theme.disabledText : theme.accent);
   }
 
   case Qt::FontRole: {
@@ -421,6 +430,12 @@ QVariant MonitorModel::data(const QModelIndex &index, int role) const {
     return {};
 
   case Qt::ForegroundRole: {
+    const bool inactiveSensor = sensor != nullptr && !sensor->active;
+    const SensorData *primary = section != nullptr ? primarySensor(*section) : nullptr;
+    const bool inactivePrimary = primary != nullptr && !primary->active && column != NameColumn;
+    if (inactiveSensor || inactivePrimary) {
+      return theme.disabledText;
+    }
     if (column == NameColumn) {
       return theme.accent;
     }

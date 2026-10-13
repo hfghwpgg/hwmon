@@ -8,7 +8,7 @@ nlohmann::json SensorReading::serialize() {
   j["max_value"] = max_value;
   j["sum"] = sum;
   j["times"] = times;
-
+  j["active"] = errorCount < MAX_ERRORS;
   return j;
 }
 
@@ -18,4 +18,5 @@ void SensorReading::reset() {
   max_value = NAN;
   sum = 0;
   times = 0;
+  errorCount = 0;
 }

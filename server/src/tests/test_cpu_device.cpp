@@ -160,7 +160,30 @@ TEST_F(CpuDeviceTest, GetNameReadsFromCpuinfoFile) {
   CpuDevice device = makeDevice(paths);
   device.initialize();
 
-  EXPECT_EQ(device.serialize()["name"], "Test CPU Model");
+  EXPECT_EQ(device.serialize()["name"], "Test Model");
+}
+
+TEST_F(CpuDeviceTest, ParseNameShortensCommonModelStrings) {
+  const fs::path coretemp = hwmonDir("hwmon_coretemp0");
+  writeFile(coretemp / "temp1_input", "42000");
+
+  writeFile(cpuinfoPath, "model name\t: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz\n");
+  std::set<fs::path> intelPaths{coretemp};
+  CpuDevice intel = makeDevice(intelPaths);
+  intel.initialize();
+  EXPECT_EQ(intel.serialize()["name"], "i7-8700K");
+
+  writeFile(cpuinfoPath, "model name\t: AMD Ryzen 7 5800X 8-Core Processor\n");
+  std::set<fs::path> ryzenPaths{coretemp};
+  CpuDevice ryzen = makeDevice(ryzenPaths);
+  ryzen.initialize();
+  EXPECT_EQ(ryzen.serialize()["name"], "Ryzen 7 5800X");
+
+  writeFile(cpuinfoPath, "model name\t: AMD Ryzen AI 9 HX 370\n");
+  std::set<fs::path> ryzenAiPaths{coretemp};
+  CpuDevice ryzenAi = makeDevice(ryzenAiPaths);
+  ryzenAi.initialize();
+  EXPECT_EQ(ryzenAi.serialize()["name"], "Ryzen AI 9 HX 370");
 }
 
 TEST_F(CpuDeviceTest, UtilizationProducesSampleAfterSecondRead) {

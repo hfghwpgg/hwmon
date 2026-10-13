@@ -49,6 +49,7 @@ private:
   void getTemperature();
   void getCoreFrequency();
   std::string getName();
+  std::string parseName();
 
   void initUtilization();
   void readUtilization();

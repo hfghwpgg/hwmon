@@ -1,6 +1,5 @@
 #include "RamDevice.hpp"
 
-#include <cmath>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -22,20 +21,24 @@ void RamDevice::initialize() {
     SPDLOG_ERROR("{} inaccessible; skipping ram", meminfoPath.string());
     return;
   }
-  totalSrc = Sensor::addPushSensor<ScaleTransform>(sensors, {
-                                                                .name = "Total memory",
-                                                                .type = SensorType::MEMORY,
-                                                                .rawDivider = 1,
-                                                                .aggregateData = false,
-                                                                .isPrimary = false,
-                                                            });
-  availableSrc = Sensor::addPushSensor<ScaleTransform>(sensors, {
-                                                                    .name = "Used memory",
-                                                                    .type = SensorType::MEMORY,
-                                                                    .rawDivider = 1,
-                                                                    .aggregateData = true,
-                                                                    .isPrimary = true,
-                                                                });
+  totalSrc = Sensor::addPushSensor<ScaleTransform>(sensors,
+                                                   {
+                                                       .name = "Total memory",
+                                                       .type = SensorType::MEMORY,
+                                                       .rawDivider = 1,
+                                                       .aggregateData = false,
+                                                       .isPrimary = false,
+                                                   },
+                                                   name);
+  availableSrc = Sensor::addPushSensor<ScaleTransform>(sensors,
+                                                       {
+                                                           .name = "Used memory",
+                                                           .type = SensorType::MEMORY,
+                                                           .rawDivider = 1,
+                                                           .aggregateData = true,
+                                                           .isPrimary = true,
+                                                       },
+                                                       name);
 }
 
 void RamDevice::read() {

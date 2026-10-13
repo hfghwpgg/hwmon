@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <exception>
 #include <filesystem>
 #include <format>
@@ -9,6 +10,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unistd.h>
 #include <utility>
 #include <vector>
@@ -46,6 +48,7 @@ CpuDevice::~CpuDevice() {
 
 void CpuDevice::initialize() {
   name = getName();
+  name = parseName();
   getTemperature();
   getCoreFrequency();
   initUtilization();
@@ -122,7 +125,7 @@ void CpuDevice::getTemperature() {
       continue;
 
     const auto available_sensors = SharedHwmonParser::parseHwmonDirectory(dir);
-    SharedHwmonParser::createSensors(dir, available_sensors, sensors);
+    SharedHwmonParser::createSensors(dir, available_sensors, sensors, name);
 
     hwmonPaths.erase(dir);
   }
@@ -146,7 +149,7 @@ void CpuDevice::getCoreFrequency() {
     const std::string suffix = filename.substr(6);
     const std::string label = !suffix.empty() ? "CPU core " + suffix : "CPU";
     Sensor::makeFileSensor<ScaleTransform>(
-        sensors, path, {.name = label, .type = SensorType::FREQUENCY, .rawDivider = 1000});
+        sensors, path, {.name = label, .type = SensorType::FREQUENCY, .rawDivider = 1000}, name);
   }
 }
 
@@ -177,6 +180,74 @@ std::string CpuDevice::getName() {
   if (name == "cpumodel")
     SPDLOG_WARN("couldn't find cpu name in CPUINFO");
   return name;
+}
+
+// thanks btop!
+std::string CpuDevice::parseName() {
+  // Shorten the model string the same way btop does. Work on a copy so a
+  // failed match can still fall back to the original tokens.
+  const std::string fullName = name;
+  std::vector<std::string> nameVec;
+  {
+    std::stringstream ss(fullName);
+    for (std::string token; ss >> token;)
+      nameVec.push_back(std::move(token));
+  }
+
+  const auto containsToken = [&](std::string_view token) {
+    return std::ranges::find(nameVec, token) != nameVec.end();
+  };
+  const auto indexOf = [&](std::string_view token) {
+    return static_cast<std::size_t>(std::ranges::find(nameVec, token) - nameVec.begin());
+  };
+  const auto replaceAll = [](std::string value, std::string_view from, std::string_view to) {
+    if (from.empty())
+      return value;
+    for (std::size_t pos = value.find(from); pos != std::string::npos; pos = value.find(from))
+      value.replace(pos, from.size(), to);
+    return value;
+  };
+
+  std::string shortName;
+  if ((fullName.contains("Xeon") || containsToken("Duo")) && containsToken("CPU")) {
+    const auto cpuPos = indexOf("CPU");
+    if (cpuPos < nameVec.size() - 1 && !nameVec[cpuPos + 1].ends_with(')'))
+      shortName = nameVec[cpuPos + 1];
+  } else if (containsToken("Ryzen")) {
+    const auto ryzPos = indexOf("Ryzen");
+    shortName = "Ryzen";
+    int tokens = 0;
+    for (std::size_t i = ryzPos + 1; i < nameVec.size() && tokens < 2; i++) {
+      const std::string &part = nameVec[i];
+      if (part != "AI" && part != "PRO" && part != "H" && part != "HX")
+        tokens++;
+      shortName += ' ';
+      shortName += part;
+    }
+  } else if (fullName.contains("Intel") && containsToken("CPU")) {
+    const auto cpuPos = indexOf("CPU");
+    if (cpuPos < nameVec.size() - 1 && !nameVec[cpuPos + 1].ends_with(')') &&
+        nameVec[cpuPos + 1] != "@")
+      shortName = nameVec[cpuPos + 1];
+  }
+
+  if (shortName.empty() && !nameVec.empty()) {
+    for (const auto &part : nameVec) {
+      if (part == "@")
+        break;
+      shortName += part;
+      shortName += ' ';
+    }
+    if (!shortName.empty())
+      shortName.pop_back();
+    for (const char *word : {"Processor", "CPU", "(R)", "(TM)", "Intel", "AMD", "Apple", "Core"}) {
+      shortName = replaceAll(shortName, word, "");
+      shortName = replaceAll(shortName, "  ", " ");
+    }
+    shortName = helpers::trim(shortName);
+  }
+
+  return shortName;
 }
 
 // this is just creating right amount of
@@ -213,7 +284,8 @@ void CpuDevice::initUtilization() {
                                                              .rawDivider = 1,
                                                              .aggregateData = true,
                                                              .isPrimary = primary,
-                                                         }),
+                                                         },
+                                                         name),
             .utilOld = {.totalTime = 0, .idleTime = 0, .hasRead = false},
         });
   }
@@ -322,7 +394,7 @@ void CpuDevice::getPowerDraw() {
   if (zenergyAccessible) {
     SPDLOG_INFO("using zenergy interface for cpu power draw");
     const auto availableSensors = SharedHwmonParser::parseHwmonDirectory(zenergyPath);
-    powerSensors = SharedHwmonParser::returnSensors(zenergyPath, availableSensors);
+    powerSensors = SharedHwmonParser::returnSensors(zenergyPath, availableSensors, name);
     // kinda hacky
     for (const auto &sensor : powerSensors) {
       const auto name = sensor->getName();
@@ -342,8 +414,9 @@ void CpuDevice::getPowerDraw() {
     }
   } else if (intelRaplAccessible) {
     SPDLOG_INFO("using intel rapl interface for cpu power draw");
-    Sensor::makeFileSensor<DeltaTransform>(
-        powerSensors, cpuPaths.intelrapl, {.name = "Socket power draw", .type = SensorType::POWER});
+    Sensor::makeFileSensor<DeltaTransform>(powerSensors, cpuPaths.intelrapl,
+                                           {.name = "Socket power draw", .type = SensorType::POWER},
+                                           name);
   } else {
     SPDLOG_WARN("couldn't read cpu power draw. Try running with sudo");
   }

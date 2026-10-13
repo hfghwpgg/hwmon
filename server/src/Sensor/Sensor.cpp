@@ -3,9 +3,9 @@
 #include <cmath>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <optional>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "SensorReading.hpp"
@@ -14,7 +14,8 @@
 #include "Transform.hpp"
 
 Sensor::Sensor(std::unique_ptr<Source> source, std::unique_ptr<Transform> readingTransform,
-               SensorConfig config) :
+               SensorConfig config, std::string_view ownerName) :
+    ownerName(ownerName),
     source(std::move(source)),
     readingTransform(std::move(readingTransform)),
     config(config) {
@@ -25,8 +26,8 @@ Sensor::Sensor(std::unique_ptr<Source> source, std::unique_ptr<Transform> readin
 std::string Sensor::getName() {
   return config.name;
 }
-void Sensor::setName(std::string name) {
-  config.name = std::move(name);
+void Sensor::setName(std::string_view name) {
+  config.name = name;
 }
 SensorType Sensor::getType() {
   return config.type;
@@ -37,22 +38,41 @@ void Sensor::setPrimary(bool v) {
 
 
 void Sensor::updateValue() {
+  // we count errors to 3, cuz sometimes bad reads happen
+  // ex: on my machine, rarely gigabyte_wmi fails reading.
+  // by rarely i mean once per 30 minutes (1s interval)
+  if (readings.errorCount > MAX_ERRORS) {
+    return;
+  }
+  if (readings.errorCount == MAX_ERRORS) {
+    SPDLOG_ERROR("device: '{}' => sensor '{}': repeated invalid value read; disabling this sensor",
+                 ownerName, config.name);
+    readings.errorCount = 4;
+    return;
+  }
+
   auto raw = source->read();
   if (!raw) {
     if (raw.error() == Source::SourceStatus::NotReady)
-      SPDLOG_TRACE("sensor '{}': no value pushed yet", config.name);
+      SPDLOG_TRACE("device: '{}' => sensor '{}': no value pushed yet", ownerName, config.name);
     else
-      SPDLOG_ERROR("sensor '{}': invalid value read", config.name);
+      SPDLOG_TRACE("device: '{}' => sensor '{}': invalid value read ({})", ownerName, config.name,
+                   readings.errorCount);
+
+    readings.errorCount++;
     return;
   }
 
   auto val = readingTransform->apply(*raw);
   if (!val.has_value()) {
-    SPDLOG_TRACE("sensor '{}': not ready yet", config.name);
+    SPDLOG_TRACE("device: '{}' => sensor '{}': not ready yet", ownerName, config.name);
+    readings.errorCount++;
     return;
   }
   if (std::isnan(*val)) {
-    SPDLOG_TRACE("sensor '{}': value of recieved data is NaN", config.name);
+    SPDLOG_TRACE("device: '{}' => sensor '{}': value of recieved data is NaN", ownerName,
+                 config.name);
+    readings.errorCount++;
     return;
   }
 
@@ -61,6 +81,7 @@ void Sensor::updateValue() {
 
 void Sensor::accumulate(double value) {
   readings.value = value;
+  readings.errorCount = 0;
 
   if (!config.aggregateData) {
     readings.sum = value;

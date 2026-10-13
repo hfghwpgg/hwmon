@@ -121,26 +121,28 @@ bool IntelGpuDevice::setupPmu() {
   pmu_sample(pmuEngines);
 
   gpuUtil = Sensor::addPushSensor<ScaleTransform>(
-      sensors, {.name = "GPU utilization", .type = SensorType::UTILIZATION, .rawDivider = 1});
+      sensors, {.name = "GPU utilization", .type = SensorType::UTILIZATION, .rawDivider = 1}, name);
 
   engineUtil.reserve(pmuEngines->num_engines);
   for (unsigned int i = 0; i < pmuEngines->num_engines; ++i) {
     const struct engine *engine = engine_ptr(pmuEngines, i);
     const char *engineName = engine->display_name != nullptr ? engine->display_name : engine->name;
-    engineUtil.push_back(Sensor::addPushSensor<ScaleTransform>(
-        sensors, {
-                     .name = std::format("{}_util", engineName),
-                     .type = SensorType::UTILIZATION,
-                     .rawDivider = 1,
-                 }));
+    engineUtil.push_back(
+        Sensor::addPushSensor<ScaleTransform>(sensors,
+                                              {
+                                                  .name = std::format("{}_util", engineName),
+                                                  .type = SensorType::UTILIZATION,
+                                                  .rawDivider = 1,
+                                              },
+                                              name));
   }
 
   if (pmuEngines->freq_act.present)
     frequency = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "GPU clock", .type = SensorType::FREQUENCY, .rawDivider = 1});
+        sensors, {.name = "GPU clock", .type = SensorType::FREQUENCY, .rawDivider = 1}, name);
   if (pmuEngines->num_rapl > 0)
     power = Sensor::addPushSensor<ScaleTransform>(
-        sensors, {.name = "GPU power", .type = SensorType::POWER, .rawDivider = 1});
+        sensors, {.name = "GPU power", .type = SensorType::POWER, .rawDivider = 1}, name);
 
   SPDLOG_INFO("using i915 PMU for {} ({} engines)", name, pmuEngines->num_engines);
   return true;
@@ -176,7 +178,7 @@ void IntelGpuDevice::addHwmonSensors() {
     return;
 
   const auto availableSensors = SharedHwmonParser::parseHwmonDirectory(card.hwmonPath);
-  SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sensors);
+  SharedHwmonParser::createSensors(card.hwmonPath, availableSensors, sensors, name);
 }
 
 // intel_gpu_top ships a PCI id to marketing name table

@@ -20,7 +20,8 @@ struct PushSensorFixture {
   PushSource *source;
 
   PushSensorFixture(std::string name, SensorType type, unsigned int rawDivider = 1) :
-      source(Sensor::addPushSensor<ScaleTransform>(sensors, {std::move(name), type, rawDivider})) {}
+      source(Sensor::addPushSensor<ScaleTransform>(sensors, {std::move(name), type, rawDivider},
+                                                   "TEST")) {}
 
   Sensor &sensor() {
     return *sensors.front();
@@ -101,7 +102,7 @@ TEST(PushSensorTest, ResetClearsAggregatesAndPendingValue) {
 TEST(PushSensorTest, NonAggregatingSensorKeepsOnlyLatestSample) {
   std::vector<std::unique_ptr<Sensor>> sensors;
   PushSource *source = Sensor::addPushSensor<ScaleTransform>(
-      sensors, {"instant", SensorType::UTILIZATION, 1, /*aggregateData=*/false});
+      sensors, {"instant", SensorType::UTILIZATION, 1, /*aggregateData=*/false}, "TEST");
 
   for (const double value : {10.0, 90.0}) {
     source->setValue(value);
@@ -117,7 +118,7 @@ TEST(AddPushSensorTest, AppendsSensorAndReturnsBorrowedPointer) {
   std::vector<std::unique_ptr<Sensor>> sensors;
 
   PushSource *source =
-      Sensor::addPushSensor<ScaleTransform>(sensors, {"vram_used", SensorType::MEMORY});
+      Sensor::addPushSensor<ScaleTransform>(sensors, {"vram_used", SensorType::MEMORY}, "TEST");
   source->setValue(1024);
   sensors.front()->updateValue();
 
@@ -132,7 +133,8 @@ TEST(AddPushSensorTest, MarksPrimarySensor) {
   std::vector<std::unique_ptr<Sensor>> sensors;
 
   Sensor::addPushSensor<ScaleTransform>(
-      sensors, {"CPU", SensorType::UTILIZATION, 1, /*aggregateData=*/true, /*isPrimary=*/true});
+      sensors, {"CPU", SensorType::UTILIZATION, 1, /*aggregateData=*/true, /*isPrimary=*/true},
+      "TEST");
 
   EXPECT_TRUE(sensors.front()->serialize()["isPrimary"].get<bool>());
 }

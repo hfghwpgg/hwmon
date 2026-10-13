@@ -15,10 +15,12 @@ NetworkDevice::NetworkDevice(std::string name, std::filesystem::path statsPath) 
     statsPath(std::move(statsPath)) {}
 
 void NetworkDevice::initialize() {
-  Sensor::makeFileSensor<DeltaTransform>(
-      sensors, statsPath / "rx_bytes", {.name = "Download speed", .type = SensorType::THROUGHPUT});
+  Sensor::makeFileSensor<DeltaTransform>(sensors, statsPath / "rx_bytes",
+                                         {.name = "Download speed", .type = SensorType::THROUGHPUT},
+                                         name);
   Sensor::makeFileSensor<DeltaTransform>(sensors, statsPath / "tx_bytes",
-                                         {.name = "Upload speed", .type = SensorType::THROUGHPUT});
+                                         {.name = "Upload speed", .type = SensorType::THROUGHPUT},
+                                         name);
 }
 
 void NetworkDevice::read() {
