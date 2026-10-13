@@ -70,7 +70,7 @@ target_link_libraries(hwmonCore
 )
 
 target_compile_definitions(hwmonCore PUBLIC "$<$<CONFIG:Debug>:DEBUG>")
-# we set this in code, but for we need
+# we set this in code, but we need
 # TRACE for full control
 target_compile_definitions(hwmonCore PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 target_link_libraries(hwmonCore PRIVATE ${CMAKE_DL_LIBS})

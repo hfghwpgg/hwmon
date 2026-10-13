@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Linux (tested on Arch Linux)
-- g++ or clang++ with c++23 support (tested with g++ version 16.1.0)
+- gcc/g++ or clang/clang++ with c++23 support (tested with g++ version 16.1.0)
   - Libraries:
     - `nlohmann/json` library
     - `spdlog` library

@@ -5,6 +5,15 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER="${ROOT}/server/src"
 BUILD="${ROOT}/server/build"
 
+# defaults
+export CC="gcc"
+export CXX="g++"
+
+if command -v clang >/dev/null 2>&1 && command -v clang++ >/dev/null 2>&1; then
+    export CC=clang
+    export CXX=clang++
+fi
+
 usage() {
   cat <<EOF
 Usage: $(basename "$0") [help|debug|release|test|clear|iwyu]
@@ -22,7 +31,7 @@ Subcommands:
 
 Output binary: server/build/Hwmon
 
-Prerequisites: CMake 3.30+, C++23-capable compiler (g++ or clang++).
+Prerequisites: CMake 3.30+, C and C++23-capable compiler (g++ or clang++).
 Tests additionally require GoogleTest (GTest).
 EOF
 }
@@ -32,6 +41,7 @@ ensure_build_dir() {
 }
 
 build_with_type() {
+  echo "current C/C++ compilator: $CC/$CXX"
   local build_type="$1"
   local extra="${2:-false}"
   local -a cmake_extra=()

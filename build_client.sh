@@ -5,6 +5,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLIENT="${ROOT}/client/src"
 BUILD="${ROOT}/client/build/"
 
+# defaults
+export CXX="g++"
+
+if command -v clang >/dev/null 2>&1 && command -v clang++ >/dev/null 2>&1; then
+    export CXX=clang++
+fi
+
 usage() {
   cat <<EOF
 Usage: $(basename "$0") [help|debug|release|clear]
@@ -28,6 +35,7 @@ ensure_build_dir() {
 }
 
 build_with_type() {
+  echo "current C++ compilator: $CXX"
   local build_type="$1"
   local extra="${2:-false}"
   local -a cmake_extra=()

@@ -13,3 +13,4 @@ output.json
 *.log
 out.json
 post.txt
+compile_commands.json
