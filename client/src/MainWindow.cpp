@@ -8,6 +8,8 @@
 #include <QCloseEvent>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDragLeaveEvent>
+#include <QDragMoveEvent>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -15,11 +17,113 @@
 #include <QMenu>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QScrollBar>
 #include <QSettings>
 #include <QSize>
 #include <QSpinBox>
+#include <QTimer>
 #include <QTreeView>
 #include <QVBoxLayout>
+
+#include <algorithm>
+#include <cmath>
+
+namespace {
+
+// Qt's built-in drag auto-scroll samples QCursor::pos(), which is not updated during a
+// Wayland drag, so scrolling stops immediately. Drive it from drag move positions instead.
+class DragScrollTreeView : public QTreeView {
+public:
+  explicit DragScrollTreeView(QWidget *parent = nullptr) :
+      QTreeView(parent) {
+    setAutoScroll(false);
+    m_scrollTimer.setInterval(16);
+    QObject::connect(&m_scrollTimer, &QTimer::timeout, this, [this] { scrollStep(); });
+  }
+
+protected:
+  void dragMoveEvent(QDragMoveEvent *event) override {
+    QTreeView::dragMoveEvent(event);
+    m_dragPos = event->position().toPoint();
+    m_dragActions = event->possibleActions();
+    m_dragMime = event->mimeData();
+    m_dragButtons = event->buttons();
+    m_dragModifiers = event->modifiers();
+    if (scrollSpeed() != 0.0) {
+      if (!m_scrollTimer.isActive()) {
+        m_scrollTimer.start();
+      }
+    } else {
+      stopScroll();
+    }
+  }
+
+  void dragLeaveEvent(QDragLeaveEvent *event) override {
+    stopScroll();
+    m_dragMime = nullptr;
+    QTreeView::dragLeaveEvent(event);
+  }
+
+  void dropEvent(QDropEvent *event) override {
+    stopScroll();
+    m_dragMime = nullptr;
+    QTreeView::dropEvent(event);
+  }
+
+private:
+  // Signed fraction in [-1, 1] of how deep the drag position is inside the top/bottom margin.
+  double scrollSpeed() const {
+    const int margin = std::max(autoScrollMargin(), 2 * std::max(sizeHintForRow(0), 64));
+    const int height = viewport()->height();
+    const int y = m_dragPos.y();
+    if (y < margin) {
+      return -double(margin - std::max(y, 0)) / margin;
+    }
+    if (y > height - margin) {
+      return double(std::min(y, height) - (height - margin)) / margin;
+    }
+    return 0.0;
+  }
+
+  void scrollStep() {
+    const double speed = scrollSpeed();
+    QScrollBar *bar = verticalScrollBar();
+    const int before = bar->value();
+    if (verticalScrollMode() == QAbstractItemView::ScrollPerPixel) {
+      m_scrollRemainder += speed * 24.0;
+    } else {
+      m_scrollRemainder += speed * 0.6;
+    }
+    const int delta = int(std::trunc(m_scrollRemainder));
+    m_scrollRemainder -= delta;
+    bar->setValue(before + delta);
+    if (speed == 0.0 || (delta != 0 && bar->value() == before)) {
+      stopScroll();
+      return;
+    }
+    if (bar->value() != before && m_dragMime) {
+      // Refresh the drop indicator for the row that is now under the stationary pointer.
+      QDragMoveEvent refresh(QPointF(m_dragPos), m_dragActions, m_dragMime, m_dragButtons,
+                             m_dragModifiers);
+      QTreeView::dragMoveEvent(&refresh);
+    }
+  }
+
+  void stopScroll() {
+    m_scrollTimer.stop();
+    m_scrollRemainder = 0.0;
+  }
+
+  QTimer m_scrollTimer;
+  QPoint m_dragPos;
+  Qt::DropActions m_dragActions;
+  const QMimeData *m_dragMime = nullptr;
+  Qt::MouseButtons m_dragButtons;
+  Qt::KeyboardModifiers m_dragModifiers;
+  double m_scrollRemainder = 0.0;
+};
+
+} // namespace
 
 MainWindow::MainWindow(ClientBackend &backend, QWidget *parent) :
     QMainWindow(parent),
@@ -34,7 +138,7 @@ MainWindow::MainWindow(ClientBackend &backend, QWidget *parent) :
   layout->setContentsMargins(0, 0, 0, 0);
   layout->setSpacing(0);
 
-  m_tree = new QTreeView(central);
+  m_tree = new DragScrollTreeView(central);
   m_tree->setModel(m_model);
   m_tree->setUniformRowHeights(true);
   m_tree->setAlternatingRowColors(true);
