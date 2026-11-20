@@ -53,6 +53,7 @@ private:
   RsmiSensors rsmiSensors;
 
   bool setupRsmi();
+  [[nodiscard]] std::string rsmiName() const;
   void setupSysfs();
   void readRsmi();
 

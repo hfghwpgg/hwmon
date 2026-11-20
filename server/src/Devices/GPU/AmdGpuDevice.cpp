@@ -1,5 +1,6 @@
 #include "AmdGpuDevice.hpp"
 
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <format>
@@ -68,6 +69,24 @@ nlohmann::json AmdGpuDevice::serialize() {
   return j;
 }
 
+// Returns the marketing name, falling back to the device name. Either
+// query can succeed with an empty string, so treat empty as "not available".
+std::string AmdGpuDevice::rsmiName() const {
+  std::array<char, RSMI_DEVICE_NAME_BUFFER_SIZE> buffer{};
+
+  const auto query = [&](auto getter) -> std::string {
+    buffer.fill('\0');
+    if (getter(rsmiIndex, buffer.data(), buffer.size()) != RSMI_STATUS_SUCCESS)
+      return {};
+    std::string value{buffer.data()};
+    return helpers::trim(value);
+  };
+
+  if (std::string market = query(rsmi->rsmi_dev_market_name_get); !market.empty())
+    return market;
+  return query(rsmi->rsmi_dev_name_get);
+}
+
 // Probes every metric once and only creates sensors for the ones the card
 // answers
 bool AmdGpuDevice::setupRsmi() {
@@ -80,15 +99,8 @@ bool AmdGpuDevice::setupRsmi() {
     return false;
   }
 
-  char deviceName[RSMI_DEVICE_NAME_BUFFER_SIZE];
-  if (rsmi->rsmi_dev_market_name_get(rsmiIndex, deviceName, RSMI_DEVICE_NAME_BUFFER_SIZE) ==
-      RSMI_STATUS_SUCCESS) {
-    name = deviceName;
-  } else if (deviceName[0] == '\0' && // returned name is empty
-             rsmi->rsmi_dev_name_get(rsmiIndex, deviceName, RSMI_DEVICE_NAME_BUFFER_SIZE) ==
-                 RSMI_STATUS_SUCCESS) {
-    name = deviceName;
-  } else {
+  name = rsmiName();
+  if (name.empty()) {
     SPDLOG_WARN("ROCm SMI: failed to get device name for {}", card.pciAddress);
     name = sysfsName();
   }
